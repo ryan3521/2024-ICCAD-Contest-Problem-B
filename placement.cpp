@@ -5,7 +5,7 @@
 // *******************************************************************
 
 // Constructor
-void plcmt_row::plcmt_row(double sx, double sy, double sw, double sh, int sn){
+plcmt_row::plcmt_row(double sx, double sy, double sw, double sh, int sn){
     is_tested = false;
     is_visited = false;
     start_x = sx;
@@ -28,41 +28,102 @@ bool plcmt_row::cmp_g(gatei* a, gatei* b){
 void plcmt_row::sort_gate(){glist.sort(cmp_g); return;}
 
 
-void plcmt_row::add_gblock(double start, double end){
+bool plcmt_row::add_gblock(double start, double end){
     int s, e;
 
     s = (start - start_x)/site_w;
-    e = (end - start_x)/site_w + 1;
+    e = s + ceil((end - start)/site_w) - 1;
+
+    if(this->x_inrange(start, end) == false){
+        cout << "error2" << endl;
+        return false;
+    }
 
     if(block_list.size() == 0){
         block_list.push_back(pair<int, int>(s, e));
+        return true;
     }
     else{
-        for(auto rIt = block_list.rbegin(); rIt != block_list.rend(); rIt++){
-            if(s > rIt->second){
-                if(s == rIt->second + 1){
-                    rIt->second = e;
-                }
-                else{
-                    block_list.insert(rIt.base(), pair<int, int>(s, e));
-                    rIt--;
-                }
-
-                if(rIt != block_list.rbegin()){
-                    //       rIt       rIt2
-                    // .... [s, e] -> [s, e]
-                    auto rIt2 = rIt-1;
-                    if(rIt->second >= rIt2->first){
-                        rIt->second >= rIt2->second;
-                        block_list.erase(rIt.base());
-                    }
-                }
-                break;
+        if(s > block_list.back().second){
+            if(s == block_list.back().second+1){
+                block_list.back().second = e;
+                return true;
+            }
+            else {
+                block_list.push_back(pair<int, int>(s, e));
+                return true;
             }
         }
-    }
-}
+        else{
+            int back;
+            int front;
 
+            for(auto rIt = block_list.rbegin(); rIt != block_list.rend(); rIt++){
+                auto rIt_next = rIt;
+                rIt_next++;
+
+                if(rIt_next == block_list.rend()){
+                    if(e < rIt->first){
+                        if(e == rIt->first - 1){
+                            rIt->first = s;
+                            return true;
+                        }
+                        else{
+                            block_list.push_front(pair<int, int>(s, e));
+                            return true;
+                        }
+                    }
+                }
+                else{
+                    front = rIt_next->second;
+                    back  = rIt->first;
+                    // if(front >= back){
+                    //     cout << "Something is wrong!" << endl;
+                    //     return;
+                    // }
+
+                    if(s > front && s < back){
+                        if(e >= back){
+                            cout << "Error: Conflict!" << endl;
+                            return false;
+                        }
+                    }
+                    else if(e > front && e < back){
+                        if(s <= front){
+                            cout << "Error: Conflict!" << endl;
+                            return false;
+                        }
+                    }
+
+                    if(s > front && e < back){
+                        if(s==front+1 && e==back-1){
+                            rIt_next->second = rIt->second;
+                            block_list.erase(rIt_next.base());
+                            return true;
+                        }
+                        else if(s==front+1){
+                            rIt_next->second = e;
+                            return true;
+                        }
+                        else if(e==back-1){
+                            rIt->first = s;
+                            return true;
+                        }
+                        else{
+                            block_list.insert(rIt_next.base(), pair<int, int>(s, e));
+                            return true;
+                        }
+                    }
+                }
+            }
+        } 
+    }
+
+    cout << "Error: Can't find available space ... ";
+    cout << "[" << start <<  ", " << end << "] -> " ;
+    cout << "[" << s <<  ", " << e << "]"  << endl;
+    return false;
+}
 
 void plcmt_row::add_fblock(double start, double end){
     int si = (start - start_x)/site_w;
@@ -129,7 +190,7 @@ bool plcmt_row::check_available(double start, double end, double height){
             if(s>front && e<it->first) {
                 if(height > site_h){
                     for(auto& pr: up_rows){
-                        if(check_available(start, end, height - site_h) == true) return true;
+                        if(pr->check_available(start, end, height - site_h) == true) return true;
                     }
                     return false;
                 }
@@ -146,7 +207,7 @@ bool plcmt_row::check_available(double start, double end, double height){
             if(s>=it->first && e<=it->second) {
                 if(height > site_h){
                     for(auto& pr: up_rows){
-                        if(check_available(start, end, height - site_h) == true) return true;
+                        if(pr->check_available(start, end, height - site_h) == true) return true;
                     }
                     return false;
                 }
@@ -191,28 +252,37 @@ bool plcmt_row::x_overlapped(double x1, double x2, bool& fit){
 
 bool plcmt_row::x_inrange(double x1, double x2){
     if(x1>=start_x && x2<=(start_x+site_num*site_w)) return true;
-    else return;
+    else return false;
 }
 
-void plcmt_row::add_gate(double start, double end, double height){
-
-    this->add_gblock(start, end);
-
+bool plcmt_row::add_gate(double start, double end, double height){
+    if(this->x_inrange(start, end) == false){
+        cout << "error1" << endl;
+        return false;
+    }
+    if(this->add_gblock(start, end) == false)
+    {
+        return false;
+    }
     if(height > site_h){
         for(auto& pr: up_rows){
-            if(pr->x_inrange(start, end)){
-                pr->add_gate(start, end, height - site_h);
-                break;
-            }        
+            if(pr->x_inrange(start, end) == true){
+                return pr->add_gate(start, end, height - site_h);
+            }   
+            else{
+                cout << "Error: Not in range!" << endl;
+                return false;
+            }     
         }
     }
 
-    return;
+    return true;
 }
 
-void plcmt::add_ff(double start, double end, double height){
-    this->add_fblock(start, end);
+void plcmt_row::add_ff(double start, double end, double height){
 
+    this->add_fblock(start, end);
+    
     if(height > site_h){
         for(auto& pr: up_rows){
             if(pr->x_inrange(start, end)){
@@ -243,7 +313,7 @@ bool plcmt_row::seg_mincost(ffi* fi, int ds, int de, int dw, int& best_pos_idx, 
                 cost = abs(fi->coox - s) + abs(fi->cooy - start_y);
                 if(cost < mincost) {
                     mincost = cost;
-                    best_pos_idx = i
+                    best_pos_idx = i;
                     find_new = true;
                 }
                 else{
@@ -262,7 +332,7 @@ bool plcmt_row::seg_mincost(ffi* fi, int ds, int de, int dw, int& best_pos_idx, 
                 cost = abs(fi->coox - s) + abs(fi->cooy - start_y);
                 if(cost < mincost) {
                     mincost = cost;
-                    best_pos_idx = i
+                    best_pos_idx = i;
                     find_new = true;
                 }
                 else{
@@ -273,11 +343,11 @@ bool plcmt_row::seg_mincost(ffi* fi, int ds, int de, int dw, int& best_pos_idx, 
             e = e - site_w;
         }
     }
+    return find_new;
 }
 
 double plcmt_row::place_trial(list<plcmt_row*> tested_list, ffi* fi, bool& available, int& best_pos_idx, double global_mincost){ // ax is available x coordinate
     available = false;
-    int best_pos_idx;
     double mincost = numeric_limits<double>::max(); // local mincost
     double h = fi->type->size_y;
     double w = fi->type->size_x;
@@ -407,18 +477,28 @@ double plcmt_row::closest_x(double x){
     else return x;
 }
 
+
+void plcmt_row::print_blocklist(){
+    cout << endl << "Block List: " << block_list.size() << endl;
+    for(auto it = block_list.begin(); it != block_list.end(); it++){
+        cout << "[" << it->first << ", " << it->second << "] -> ";
+        
+    }
+    cout << endl;
+    cout << endl;
+}
+
 // *******************************************************************
 // *                        CLASS placement                          *
 // *******************************************************************
-void placement::placement(){
+placement::placement(){
     temp_rows.clear();
     rows.clear();
-    rs_list.clear();
     new_ff_cnt = 0;
 }
 
 bool placement::row_cmp(plcmt_row* a, plcmt_row* b){
-    if(a->start_y == b->start_y) return a->start_x < b->start_x
+    if(a->start_y == b->start_y) return a->start_x < b->start_x;
     return a->start_y < b->start_y;
 }
 
@@ -446,8 +526,8 @@ void placement::initial(){
                     pr->down_rows.push_back(it.second);
                     it.second->up_rows.push_back(pr);
                     if(is_fit){
-                        it->first = pr->start_y + pr->site_h;
-                        it->second = pr;
+                        it.first = pr->start_y + pr->site_h;
+                        it.second = pr;
                         break;
                     }
                 }
@@ -468,8 +548,6 @@ int placement::closest_IDX(double x, double y){
     double y_diff;
     double min_y_diff = numeric_limits<double>::max();;
     int eva_idx = (y - rows[0]->start_y)/rows[0]->site_h;
-
-
 
 
     if(eva_idx >= rows.size()) eva_idx = rows.size() - 1;
@@ -506,8 +584,8 @@ int placement::closest_IDX(double x, double y){
 
     // Step 2. Calculate mincost
     if(rows[idx]->x_inrange(x, x)) return idx;
-    else if(x < rows[idx]->start) mincost = min_y_diff + (rows[idx]->start - x);
-    else mincost = min_y_diff + (x - (rows[idx]->start + rows[idx]->site_num*rows[idx]->site_w));
+    else if(x < rows[idx]->start_x) mincost = min_y_diff + (rows[idx]->start_x - x);
+    else mincost = min_y_diff + (x - (rows[idx]->start_x + rows[idx]->site_num*rows[idx]->site_w));
 
     // Step 3. Calculate cost for each row which row's abs(start_y-y) < mincost
     int min_y_idx = idx;
@@ -518,8 +596,8 @@ int placement::closest_IDX(double x, double y){
         if(y_diff >= mincost) break;
         else{
             if(rows[i]->x_inrange(x, x)) cost = y_diff;
-            else if(x < rows[i]->start) cost = y_diff + (rows[i]->start - x);
-            else cost = y_diff + (x - (rows[i]->start + rows[i]->site_num*rows[i]->site_w));
+            else if(x < rows[i]->start_x) cost = y_diff + (rows[i]->start_x - x);
+            else cost = y_diff + (x - (rows[i]->start_x + rows[i]->site_num*rows[i]->site_w));
 
             if(cost < mincost){
                 idx = i;
@@ -535,8 +613,8 @@ int placement::closest_IDX(double x, double y){
         if(y_diff >= mincost) break;
         else{
             if(rows[i]->x_inrange(x, x)) cost = y_diff;
-            else if(x < rows[i]->start) cost = y_diff + (rows[i]->start - x);
-            else cost = y_diff + (x - (rows[i]->start + rows[i]->site_num*rows[i]->site_w));
+            else if(x < rows[i]->start_x) cost = y_diff + (rows[i]->start_x - x);
+            else cost = y_diff + (x - (rows[i]->start_x + rows[i]->site_num*rows[i]->site_w));
 
             if(cost < mincost){
                 idx = i;
@@ -550,38 +628,78 @@ int placement::closest_IDX(double x, double y){
 }
 
 void placement::placeGateInst(inst& INST){
-
+    // for(auto& it: INST.gate_umap){
+    //     if(it.second->name == "C102728"){
+    //         cout << it.first << endl;
+    //     }
+    // }
     for(auto& gi: INST.gate_umap){
-        double y = gi->cooy;
-        double x = gi->coox;
+        double y = gi.second->cooy;
+        double x = gi.second->coox;
         int idx = closest_IDX(x, y);
 
         double temp = (x - rows[idx]->start_x)/rows[idx]->site_w;
-        if(y != rows[idx]->start_y || abs(temp - int(temp)) > 0.0000001){
+        if(y != rows[idx]->start_y || abs(temp - int(temp)) != 0){
             cout << "Error: gate instance is not on site." << endl;
             break;
         }
-        
-        rows[idx]->glist.push_back(gi);
+        // if(gi.second->name == "C102728"){
+        //     cout << idx << endl;
+        // }
+        rows[idx]->glist.push_back(gi.second);
     }
-
-
+    int cnt;
+    bool place_fail;
+    gatei* gi_front;
+    cout << "Row numbers: " << rows.size() << endl;
     for(int i=0; i<rows.size(); i++){
-        rows[i].sort_gate();
+        rows[i]->sort_gate();
+        place_fail = false;
+        cnt = 0;
         for(auto& gi: rows[i]->glist){
-            rows[i]->add_gate(gi->coox, gi->coox+gi->type->size_x, gi->type->size_y);
+            // cout << "\033[2J\033[1;1H";
+            // rows[i]->print_blocklist();
+            // if(gi->coox == 22440){
+            //     cout << i << endl;
+            //     cout << gi->name << endl;
+            // }
+            if(rows[i]->x_inrange(gi->coox, gi->coox+gi->type->size_x) == false){
+                cout << "Error: Not in range!" << endl;
+                place_fail = true;
+                break;
+            }
+            if(rows[i]->add_gate(gi->coox, gi->coox+gi->type->size_x, gi->type->size_y) == false){
+                cout << "ROW " << i << endl; 
+                cout << "ROW start X: " << rows[i]->start_x << endl;
+                cout << "ROW start Y: " << rows[i]->start_y << endl;
+                cout << "=============================" << endl;
+                cout << "G Name: " << gi->name << endl;
+                cout << "G X: " << gi->coox << endl;
+                cout << "G Y: " << gi->cooy << endl; 
+                cout << "G cnt: " << cnt << endl;
+                cout << "=============================" << endl;
+                cout << "G front Name: " << gi_front->name << endl;
+                cout << "G front X: " << gi_front->coox << endl;
+                cout << "G front Y: " << gi_front->cooy << endl; 
+                rows[i]->print_blocklist();
+                place_fail = true;
+                break;
+            }
+            gi_front = gi;
+            cnt++;
         }
-        rows[i]->add_block(rows[i]->site_num, rows[i]->site_num);
+        if(place_fail) break;
+        // rows[i]->add_gblock(rows[i]->site_num*, rows[i]->site_num);
     }
 }
 
-void placement::ff_cmp(ffi* a, ffi* b){
+bool placement::ff_cmp(ffi* a, ffi* b){
     return a->coox < b->coox;
 }
 
 
 
-void placement::placeFlipFlopInst(lib& LIB, inst& INST, dieInfo& DIE, list<ffi*>& UPFFS, , list<ffi*>& PFFS){
+void placement::placeFlipFlopInst(lib& LIB, inst& INST, dieInfo& DIE, list<ffi*>& UPFFS, list<ffi*>& PFFS){
     int idx;
     int pos_idx;
     int best_pos_idx;
@@ -594,7 +712,7 @@ void placement::placeFlipFlopInst(lib& LIB, inst& INST, dieInfo& DIE, list<ffi*>
     list<ffi*> dismantle_list;
     list<plcmt_row*> tested_list;
     list<plcmt_row*> search_stack;
-    plcmt_row* pr;
+
     
 
 
@@ -626,7 +744,7 @@ void placement::placeFlipFlopInst(lib& LIB, inst& INST, dieInfo& DIE, list<ffi*>
         }
 
         // Step 2. Calculate the closest placement row for this ff
-        idx = closest_IDX(fi->cooy);
+        idx = closest_IDX(fi->coox, fi->cooy);
 
 
         // Step 3. Find the minimal cost around the adjacent area.
@@ -662,14 +780,14 @@ void placement::placeFlipFlopInst(lib& LIB, inst& INST, dieInfo& DIE, list<ffi*>
             for(auto& p: search_stack.front()->up_rows){
                 if(p->is_visited == false){
                     if(find==true){
-                        if(fi->is_too_far(p->closest_x(fi->coox), p->start_y, displacement_delay) == false){
+                        if(fi->is_too_far(p->closest_x(fi->coox), p->start_y, DIE.displacement_delay) == false){
                             search_stack.push_back(p);
                             p->is_visited = true;
                         }
                     }
                     else{
                         if(fi->type->bit_num > 1){
-                            if(fi->is_too_far(p->closest_x(fi->coox), p->start_y, displacement_delay) == false){
+                            if(fi->is_too_far(p->closest_x(fi->coox), p->start_y, DIE.displacement_delay) == false){
                                 search_stack.push_back(p);
                                 p->is_visited = true;
                             }
@@ -683,7 +801,7 @@ void placement::placeFlipFlopInst(lib& LIB, inst& INST, dieInfo& DIE, list<ffi*>
             }
             for(auto& p: search_stack.front()->down_rows){
                 if(p->is_visited == false){
-                    if(fi->is_too_far(p->closest_x(fi->coox), p->start_y, displacement_delay) == false){
+                    if(fi->is_too_far(p->closest_x(fi->coox), p->start_y, DIE.displacement_delay) == false){
                         search_stack.push_back(p);
                         p->is_visited = true;
                     }
@@ -752,11 +870,11 @@ void placement::placeFlipFlopInst(lib& LIB, inst& INST, dieInfo& DIE, list<ffi*>
                     }
                     else{
                         if(target_pr->is_tested == false){
-                            if(fi->is_too_far(fi->coox, target_pr->start_y, displacement_delay) == true){
+                            if(fi->is_too_far(fi->coox, target_pr->start_y, DIE.displacement_delay) == true){
                                 search_up = false;
                             }
                             else{
-                                if(fi->is_too_far(target_pr->closest_x(fi->coox), target_pr->start_y, displacement_delay) == false){
+                                if(fi->is_too_far(target_pr->closest_x(fi->coox), target_pr->start_y, DIE.displacement_delay) == false){
                                     cost = target_pr->place_trial(tested_list, fi, available, pos_idx, mincost);
                                     if(available){
                                         find = true;
@@ -824,11 +942,11 @@ void placement::placeFlipFlopInst(lib& LIB, inst& INST, dieInfo& DIE, list<ffi*>
                     }
                     else{
                         if(target_pr->is_tested == false){
-                            if(fi->is_too_far(fi->coox, target_pr->start_y, displacement_delay) == true){
+                            if(fi->is_too_far(fi->coox, target_pr->start_y, DIE.displacement_delay) == true){
                                 search_down = false;
                             }
                             else{
-                                if(fi->is_too_far(target_pr->closest_x(fi->coox), target_pr->start_y, displacement_delay) == false){
+                                if(fi->is_too_far(target_pr->closest_x(fi->coox), target_pr->start_y, DIE.displacement_delay) == false){
                                     cost = target_pr->place_trial(tested_list, fi, available, pos_idx, mincost);
                                     if(available){
                                         find = true;
@@ -909,7 +1027,7 @@ void placement::mbff_dismantle(ffi* fi, list<ffi*>& dismantle_list, lib& LIB, di
     ffi* new_fi;
     string inst_name;
 
-    if(fi->type->area == LIB.fftable_area.front()->area){
+    if(fi->type->area == LIB.fftable_area[fi->type->bit_num].front()->area){
         // It means that this type of MBFF is the smallest size of this bit.
         // No other choice but only dismantle this mbff.
         dismantle = true;
@@ -946,8 +1064,8 @@ void placement::mbff_dismantle(ffi* fi, list<ffi*>& dismantle_list, lib& LIB, di
             for(int i=0; i<ft->bit_num; i++){
                 if(remain_size <= 0) break;
                 
-                fi->d_pins[pin_cnt]->to_new_ff = ft;
-                fi->q_pins[pin_cnt]->to_new_ff = ft;
+                fi->d_pins[pin_cnt]->to_new_ff = new_fi;
+                fi->q_pins[pin_cnt]->to_new_ff = new_fi;
                 new_fi->d_pins.push_back(fi->d_pins[pin_cnt]);
                 new_fi->q_pins.push_back(fi->q_pins[pin_cnt]);
 
@@ -956,9 +1074,9 @@ void placement::mbff_dismantle(ffi* fi, list<ffi*>& dismantle_list, lib& LIB, di
             }      
             new_fi->new_coor();
             new_fi->clk_pin = new pin;
-            new_fi->clk_pin->name     = fi->clk_pin->name;
-            new_fi->clk_pin->to_net   = fi->clk_pin->to_net;
-            new_fi->clk_pin->to_ff    = new_fi;
+            new_fi->clk_pin->name      = fi->clk_pin->name;
+            new_fi->clk_pin->to_net    = fi->clk_pin->to_net;
+            new_fi->clk_pin->to_new_ff = new_fi;
             new_fi->clk_pin->pin_type = 'f';
 
             dismantle_list.push_front(new_fi);  
@@ -966,7 +1084,7 @@ void placement::mbff_dismantle(ffi* fi, list<ffi*>& dismantle_list, lib& LIB, di
         }
 
         remain_size = new_size2;
-        for(auto& ft: LIB.opt_fftable[new_size1]){
+        for(auto& ft: LIB.opt_fftable[new_size2]){
             inst_name = "";
             inst_name = inst_name + "MB" + to_string(new_ff_cnt);
             new_fi = new ffi(inst_name, 0, 0);
@@ -977,8 +1095,8 @@ void placement::mbff_dismantle(ffi* fi, list<ffi*>& dismantle_list, lib& LIB, di
             for(int i=0; i<ft->bit_num; i++){
                 if(remain_size <= 0) break;
                 
-                fi->d_pins[pin_cnt]->to_new_ff = ft;
-                fi->q_pins[pin_cnt]->to_new_ff = ft;
+                fi->d_pins[pin_cnt]->to_new_ff = new_fi;
+                fi->q_pins[pin_cnt]->to_new_ff = new_fi;
                 new_fi->d_pins.push_back(fi->d_pins[pin_cnt]);
                 new_fi->q_pins.push_back(fi->q_pins[pin_cnt]);
 
@@ -1002,13 +1120,6 @@ void placement::mbff_dismantle(ffi* fi, list<ffi*>& dismantle_list, lib& LIB, di
 
         fi->type = small_type;
         fi->name = inst_name;
-
-        for(auto& p: fi->d_pins){
-            p->to_new_ff = small_type;
-        }
-        for(auto& p: fi->q_pins){
-            p->to_new_ff = small_type;
-        }
 
         fi->new_coor();
         new_ff_cnt++;
