@@ -6,7 +6,7 @@
 #include "die_info.h"
 #include "netlist.h"
 #include "placement.h"
-// #include "cluster.h"
+#include "cluster.h"
 
 using namespace std;
 
@@ -163,59 +163,16 @@ int main(int argc, char** argv){
     ReadInput(argv[1], LIB, INST, DIE, NL, PM);
     LIB.construct_fftable(DIE);
     INST.SlackDispense_Q(DIE);
-    // KmeansCls(LIB, INST, KCR, NCLS);
-    // MapClstoMBFF(LIB, KCR, MBFFS);
-    // FineTune(LIB, NCLS, MBFFS, UPFFS, DIE); // Not finish yet
-    // PM.placeGateInst(INST);
-    // PM.placeFlipFlopInst(LIB, INST, DIE, UPFFS, PFFS);
+    KmeansCls(LIB, INST, KCR, NCLS);
+    MapClstoMBFF(LIB, KCR, MBFFS);
+    FineTune(LIB, NCLS, MBFFS, UPFFS, DIE); // Not finish yet
+    PM.placeGateInst(INST);
+    PM.placeFlipFlopInst(LIB, INST, DIE, UPFFS, PFFS);
 
     // If placement success ...
     // Output PFFS Info 
     // Done 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-    // PrintInput(LIB, INST, DIE, NL);
-    int LIMIT = 50;
-    int cnt = 0;
-    int neg_dslack_ff = 0;
-    int neg_qslack_ff = 0;
-    int arr[4] = {0, 0, 0, 0};
-    cout << "FlipFlop Instance Count: " << INST.ff_umap.size() << endl;
-    for(auto& i: INST.ff_umap){
-        auto& f = i.second;
-        // cout << "Instance: " << f->name << endl;
-        for(int i=0; i<f->type->bit_num; i++){
-            // cout << "  " << f->d_pins[i]->name << " " << f->d_pins[i]->dspd_slk << endl;
-            // cout << "  " << f->q_pins[i]->name << " " << f->q_pins[i]->dspd_slk << endl;
-            if(f->d_pins[i]->slack < 0) neg_dslack_ff++;
-            if(f->q_pins[i]->dspd_slk < 0) neg_qslack_ff++;
-        }
-        // cnt ++;
-        // if(cnt > LIMIT) break;
-        arr[f->type->bit_num-1]++;
-    }
-    
-    for(int i=0; i<4; i++){
-        cout << i << ": " << arr[i] << endl;
-    }
-
-    cout << "Negative D Number: " << neg_dslack_ff << endl;
-    cout << "Negative Q Number: " << neg_qslack_ff << endl;
-    PrintDataAnalysis(LIB, INST, DIE, NL);
-
-    
     
     return 0;
 }
