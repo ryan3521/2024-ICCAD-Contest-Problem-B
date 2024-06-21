@@ -256,10 +256,7 @@ bool plcmt_row::x_inrange(double x1, double x2){
 }
 
 bool plcmt_row::add_gate(double start, double end, double height){
-    if(this->x_inrange(start, end) == false){
-        cout << "error1" << endl;
-        return false;
-    }
+
     if(this->add_gblock(start, end) == false)
     {
         return false;
@@ -516,6 +513,8 @@ void placement::initial(){
     temp_rows.sort(row_cmp);
     rows.reserve(temp_rows.size());
 
+
+
     for(auto& pr: temp_rows){
         rows.push_back(pr);
         is_fit = false;
@@ -645,13 +644,17 @@ void placement::placeGateInst(inst& INST){
         }
         // if(gi.second->name == "C102728"){
         //     cout << idx << endl;
+        //     cout << x << endl;
+        //     cout << y << endl;
+        //     cout << rows[idx]->start_y << endl;
         // }
         rows[idx]->glist.push_back(gi.second);
     }
+    // cout << rows[605]->glist.front()->name << endl;
     int cnt;
     bool place_fail;
     gatei* gi_front;
-    cout << "Row numbers: " << rows.size() << endl;
+    // cout << "Row numbers: " << rows.size() << endl;
     for(int i=0; i<rows.size(); i++){
         rows[i]->sort_gate();
         place_fail = false;

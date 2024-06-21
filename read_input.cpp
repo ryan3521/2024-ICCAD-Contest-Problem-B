@@ -145,7 +145,7 @@ void ReadInput(string filename, lib& LIB, inst& INST, dieInfo&  DIE, netlist& NL
         fin >> coox >> cooy >> width >> height >> site_num;
         PM.addRow(coox, cooy, width, height, site_num);
     }
-    PM.initial();
+
 
     // Read DisplacementDelay
     cout << "Reading DisplacementDelay ..." << endl;
