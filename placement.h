@@ -55,7 +55,7 @@ class plcmt_row{
         double place_trial(list<plcmt_row*>& tested_list, ffi* fi, bool& available, int& best_pos_idx, double global_mincost);
         
         void print_blocklist();
-        void print_spacelist()
+        void print_spacelist();
 };
 
 class placement{

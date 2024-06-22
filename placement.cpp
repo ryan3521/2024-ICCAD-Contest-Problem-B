@@ -428,9 +428,9 @@ double plcmt_row::place_trial(list<plcmt_row*>& tested_list, ffi* fi, bool& avai
     else{
         if(abs(start_x + site_num*site_w - w - sx) + abs(start_y - sy) >= global_mincost) return mincost;
     }
-    cout << "This row Y: " << start_y << endl;
-    cout << "DX: " << dx << endl;
-    cout << "DW: " << dw << endl;
+    // cout << "This row Y: " << start_y << endl;
+    //cout << "DX: " << dx << endl;
+    //cout << "DW: " << dw << endl;
     if(dx > pivot){
         int front = pivot;
         
@@ -446,18 +446,18 @@ double plcmt_row::place_trial(list<plcmt_row*>& tested_list, ffi* fi, bool& avai
                     }
                 }
                 else if(dx>front && dx<it->first){ // if the mincost location is inside this space segment
-                    cout << "in range!" << endl;
+                    //cout << "in range!" << endl;
                     int de = (dx + dw - 1)<=(it->first-1) ? (dx + dw - 1):(it->first-1);
-                    cout << front+1 << " " << de << endl;
+                    //cout << front+1 << " " << de << endl;
                     if(this->seg_mincost(fi, front+1, de, dw, best_pos_idx, mincost, 1) == true){
                         available = true;
                     }
-                    cout << dx << " " << it->first-1 << endl;
+                    //cout << dx << " " << it->first-1 << endl;
                     if(this->seg_mincost(fi, dx, it->first-1, dw, best_pos_idx, mincost, 0) == true){
                         available = true;
                         break;
                     }
-                    cout << "available: " << available<< endl;
+                    //cout << "available: " << available<< endl;
                 }
                 else{
                     if(this->seg_mincost(fi, front+1, it->first-1, dw, best_pos_idx, mincost, 1) == true){
@@ -484,17 +484,17 @@ double plcmt_row::place_trial(list<plcmt_row*>& tested_list, ffi* fi, bool& avai
                 }
             }
             else if(dx>front && dx<site_num){ // if the mincost location is inside this space segment
-                cout << "in range!" << endl;
+                //cout << "in range!" << endl;
                 int de = (dx + dw - 1)<=(site_num-1) ? (dx + dw - 1):(site_num-1);
-                cout << front+1 << " " << de << endl;
+                //cout << front+1 << " " << de << endl;
                 if(this->seg_mincost(fi, front+1, de, dw, best_pos_idx, mincost, 1) == true){
                     available = true;
                 }
-                cout << dx << " " << site_num-1 << endl;
+                //cout << dx << " " << site_num-1 << endl;
                 if(this->seg_mincost(fi, dx, site_num-1, dw, best_pos_idx, mincost, 0) == true){
                     available = true;
                 }
-                cout << "available: " << available<< endl;
+                //cout << "available: " << available<< endl;
             }
             else{
                 if(this->seg_mincost(fi, front+1, site_num-1, dw, best_pos_idx, mincost, 1) == true){
@@ -572,7 +572,7 @@ double plcmt_row::place_trial(list<plcmt_row*>& tested_list, ffi* fi, bool& avai
         }
 
     }
-    cout<< "mincost: "<< mincost<< endl;
+    //cout<< "mincost: "<< mincost<< endl;
     return mincost;
 }
 
@@ -746,6 +746,7 @@ int placement::closest_IDX(double x, double y){
 }
 
 void placement::placeGateInst(inst& INST){
+    cout << "Placing Gate >>>" << endl;
     // for(auto& it: INST.gate_umap){
     //     if(it.second->name == "C102728"){
     //         cout << it.first << endl;
@@ -835,35 +836,56 @@ void placement::placeFlipFlopInst(lib& LIB, inst& INST, dieInfo& DIE, list<ffi*>
     list<plcmt_row*> tested_list;
     list<plcmt_row*> search_stack;
     int ff_cnt = 0;
-    
-
+ 
+    double total_time = 0;
+    double stage0_time = 0;
+    double stage1_time = 0;
+    double stage2_time = 0;
+    double stage3_time = 0;
+    double time_start, time_end;
+    double ts, te;
+    cout << "Placing FF >>>" << endl;
 
     dismantle_list.clear();
     UPFFS.sort(ff_cmp);
+    time_start = clock();
+    int UPFFS_NUM = UPFFS.size();
+    int DISM_NUM = dismantle_list.size();
 
-    while(UPFFS.size()>0 || dismantle_list.size()>0){
+    while(UPFFS_NUM>0 || DISM_NUM>0){
+        // cout << ff_cnt << ":" << endl;
+        ts = clock();
         mincost = numeric_limits<double>::max();
         find = false; 
-        cout << "\033[2J\033[1;1H";
+        // cout << "\033[2J\033[1;1H";
         // Step 1. Pick one ff from unplaced ff list or dismantle ff list to place
-        if(UPFFS.size()>0 && dismantle_list.size()>0){
+        if(UPFFS_NUM>0 && DISM_NUM>0){
             if(UPFFS.front()->coox < dismantle_list.front()->coox){
                 fi = UPFFS.front();
                 UPFFS.pop_front();
+                UPFFS_NUM--;
             }
             else{
                 fi = dismantle_list.front();
                 dismantle_list.pop_front();
+                DISM_NUM--;
             }
         }
-        else if(UPFFS.size()>0){
+        else if(UPFFS_NUM>0){
             fi = UPFFS.front();
             UPFFS.pop_front();
+            UPFFS_NUM--;
+
         }
         else{
             fi = dismantle_list.front();
             dismantle_list.pop_front();
+            DISM_NUM--;
         }
+
+        te = clock();
+        stage0_time = stage0_time + (te - ts);
+        ts = clock();
 
         // Step 2. Calculate the closest placement row for this ff
         idx = closest_IDX(fi->coox, fi->cooy);
@@ -885,11 +907,11 @@ void placement::placeFlipFlopInst(lib& LIB, inst& INST, dieInfo& DIE, list<ffi*>
 
         // *************************** Stage 1 ***************************
         search_stack.clear();
-
         search_stack.push_back(rows[idx]);
         rows[idx]->is_visited = true;
 
         while(search_stack.size() > 0){
+            // cout << "PLACE TEST" << endl;
             cost = search_stack.front()->place_trial(tested_list, fi, available, pos_idx, mincost);
             if(available){
                 find = true;
@@ -902,6 +924,9 @@ void placement::placeFlipFlopInst(lib& LIB, inst& INST, dieInfo& DIE, list<ffi*>
             for(auto& p: search_stack.front()->up_rows){
                 if(p->is_visited == false){
                     if(find==true){
+                        if(abs(p->start_y - fi->cooy) >= mincost){
+                            break;
+                        }
                         if(fi->is_too_far(p->closest_x(fi->coox), p->start_y, DIE.displacement_delay) == false){
                             search_stack.push_back(p);
                             p->is_visited = true;
@@ -923,9 +948,26 @@ void placement::placeFlipFlopInst(lib& LIB, inst& INST, dieInfo& DIE, list<ffi*>
             }
             for(auto& p: search_stack.front()->down_rows){
                 if(p->is_visited == false){
-                    if(fi->is_too_far(p->closest_x(fi->coox), p->start_y, DIE.displacement_delay) == false){
-                        search_stack.push_back(p);
-                        p->is_visited = true;
+                    if(find==true){
+                        if(abs(p->start_y - fi->cooy) >= mincost){
+                            break;
+                        }
+                        if(fi->is_too_far(p->closest_x(fi->coox), p->start_y, DIE.displacement_delay) == false){
+                            search_stack.push_back(p);
+                            p->is_visited = true;
+                        }
+                    }
+                    else{
+                        if(fi->type->bit_num > 1){
+                            if(fi->is_too_far(p->closest_x(fi->coox), p->start_y, DIE.displacement_delay) == false){
+                                search_stack.push_back(p);
+                                p->is_visited = true;
+                            }
+                        }
+                        else{
+                            search_stack.push_back(p);
+                            p->is_visited = true;
+                        }
                     }
                 }
             }
@@ -933,33 +975,32 @@ void placement::placeFlipFlopInst(lib& LIB, inst& INST, dieInfo& DIE, list<ffi*>
         }
 
         for(auto& p: search_stack) { p->is_visited = false; }
-
+        te = clock();
+        stage1_time = stage1_time + (te - ts);
         // *************************** Stage 2 ***************************
+        ts = clock();
+
         int up_i = idx + 1;
         int down_i = idx - 1;
         bool search_up = true;
         bool search_down = true;
         plcmt_row* target_pr;
         while(search_up || search_down){
-            if(up_i < rows.size()){
-                search_up = true;
-            }
-            else{
+            if(up_i >= rows.size()){
                 search_up = false;
             }
-            if(down_i >= 0){
-                search_down = true;
-            }
-            else{
+
+            if(down_i < 0){
                 search_down = false;
             }
+
 
             // check up_i
             if(search_up){
                 target_pr = rows[up_i];
             
                 if(find){
-                    if(abs(target_pr->start_y - fi->coox) < mincost){
+                    if(abs(target_pr->start_y - fi->cooy) >= mincost){
                         search_up = false;
                     }
                     else{
@@ -1031,7 +1072,7 @@ void placement::placeFlipFlopInst(lib& LIB, inst& INST, dieInfo& DIE, list<ffi*>
                 target_pr = rows[down_i];
             
                 if(find){
-                    if(abs(target_pr->start_y - fi->coox) < mincost){
+                    if(abs(target_pr->start_y - fi->cooy) >= mincost){
                         search_down = false;
                     }
                     else{
@@ -1103,12 +1144,13 @@ void placement::placeFlipFlopInst(lib& LIB, inst& INST, dieInfo& DIE, list<ffi*>
             p->is_visited = false;
             p->is_tested  = false; 
         }
-
+        te = clock();
+        stage2_time = stage2_time + (te - ts);
         // Step 4. After seaching both side and each with two stages, if the "find" is true, place the ff at the mincost row.
         //         If the result "find" is false:
         //              1. If this ff size is not single bit, dismantle this ff.
         //              2. If this ff size if single bit, than placement legalization fail.
-
+        ts = clock();
         if(find == false){
             if(fi->type->bit_num == 1){
                 cout << "Error: Placement Legalization Fail!" << endl;
@@ -1150,16 +1192,44 @@ void placement::placeFlipFlopInst(lib& LIB, inst& INST, dieInfo& DIE, list<ffi*>
 
                 break;
             }
+            // if(best_row == rows[178]){
+            //     cout << "Placed FF Name: " << fi->name << endl;
+            //     cout << "Placed IDX: " << best_pos_idx<< endl;
+            //     cout << "Placed coox: " << fi->coox << endl;
+            //     cout << "Placed cooy: " << fi->cooy << endl;
+            //     cout << "Placed W: " << fi->type->size_x << endl;
+            //     cout << "Placed H: " << fi->type->size_y << endl;
+            //     cout << "Row pivot: " << best_row->pivot << endl;
+            //     best_row->print_blocklist();
+            //     cout << "--------------------------------" << endl;
+                
+            // }
             place_formal(fi, best_row, best_pos_idx);
+            // if(best_row == rows[178]) cout << "Row pivot: " << best_row->pivot << endl;
             PFFS.push_back(fi);
             ff_cnt++;
+            te = clock();
+            stage3_time = stage3_time + (te - ts);
         }
     }
+    time_end = clock();
+    total_time = time_end - time_start;
+
+    cout << "Stage 0: " << 100*stage0_time/total_time << "%" << endl;
+    cout << "Stage 1: " << 100*stage1_time/total_time << "%" << endl;
+    cout << "Stage 2: " << 100*stage2_time/total_time << "%" << endl;
+    cout << "Stage 2: " << 100*stage3_time/total_time << "%" << endl;
+
+    cout << "Stage 0 Time: " << stage0_time/ 1000000.0  << " s" << endl;
+    cout << "Stage 1 Time: " << stage1_time/ 1000000.0  << " s" << endl;
+    cout << "Stage 2 Time: " << stage2_time/ 1000000.0  << " s" << endl;
+    cout << "Stage 3 Time: " << stage3_time/ 1000000.0  << " s" << endl;
+    cout << "Total placement Time: " << total_time/ 1000000.0  << " s" << endl;
     return;
 }
 
 void placement::place_formal(ffi* fi, plcmt_row* best_row, int best_pos_idx){
-    double start = best_row->start_x + best_pos_idx*best_row->site_h;
+    double start = best_row->start_x + best_pos_idx*best_row->site_w;
     double end = start + fi->type->size_x;
     fi->coox = start;
     fi->cooy = best_row->start_y;

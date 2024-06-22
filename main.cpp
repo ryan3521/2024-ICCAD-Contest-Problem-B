@@ -1,4 +1,5 @@
 #include <bits/stdc++.h>
+#include <ctime>
 
 #include "func.h"
 #include "lib.h"
@@ -11,6 +12,7 @@
 using namespace std;
 
 int main(int argc, char** argv){
+    double start = clock();
     lib LIB;
     inst INST;
     dieInfo DIE;
@@ -51,6 +53,8 @@ int main(int argc, char** argv){
 
     PM.placeGateInst(INST);
     PM.placeFlipFlopInst(LIB, INST, DIE, UPFFS, PFFS);
+    double end = clock();
+    cout << "Total execution time: " << (end - start) / 1000000.0  << " s" << '\n';
 
     // If placement success ...
     // Output PFFS Info 
