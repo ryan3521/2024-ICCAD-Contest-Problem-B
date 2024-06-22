@@ -127,30 +127,72 @@ bool plcmt_row::add_gblock(double start, double end){
 
 void plcmt_row::add_fblock(double start, double end){
     int si = (start - start_x)/site_w;
-    int ei = (end - start_x)/site_w;
+    int ei = si + ceil((end - start)/site_w) - 1;
     int sj;
     int ej;
     int front;
     
     if(si > pivot){
         front = pivot;
-        for(auto it = block_list.begin(); it!=block_list.end(); it++){
-            sj = front+1;
-            ej = it->first-1;
-            if(ej>=sj){
-                if(si>=sj && si<=ej){
-                    if(si>sj){
-                        space_list.push_back(pair<int, int>(sj, si-1));
+
+        while(block_list.size() >= 0){
+            if(block_list.size() == 0){
+                sj = front+1;
+                ej = site_num-1;
+                if(ej>=sj){
+                    if(si>=sj && si<=ej){
+                        if(si==sj && ei==ej){
+                            
+                        }
+                        else if(si==sj){
+                            // space_list.push_back(pair<int, int>(ei+1, ej));
+                        }
+                        else if(ei==ej){
+                            space_list.push_back(pair<int, int>(sj, si-1));
+                        }
+                        else{
+                            space_list.push_back(pair<int, int>(sj, si-1));
+                        }
+                        pivot = ei;
+                        return;
                     }
-                    pivot = ei;
-                    return;
+                    else{
+                        // no space
+                    }
                 }
-                else{ // need to add space [sj, ej] into spacelist
-                    space_list.push_back(pair<int, int>(sj, ej));
+                else{
+                    // no space
                 }
+                break;
             }
-            front = it->second;
-            block_list.pop_front();
+            else{
+                auto it = block_list.begin();
+                sj = front+1;
+                ej = it->first-1;
+                if(ej>=sj){
+                    if(si>=sj && si<=ej){
+                        if(si==sj && ei==ej){
+                            
+                        }
+                        else if(si==sj){
+                            // space_list.push_back(pair<int, int>(ei+1, ej));
+                        }
+                        else if(ei==ej){
+                            space_list.push_back(pair<int, int>(sj, si-1));
+                        }
+                        else{
+                            space_list.push_back(pair<int, int>(sj, si-1));
+                        }
+                        pivot = ei;
+                        return;
+                    }
+                    else{ // need to add space [sj, ej] into spacelist
+                        space_list.push_back(pair<int, int>(sj, ej));
+                    }
+                }
+                front = it->second;
+                block_list.pop_front();
+            }
         }
     }
     else{
@@ -163,9 +205,10 @@ void plcmt_row::add_fblock(double start, double end){
                     rIt->first = ei+1;
                 }
                 else if(si>rIt->first && ei<rIt->second){
-                    auto it = rIt.base();
-                    space_list.insert(it, pair<int, int>(ei+1, rIt->second));
+                    int t = rIt->second;
                     rIt->second = si-1;
+                    auto it = rIt.base();
+                    space_list.insert(it, pair<int, int>(ei+1, t));
                 }
                 else if(si>rIt->first && ei==rIt->second){
                     rIt->second = si-1;
@@ -180,7 +223,7 @@ bool plcmt_row::check_available(double start, double end, double height){
     int s, e;
 
     s = (start - start_x)/site_w;
-    e = (end - start_x)/site_w + 1;
+    e = s + ceil((end - start)/site_w) - 1;
 
     if(s<0 || e>=site_num) return false;
 
@@ -200,6 +243,17 @@ bool plcmt_row::check_available(double start, double end, double height){
             }
             else {front = it->second;}
         }  
+        if(s>front && e<site_num) {
+            if(height > site_h){
+                for(auto& pr: up_rows){
+                    if(pr->check_available(start, end, height - site_h) == true) return true;
+                }
+                return false;
+            }
+            else{
+                return true;
+            }
+        }
         return false;
     }
     else{
@@ -343,14 +397,14 @@ bool plcmt_row::seg_mincost(ffi* fi, int ds, int de, int dw, int& best_pos_idx, 
     return find_new;
 }
 
-double plcmt_row::place_trial(list<plcmt_row*> tested_list, ffi* fi, bool& available, int& best_pos_idx, double global_mincost){ // ax is available x coordinate
+double plcmt_row::place_trial(list<plcmt_row*>& tested_list, ffi* fi, bool& available, int& best_pos_idx, double global_mincost){ // ax is available x coordinate
     available = false;
     double mincost = numeric_limits<double>::max(); // local mincost
     double h = fi->type->size_y;
     double w = fi->type->size_x;
     double sy = fi->cooy;
     double sx = fi->coox;
-    int dw = (w/site_w) + 1; // discrete width
+    int dw = ceil(w/site_w); // discrete width
     // dx is the discrete index which is closest to the sx 
     int dx = (round((sx-start_x)/site_w) < 0) ? 0 : (round((sx-start_x)/site_w) >= site_num) ? (site_num-1) : round((sx-start_x)/site_w); 
 
@@ -374,7 +428,9 @@ double plcmt_row::place_trial(list<plcmt_row*> tested_list, ffi* fi, bool& avail
     else{
         if(abs(start_x + site_num*site_w - w - sx) + abs(start_y - sy) >= global_mincost) return mincost;
     }
-
+    cout << "This row Y: " << start_y << endl;
+    cout << "DX: " << dx << endl;
+    cout << "DW: " << dw << endl;
     if(dx > pivot){
         int front = pivot;
         
@@ -382,7 +438,7 @@ double plcmt_row::place_trial(list<plcmt_row*> tested_list, ffi* fi, bool& avail
             if((it->first - front - 1) >= dw){ // if this space section may be available
                 if(front+1 > dx){
                     if(available == true){
-                        if(ceil(best_pos_idx - dx) < ceil(front+1 - dx)) break;
+                        if(abs(best_pos_idx - dx) < abs(front+1 - dx)) break;
                     }
                     if(this->seg_mincost(fi, front+1, it->first-1, dw, best_pos_idx, mincost, 0) == true){ 
                         available = true;
@@ -390,14 +446,18 @@ double plcmt_row::place_trial(list<plcmt_row*> tested_list, ffi* fi, bool& avail
                     }
                 }
                 else if(dx>front && dx<it->first){ // if the mincost location is inside this space segment
-                    int de = (dx + dw - 2)<(it->first-1) ? (dx + dw - 2):(it->first-1);
+                    cout << "in range!" << endl;
+                    int de = (dx + dw - 1)<=(it->first-1) ? (dx + dw - 1):(it->first-1);
+                    cout << front+1 << " " << de << endl;
                     if(this->seg_mincost(fi, front+1, de, dw, best_pos_idx, mincost, 1) == true){
                         available = true;
                     }
+                    cout << dx << " " << it->first-1 << endl;
                     if(this->seg_mincost(fi, dx, it->first-1, dw, best_pos_idx, mincost, 0) == true){
                         available = true;
                         break;
                     }
+                    cout << "available: " << available<< endl;
                 }
                 else{
                     if(this->seg_mincost(fi, front+1, it->first-1, dw, best_pos_idx, mincost, 1) == true){
@@ -408,9 +468,44 @@ double plcmt_row::place_trial(list<plcmt_row*> tested_list, ffi* fi, bool& avail
             front = it->second;
         }
 
+        if((site_num - front - 1) >= dw){ // if this space section may be available
+            if(front+1 > dx){
+                if(available == true){
+                    if(abs(best_pos_idx - dx) >= abs(front+1 - dx)){
+                        if(this->seg_mincost(fi, front+1, site_num-1, dw, best_pos_idx, mincost, 0) == true){ 
+                            available = true;
+                        }
+                    }
+                }
+                else{
+                    if(this->seg_mincost(fi, front+1, site_num-1, dw, best_pos_idx, mincost, 0) == true){ 
+                        available = true;
+                    }
+                }
+            }
+            else if(dx>front && dx<site_num){ // if the mincost location is inside this space segment
+                cout << "in range!" << endl;
+                int de = (dx + dw - 1)<=(site_num-1) ? (dx + dw - 1):(site_num-1);
+                cout << front+1 << " " << de << endl;
+                if(this->seg_mincost(fi, front+1, de, dw, best_pos_idx, mincost, 1) == true){
+                    available = true;
+                }
+                cout << dx << " " << site_num-1 << endl;
+                if(this->seg_mincost(fi, dx, site_num-1, dw, best_pos_idx, mincost, 0) == true){
+                    available = true;
+                }
+                cout << "available: " << available<< endl;
+            }
+            else{
+                if(this->seg_mincost(fi, front+1, site_num-1, dw, best_pos_idx, mincost, 1) == true){
+                    available = true;
+                }
+            }
+        }
+
         for(auto rIt = space_list.rbegin(); rIt!=space_list.rend(); rIt++){
             if(available == true){
-                if(ceil(best_pos_idx - dx) < ceil(rIt->second-dw+1 - dx)) break;
+                if(abs(best_pos_idx - dx) < abs(rIt->second-dw+1 - dx)) break;
             }
             if(this->seg_mincost(fi, rIt->first, rIt->second, dw, best_pos_idx, mincost, 1) == true){ 
                 available = true;
@@ -423,7 +518,7 @@ double plcmt_row::place_trial(list<plcmt_row*> tested_list, ffi* fi, bool& avail
             if((rIt->second - rIt->first + 1) >= dw){
                 if(rIt->second < dx){
                     if(available == true){
-                        if(ceil(best_pos_idx - dx) < ceil(rIt->second-dw+1 - dx)) break;
+                        if(abs(best_pos_idx - dx) < abs(rIt->second-dw+1 - dx)) break;
                     }
                     if(this->seg_mincost(fi, rIt->first, rIt->second, dw, best_pos_idx, mincost, 1) == true){ 
                         available = true;
@@ -431,7 +526,7 @@ double plcmt_row::place_trial(list<plcmt_row*> tested_list, ffi* fi, bool& avail
                     }
                 }
                 else if(dx>=rIt->first && dx<=rIt->second){
-                    int de = (dx + dw - 2)<(rIt->second) ? (dx + dw - 2):(rIt->second);
+                    int de = (dx + dw - 1)<=(rIt->second) ? (dx + dw - 1):(rIt->second);
                     if(this->seg_mincost(fi, rIt->first, de, dw, best_pos_idx, mincost, 1) == true){
                         available = true;
                     }
@@ -452,7 +547,7 @@ double plcmt_row::place_trial(list<plcmt_row*> tested_list, ffi* fi, bool& avail
         for(auto it = block_list.begin(); it!=block_list.end(); it++){
             if((it->first - front - 1) >= dw){ // if this space section may be available
                 if(available == true){
-                    if(ceil(best_pos_idx - dx) < ceil(front+1 - dx)) break;
+                    if(abs(best_pos_idx - dx) < abs(front+1 - dx)) break;
                 }
                 if(this->seg_mincost(fi, front+1, it->first-1, dw, best_pos_idx, mincost, 0) == true){ 
                     available = true;
@@ -461,9 +556,23 @@ double plcmt_row::place_trial(list<plcmt_row*> tested_list, ffi* fi, bool& avail
             }
             front = it->second;
         }
+        if((site_num - front - 1) >= dw){ // if this space section may be available
+            if(available == true){
+                if(abs(best_pos_idx - dx) >= abs(front+1 - dx)){
+                    if(this->seg_mincost(fi, front+1, site_num-1, dw, best_pos_idx, mincost, 0) == true){ 
+                        available = true;
+                    }              
+                }
+            }
+            else{
+                if(this->seg_mincost(fi, front+1, site_num-1, dw, best_pos_idx, mincost, 0) == true){ 
+                    available = true;
+                }
+            }
+        }
 
     }
-
+    cout<< "mincost: "<< mincost<< endl;
     return mincost;
 }
 
@@ -715,7 +824,7 @@ void placement::placeFlipFlopInst(lib& LIB, inst& INST, dieInfo& DIE, list<ffi*>
     list<ffi*> dismantle_list;
     list<plcmt_row*> tested_list;
     list<plcmt_row*> search_stack;
-
+    int ff_cnt = 0;
     
 
 
@@ -725,7 +834,7 @@ void placement::placeFlipFlopInst(lib& LIB, inst& INST, dieInfo& DIE, list<ffi*>
     while(UPFFS.size()>0 || dismantle_list.size()>0){
         mincost = numeric_limits<double>::max();
         find = false; 
-
+        cout << "\033[2J\033[1;1H";
         // Step 1. Pick one ff from unplaced ff list or dismantle ff list to place
         if(UPFFS.size()>0 && dismantle_list.size()>0){
             if(UPFFS.front()->coox < dismantle_list.front()->coox){
@@ -993,6 +1102,18 @@ void placement::placeFlipFlopInst(lib& LIB, inst& INST, dieInfo& DIE, list<ffi*>
         if(find == false){
             if(fi->type->bit_num == 1){
                 cout << "Error: Placement Legalization Fail!" << endl;
+                cout << "FF count: " << ff_cnt << endl;
+                cout << "FF Name: " << fi->name << endl;
+                cout << "FF coox: " << fi->coox << endl;
+                cout << "FF cooy: " << fi->cooy << endl;
+                cout << "FF W: " << fi->type->size_x << endl;
+                cout << "FF H: " << fi->type->size_y << endl;
+                cout << "====================================" << endl;
+                cout << "Row " << idx << endl;
+                cout << "Row X: " << rows[idx]->start_x << endl;
+                cout << "Row Y: " << rows[idx]->start_y << endl;
+                cout << "Pivot: " << rows[idx]->pivot << endl;
+                rows[idx]->print_blocklist();
                 return;
             }
             else{
@@ -1001,8 +1122,25 @@ void placement::placeFlipFlopInst(lib& LIB, inst& INST, dieInfo& DIE, list<ffi*>
             }
         }
         else{
+            if(fi->cooy != best_row->start_y){
+                cout << "Error: FF place not match!" << endl;
+                cout << "FF count: " << ff_cnt << endl;
+                cout << "FF Name: " << fi->name << endl;
+                cout << "FF coox: " << fi->coox << endl;
+                cout << "FF cooy: " << fi->cooy << endl;
+                cout << "FF W: " << fi->type->size_x << endl;
+                cout << "FF H: " << fi->type->size_y << endl;
+                cout << "====================================" << endl;
+                cout << "Row " << idx << endl;
+                cout << "Row X: " << rows[idx]->start_x << endl;
+                cout << "Row Y: " << rows[idx]->start_y << endl;
+                cout << "Pivot: " << rows[idx]->pivot << endl;
+                rows[idx]->print_blocklist();
+                break;
+            }
             place_formal(fi, best_row, best_pos_idx);
             PFFS.push_back(fi);
+            ff_cnt++;
         }
     }
     return;

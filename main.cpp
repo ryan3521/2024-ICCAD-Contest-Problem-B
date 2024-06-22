@@ -32,8 +32,25 @@ int main(int argc, char** argv){
     // KmeansCls(LIB, INST, KCR, NCLS);
     // MapClstoMBFF(LIB, KCR, MBFFS);
     // FineTune(LIB, NCLS, MBFFS, UPFFS, DIE); // Not finish yet
+
+    ffi* fi;
+    for(auto& it: INST.ff_umap){
+        UPFFS.push_back(it.second);
+        fi = it.second;
+        for(auto& p: fi->d_pins){
+            p->to_new_ff = p->to_ff;
+            p->new_coox = p->coox;
+            p->new_cooy = p->cooy;
+        }
+        for(auto& p: fi->q_pins){
+            p->to_new_ff = p->to_ff;
+            p->new_coox = p->coox;
+            p->new_cooy = p->cooy;
+        }
+    }
+
     PM.placeGateInst(INST);
-    // PM.placeFlipFlopInst(LIB, INST, DIE, UPFFS, PFFS);
+    PM.placeFlipFlopInst(LIB, INST, DIE, UPFFS, PFFS);
 
     // If placement success ...
     // Output PFFS Info 
