@@ -594,6 +594,16 @@ void plcmt_row::print_blocklist(){
     cout << endl;
 }
 
+void plcmt_row::print_spacelist(){
+    cout << endl << "Space List: " << space_list.size() << endl;
+    for(auto it = space_list.begin(); it != space_list.end(); it++){
+        cout << "[" << it->first << ", " << it->second << "] -> ";
+        
+    }
+    cout << endl;
+    cout << endl;
+}
+
 // *******************************************************************
 // *                        CLASS placement                          *
 // *******************************************************************
@@ -1136,6 +1146,8 @@ void placement::placeFlipFlopInst(lib& LIB, inst& INST, dieInfo& DIE, list<ffi*>
                 cout << "Row Y: " << rows[idx]->start_y << endl;
                 cout << "Pivot: " << rows[idx]->pivot << endl;
                 rows[idx]->print_blocklist();
+                rows[idx]->print_spacelist();
+
                 break;
             }
             place_formal(fi, best_row, best_pos_idx);
