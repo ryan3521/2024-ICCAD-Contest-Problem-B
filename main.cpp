@@ -50,6 +50,7 @@ int main(int argc, char** argv){
     FineTune(LIB, NCLS, MBFFS, UPFFS, DIE); // Not finish yet
     PM.placeGateInst(INST);
     PM.placeFlipFlopInst(LIB, INST, DIE, UPFFS, PFFS);
+    Output("output.txt", PFFS, INST);
 
     // ffi* fi;
     // for(auto& it: INST.ff_umap){

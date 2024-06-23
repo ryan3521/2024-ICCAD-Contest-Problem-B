@@ -265,9 +265,11 @@ void ffi::new_coor(){
     cooy = ((my - ry) < 0) ? 0 : (my - ry);
 
     for(int i=0; i<bit; i++){
+        d_pins[i]->new_name = type->d_pins[i].name;
         d_pins[i]->new_coox = coox + type->d_pins[i].x_plus;
         d_pins[i]->new_cooy = cooy + type->d_pins[i].y_plus;
         
+        q_pins[i]->new_name = type->q_pins[i].name;
         q_pins[i]->new_coox = coox + type->q_pins[i].x_plus;
         q_pins[i]->new_cooy = cooy + type->q_pins[i].y_plus;
     }

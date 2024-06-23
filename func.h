@@ -14,5 +14,6 @@ void ReadInput(string , lib&, inst&, dieInfo&, netlist&, placement&);
 void KmeansCls(lib&, inst&, list<cluster*>&, list<ffi*>&);
 void MapClstoMBFF(lib&, list<cluster*>&, list<ffi*>&);
 void FineTune(lib&, list<ffi*>&, list<ffi*>&, list<ffi*>&, dieInfo&);
+void Output(string , list<ffi*>& , inst& );
 
 #endif

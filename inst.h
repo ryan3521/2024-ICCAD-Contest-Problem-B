@@ -117,6 +117,7 @@ class pin{ // pin prototype
         double dspd_slk;    // Only for pin type is 'f', the dispensed slack for 'D' and 'Q' pin 
 
         // Belongs to the new MBFF
+        string new_name;
         ffi* to_new_ff;
         double new_coox;
         double new_cooy;
