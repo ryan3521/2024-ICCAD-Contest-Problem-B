@@ -16,5 +16,5 @@ $(BINS): main.cpp $(OBJS)
 run:
 	./$(BINS) $(INFILE)
 clean:
-	rm $(BINS) $(OBJS)
+	rm $(BINS) $(OBJS) *.o
 	
