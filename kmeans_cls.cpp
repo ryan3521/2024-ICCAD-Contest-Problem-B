@@ -8,7 +8,7 @@ void InitialCenter(lib& LIB, inst& INST, list<cluster*>& KCR){
     int cnt = 0;
     cluster* cptr; // cluster pointer
     list<ffi*> ff_list;
-
+    
     for(auto& it: INST.ff_umap){
         ff_list.push_back(it.second);
     }
@@ -80,7 +80,7 @@ void DoCluster(lib& LIB, inst& INST, list<cluster*>& KCR, list<ffi*>& NCLS){
         for(const auto& c : KCR){
             hpwl_diff = abs(c->cen_x - f.second->cen_x) + abs(c->cen_y - f.second->cen_y);
             //if((hpwl_diff <= f.second->allow_dis) /*&& ((c->size)+(f.second->type->bit_num) <= LIB.max_ff_size)*/){
-            if(f.second->allow_displace(c->cen_x, c->cen_y, 0.01)==true && ((c->size)+(f.second->type->bit_num) <= LIB.max_ff_size)){
+            if(f.second->allow_displace(c->cen_x, c->cen_y, 0.01)==true /*&& ((c->size)+(f.second->type->bit_num) <= LIB.max_ff_size)*/){
                 if(find == false){
                     find = true;
                     min_hpwl = hpwl_diff;
