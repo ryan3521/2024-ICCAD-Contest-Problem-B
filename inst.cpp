@@ -153,7 +153,7 @@ void inst::SlackDispense_Q(dieInfo& DIE){
             }
         } 
 
-        ffptr->allow_displace = (no_pos_slack==true) ? 0 : min_pos_slack/(DIE.displacement_delay);
+        ffptr->allow_dis = (no_pos_slack==true) ? 0 : min_pos_slack/(DIE.displacement_delay);
     }
     return;
 }
@@ -289,6 +289,35 @@ bool ffi::is_too_far(double x, double y, double displacement_delay){
     }
     if(neg_cnt > bit_num) return true;
     else return false;
+}
+
+bool ffi::allow_displace(double target_x, double target_y, double displacement_delay){
+    double allow_hpwl;
+    double dis_hpwl;
+    
+    // verify D pin
+    for(auto& p: d_pins){
+        dis_hpwl   = ceil(p->to_net->ipins.front()->coox - target_x) + ceil(p->to_net->ipins.front()->cooy - target_y);
+        allow_hpwl = ceil(p->coox - p->to_net->ipins.front()->coox) 
+                   + ceil(p->cooy - p->to_net->ipins.front()->cooy); 
+        allow_hpwl = allow_hpwl + p->dspd_slk/displacement_delay;
+        if(allow_hpwl < dis_hpwl){
+            return false;
+        }
+    }
+
+    // verify Q pin
+    for(auto& p: q_pins){
+        for(auto& to_p: p->to_net->opins){
+            dis_hpwl   = ceil(to_p->coox - target_x) + ceil(to_p->cooy - target_y);
+            allow_hpwl = ceil(p->coox - to_p->coox) + ceil(p->cooy - to_p->cooy); 
+            allow_hpwl = allow_hpwl + p->dspd_slk/displacement_delay;
+            if(allow_hpwl < dis_hpwl){
+                return false;
+            }
+        }
+    }
+    return true;
 }
 
 void reg::update_cen(){

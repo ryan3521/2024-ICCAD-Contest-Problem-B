@@ -7,7 +7,7 @@
 #include "die_info.h"
 #include "netlist.h"
 #include "placement.h"
-// #include "cluster.h"
+#include "cluster.h"
 
 using namespace std;
 
@@ -18,7 +18,7 @@ int main(int argc, char** argv){
     dieInfo DIE;
     netlist NL;
     placement PM;
-    // list<cluster*> KCR; // Kmeans Cluster Result
+    list<cluster*> KCR; // Kmeans Cluster Result
     list<ffi*> NCLS; // Store the non cluster ffs after doing K-means Cluster
     list<ffi*> MBFFS; // Store the new MBFFs after doing K-means Cluster
     list<ffi*> UPFFS; // Store all ffs which need to be placed (== NCLS + MBFFS)
@@ -31,28 +31,32 @@ int main(int argc, char** argv){
     ReadInput(argv[1], LIB, INST, DIE, NL, PM);
     LIB.construct_fftable(DIE);
     INST.SlackDispense_Q(DIE);
-    // KmeansCls(LIB, INST, KCR, NCLS);
+    KmeansCls(LIB, INST, KCR, NCLS);
+
+
+
+    
     // MapClstoMBFF(LIB, KCR, MBFFS);
     // FineTune(LIB, NCLS, MBFFS, UPFFS, DIE); // Not finish yet
 
-    ffi* fi;
-    for(auto& it: INST.ff_umap){
-        UPFFS.push_back(it.second);
-        fi = it.second;
-        for(auto& p: fi->d_pins){
-            p->to_new_ff = p->to_ff;
-            p->new_coox = p->coox;
-            p->new_cooy = p->cooy;
-        }
-        for(auto& p: fi->q_pins){
-            p->to_new_ff = p->to_ff;
-            p->new_coox = p->coox;
-            p->new_cooy = p->cooy;
-        }
-    }
+    // ffi* fi;
+    // for(auto& it: INST.ff_umap){
+    //     UPFFS.push_back(it.second);
+    //     fi = it.second;
+    //     for(auto& p: fi->d_pins){
+    //         p->to_new_ff = p->to_ff;
+    //         p->new_coox = p->coox;
+    //         p->new_cooy = p->cooy;
+    //     }
+    //     for(auto& p: fi->q_pins){
+    //         p->to_new_ff = p->to_ff;
+    //         p->new_coox = p->coox;
+    //         p->new_cooy = p->cooy;
+    //     }
+    // }
 
-    PM.placeGateInst(INST);
-    PM.placeFlipFlopInst(LIB, INST, DIE, UPFFS, PFFS);
+    // PM.placeGateInst(INST);
+    // PM.placeFlipFlopInst(LIB, INST, DIE, UPFFS, PFFS);
     double end = clock();
     cout << "Total execution time: " << (end - start) / 1000000.0  << " s" << '\n';
 

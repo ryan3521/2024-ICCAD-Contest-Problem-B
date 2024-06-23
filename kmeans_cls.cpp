@@ -1,39 +1,66 @@
 #include "func.h"
 
+bool cmp(ffi* a, ffi* b){
+    return a->coox < b->coox;
+}
+
 void InitialCenter(lib& LIB, inst& INST, list<cluster*>& KCR){
+    int cnt = 0;
     cluster* cptr; // cluster pointer
-    int K = ceil((double)INST.ff_num/(double)LIB.max_ff_size);
+    list<ffi*> ff_list;
+
+    for(auto& it: INST.ff_umap){
+        ff_list.push_back(it.second);
+    }
+    ff_list.sort(cmp);
+
+    for(auto& fi: ff_list){
+        if(cnt == LIB.max_ff_size-1){
+            cnt = 0;
+            cptr = new cluster(fi->cen_x, fi->cen_y);
+            // cout << "CLS cen: " << fi->cen_x << " " << fi->cen_y << endl;
+            KCR.push_back(cptr);
+        }
+        else{
+            cnt++;
+        }
+    }
+
+
+    // int K = ceil((double)INST.ff_num/(double)LIB.max_ff_size);
 
     // Generate K's centroid (K-means++)
     // First Centroid
-    int R = rand()%(INST.ff_umap.size())+1 << endl; //1~5
-    int cnt = 1;
-    for(const auto& n : INST.ff_umap){
-        if(cnt == R){
-            cptr = new cluster(n.second->cen_x, n.second->cen_y);
-            KCR.push_back(cptr);
-            break;
-        }
-    }
+    // int R = rand()%(INST.ff_umap.size())+1; //1~5
+    // int cnt = 1;
+    // for(const auto& n : INST.ff_umap){
+    //     if(cnt == R){
+    //         cptr = new cluster(n.second->cen_x, n.second->cen_y);
+    //         KCR.push_back(cptr);
+           
+    //         break;
+    //     }
+    //     cnt++;
+    // }
 
     // Other Centroids
-    ffi* max_hpwl_ff = NULL;
-    double max_hpwl = 0;
-    double cur_hpwl = 0;
-    for(int i=1; i<K; i++){
-        for(const auto& n : INST.ff_umap){
-            cur_hpwl = 0;
-            for(cluster* c : KCR){
-                cur_hpwl = cur_hpwl + abs(c->cen_x - n->cen_x) + abs(c->cen_y - n->cen_y);
-            }
-            if(cur_hpwl > max_hpwl){
-                max_hpwl = cur_hpwl;
-                max_hpwl_ff = n;
-            }
-        }
-        cptr = new cluster(max_hpwl_ff->cen_x, max_hpwl_ff->cen_y);
-        KCR.push_back(cptr);
-    }
+    // ffi* max_hpwl_ff = NULL;
+    // double max_hpwl = 0;
+    // double cur_hpwl = 0;
+    // for(int i=1; i<K; i++){
+    //     for(const auto& n : INST.ff_umap){
+    //         cur_hpwl = 0;
+    //         for(cluster* c : KCR){
+    //             cur_hpwl = cur_hpwl + abs(c->cen_x - n.second->cen_x) + abs(c->cen_y - n.second->cen_y);
+    //         }
+    //         if(cur_hpwl > max_hpwl){
+    //             max_hpwl = cur_hpwl;
+    //             max_hpwl_ff = n.second;
+    //         }
+    //     }
+    //     cptr = new cluster(max_hpwl_ff->cen_x, max_hpwl_ff->cen_y);
+    //     KCR.push_back(cptr);
+    // }
     return;
 }
 
@@ -51,8 +78,9 @@ void DoCluster(lib& LIB, inst& INST, list<cluster*>& KCR, list<ffi*>& NCLS){
         find = false;
         closest_c = NULL;
         for(const auto& c : KCR){
-            hpwl_diff = abs(c->cen_x - f->cen_x) + abs(c->cen_y - f->cen_y);
-            if((hpwl_diff <= f->allow_displace) && ((c->size)+(f->type->bit_num) <= LIB.max_ff_size)){
+            hpwl_diff = abs(c->cen_x - f.second->cen_x) + abs(c->cen_y - f.second->cen_y);
+            //if((hpwl_diff <= f.second->allow_dis) /*&& ((c->size)+(f.second->type->bit_num) <= LIB.max_ff_size)*/){
+            if(f.second->allow_displace(c->cen_x, c->cen_y, 0.01)==true && ((c->size)+(f.second->type->bit_num) <= LIB.max_ff_size)){
                 if(find == false){
                     find = true;
                     min_hpwl = hpwl_diff;
@@ -65,15 +93,20 @@ void DoCluster(lib& LIB, inst& INST, list<cluster*>& KCR, list<ffi*>& NCLS){
                     }
                 }
             }
+
+
         }
+        // cout << "MIN HPWL DIFF: " << min_hpwl << " , ALLOW DIFF: " << f.second->allow_displace << endl;
         if(find){ // If find, meaning this ff is belong to one cluster
-           closest_c->size =  closest_c->size + f->type->bit_num;
-           closest_c->member_list.push_back(f);
+           closest_c->size =  closest_c->size + f.second->type->bit_num;
+           closest_c->member_list.push_back(f.second);
         }
         else{// if not find, this ff is a non cluster instance.
-            NCLS.push_back(f);
+            NCLS.push_back(f.second);
         }
     }
+    cout << "Clustered FFs   : " << INST.ff_umap.size() - NCLS.size() << endl;
+    cout << "None cluster FFs: " << NCLS.size() << endl;
 }
 
 bool UpdateCentroid(list<cluster*>& KCR){
@@ -88,13 +121,18 @@ bool UpdateCentroid(list<cluster*>& KCR){
 
 
 void KmeansCls(lib& LIB, inst& INST, list<cluster*>& KCR, list<ffi*>& NCLS){
+    cout << "K means cluster >>>" << endl;
+
     int ITR_BOUND = 10;
     int itr = 0;
     bool no_move;
     KCR.clear();
+    cout << "Initializing center ..." << endl;
     InitialCenter(LIB, INST, KCR);
 
     while(itr < ITR_BOUND){
+        cout << "Clustering (Itr" << itr << ") ..." << endl;
+        
         DoCluster(LIB, INST, KCR, NCLS);
         no_move = UpdateCentroid(KCR);
         if(no_move){

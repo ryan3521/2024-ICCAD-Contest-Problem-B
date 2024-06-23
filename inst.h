@@ -29,7 +29,7 @@ class ffi{
         bool mark; // ??
         
 
-        double allow_displace; // (HPWL) AVG slack * displacement coefficient
+        double allow_dis; // (HPWL) AVG slack * displacement coefficient
 
 
 
@@ -49,6 +49,8 @@ class ffi{
         // Given coordinate x and y, base on this coordinate calculate if the negative slack pin numbers are more then a half
         // if the neg pin numbers are over the half, then return true, else false
         bool is_too_far(double x, double y, double displacement_delay);
+        bool allow_displace(double x, double y, double displacement_delay);
+
 };
 
 class reg{ // This class represent each bit of register in the design

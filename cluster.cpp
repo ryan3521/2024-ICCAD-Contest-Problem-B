@@ -32,4 +32,4 @@ bool cluster::updateCentroid(){
     return move;
 }
 
-void cluster::clearMemberList(){ member_list.clear(); }
+void cluster::clearMemberList(){ member_list.clear(); size = 0;}
