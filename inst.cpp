@@ -140,20 +140,21 @@ void inst::SlackDispense_Q(dieInfo& DIE){
             if(ffptr->q_pins[i]->dspd_slk == numeric_limits<double>::max()){
                 ffptr->q_pins[i]->dspd_slk = ffptr->d_pins[i]->slack;
             }
-            if(ffptr->q_pins[i]->dspd_slk < min_pos_slack && ffptr->q_pins[i]->dspd_slk > 0){
+            if(ffptr->q_pins[i]->dspd_slk < min_pos_slack/* && ffptr->q_pins[i]->dspd_slk > 0*/){
                 no_pos_slack = false;
                 min_pos_slack = ffptr->q_pins[i]->dspd_slk;
             }
         }  
 
         for(int i=0; i<ffptr->d_pins.size(); i++){
-            if(ffptr->d_pins[i]->dspd_slk < min_pos_slack && ffptr->d_pins[i]->dspd_slk > 0){
+            if(ffptr->d_pins[i]->dspd_slk < min_pos_slack/* && ffptr->d_pins[i]->dspd_slk > 0*/){
                 no_pos_slack = false;
                 min_pos_slack = ffptr->d_pins[i]->dspd_slk;
             }
         } 
 
-        ffptr->allow_dis = (no_pos_slack==true) ? 0 : min_pos_slack/(DIE.displacement_delay);
+        //ffptr->allow_dis = (no_pos_slack==true) ? 0 : min_pos_slack/(DIE.displacement_delay);
+        ffptr->allow_dis = min_pos_slack/(DIE.displacement_delay);
     }
     return;
 }

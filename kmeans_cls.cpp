@@ -14,6 +14,18 @@ void InitialCenter(lib& LIB, inst& INST, list<cluster*>& KCR){
     }
     ff_list.sort(cmp);
 
+    int neg_cnt = 0;
+    for(auto& fi: ff_list){
+        //if(fi->d_pins[0]->slack <= 0) neg_cnt++;
+        if(fi->allow_dis <= 0) neg_cnt++;
+    }
+    cout << "Negative Slack FF Num: " << neg_cnt << endl;
+
+
+
+
+
+
     for(auto& fi: ff_list){
         if(cnt == LIB.max_ff_size-1){
             cnt = 0;
@@ -80,7 +92,7 @@ void DoCluster(lib& LIB, inst& INST, list<cluster*>& KCR, list<ffi*>& NCLS){
         for(const auto& c : KCR){
             hpwl_diff = abs(c->cen_x - f.second->cen_x) + abs(c->cen_y - f.second->cen_y);
             //if((hpwl_diff <= f.second->allow_dis) /*&& ((c->size)+(f.second->type->bit_num) <= LIB.max_ff_size)*/){
-            if(f.second->allow_displace(c->cen_x, c->cen_y, 0.01)==true /*&& ((c->size)+(f.second->type->bit_num) <= LIB.max_ff_size)*/){
+            if(f.second->allow_displace(c->cen_x, c->cen_y, 0.01)==true && ((c->size)+(f.second->type->bit_num) <= LIB.max_ff_size)){
                 if(find == false){
                     find = true;
                     min_hpwl = hpwl_diff;
@@ -123,7 +135,7 @@ bool UpdateCentroid(list<cluster*>& KCR){
 void KmeansCls(lib& LIB, inst& INST, list<cluster*>& KCR, list<ffi*>& NCLS){
     cout << "K means cluster >>>" << endl;
 
-    int ITR_BOUND = 10;
+    int ITR_BOUND = 1;
     int itr = 0;
     bool no_move;
     KCR.clear();

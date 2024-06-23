@@ -31,12 +31,23 @@ int main(int argc, char** argv){
     ReadInput(argv[1], LIB, INST, DIE, NL, PM);
     LIB.construct_fftable(DIE);
     INST.SlackDispense_Q(DIE);
-    KmeansCls(LIB, INST, KCR, NCLS);
-
-
-
     
-    // MapClstoMBFF(LIB, KCR, MBFFS);
+    // cout << "fftable_cost" << endl;
+    // for(int b=1; b<LIB.fftable_cost.size(); b++){
+    //     if(LIB.fftable_cost[b].size()>0)
+    //         cout << LIB.fftable_cost[b].front()->bit_num << endl;
+    // }
+
+    // for(int b=1; b <LIB.opt_fftable.size(); b++){
+    //     cout << "bit = " << b << endl;
+    //     for(auto& ft: LIB.opt_fftable[b]){
+    //         cout << "   Type name: " << ft->name << " , b = " << ft->bit_num << endl;
+    //     }
+    // }
+
+    KmeansCls(LIB, INST, KCR, NCLS);  
+    MapClstoMBFF(LIB, KCR, MBFFS);
+
     // FineTune(LIB, NCLS, MBFFS, UPFFS, DIE); // Not finish yet
 
     // ffi* fi;

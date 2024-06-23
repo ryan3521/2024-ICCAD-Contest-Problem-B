@@ -1,4 +1,4 @@
-#include "func.h"
+ #include "func.h"
 
 bool cmp_x(reg* a, reg* b){
     return a->cen_x < b->cen_x;
@@ -55,6 +55,8 @@ void SortRegList(list<reg*>& temp_list){
 }
 
 void MapClstoMBFF(lib& LIB, list<cluster*>& KCR, list<ffi*>& MBFFS){
+    cout << "Mapping cluster to MBFF >>>" << endl;
+
     int cnt;
     ffi* mbff;
     reg* rp; // reg pointer
@@ -63,13 +65,14 @@ void MapClstoMBFF(lib& LIB, list<cluster*>& KCR, list<ffi*>& MBFFS){
 
     MBFFS.clear();
 
-    for(auto c: KCR){
+    for(auto& c: KCR){
         temp_list.clear();
-        // cout << "C: " << c->member_list.size() << endl;
+        cout << "C: " << c->member_list.size() << endl;
+
         if(c->member_list.size() == 0) continue;
 
         // For each cluster, push each bit of reg into 'temp list'
-        for(auto f: c->member_list){
+        for(auto& f: c->member_list){
             for(int b=0; b<f->type->bit_num; b++){
                 rp = new reg;
                 rp->dpin = f->d_pins[b];
