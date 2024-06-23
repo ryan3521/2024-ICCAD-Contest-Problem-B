@@ -13,7 +13,7 @@ using namespace std;
 
 class plcmt_row{
     private:
-        bool cmp_g(gatei* a, gatei* b);
+        static bool cmp_g(gatei* a, gatei* b);
     public:
         bool is_tested;
         bool is_visited;
@@ -34,9 +34,9 @@ class plcmt_row{
         // Member functions
         plcmt_row(double sx, double sy, double sw, double sh, int sn);
         void sort_gate();
-        void add_gblock(double start, double end);
+        bool add_gblock(double start, double end);
         void add_fblock(double start, double end);
-        void add_gate(double start, double end, double height);
+        bool add_gate(double start, double end, double height);
         void add_ff(double start, double end, double height);
         bool check_available(double start, double end, double height);
         bool height_available(double height);
@@ -45,14 +45,17 @@ class plcmt_row{
         double closest_x(double x);
 
 
+
+
         // given space [ds, de], if this space can fined space to place, return true and the x coor displace cost
         // otherwise reture false.
         // if dir == 0 start finding from ds to de (start to end)
         // if dir == 1 start finding from de to ds (end to start)
-        bool seg_mincost(ffi* fi, int ds, int de, int dw, double& mincost, bool dir);
-        double place_trial(list<plcmt_row*> tested_list, ffi* fi, bool& available, int& best_pos_idx, double global_mincost);
+        bool seg_mincost(ffi* fi, int ds, int de, int dw, int& best_pos_idx, double& mincost, bool dir);
+        double place_trial(list<plcmt_row*>& tested_list, ffi* fi, bool& available, int& best_pos_idx, double global_mincost);
         
-
+        void print_blocklist();
+        void print_spacelist();
 };
 
 class placement{
@@ -60,8 +63,8 @@ class placement{
         int new_ff_cnt;
         list<plcmt_row*> temp_rows;        
         int  closest_IDX(double x, double y);
-        bool ff_cmp(ffi* a, ffi* b);
-        bool row_cmp(plcmt_row* a, plcmt_row* b);
+        static bool ff_cmp(ffi* a, ffi* b);
+        static bool row_cmp(plcmt_row* a, plcmt_row* b);
         void place_formal(ffi* fi, plcmt_row* best_row, int best_pos_idx);
         void mbff_dismantle(ffi* fi, list<ffi*>& dismantle_list, lib& LIB, dieInfo& DIE);
 
@@ -71,6 +74,7 @@ class placement{
         vector<plcmt_row*> rows;
 
         // Member functions
+        placement();
         void addRow(double sx, double sy, double sw, double sh, int sn);
         void initial();
         void placeGateInst(inst& INST);
@@ -78,7 +82,7 @@ class placement{
         
 
 
-}
+};
 
 #endif
 

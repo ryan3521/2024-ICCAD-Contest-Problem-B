@@ -1,6 +1,6 @@
 CC = g++
-CFLAGS = -g -Wall -O3
-OBJS = lib.o inst.o netlist.o read_input.o cluster.o kmeans_cls.o placement.o cls_mapping.o finetune.o
+CFLAGS = -g -wall -O3
+OBJS = lib.o inst.o netlist.o read_input.o placement.o 
 BINS = main
 INFILE = 3.in
 
@@ -16,5 +16,5 @@ $(BINS): main.cpp $(OBJS)
 run:
 	./$(BINS) $(INFILE)
 clean:
-	rm $(BINS) $(OBJS)
+	rm $(BINS) $(OBJS) *.o
 	

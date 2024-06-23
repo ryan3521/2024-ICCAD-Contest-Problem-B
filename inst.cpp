@@ -284,7 +284,7 @@ bool ffi::is_too_far(double x, double y, double displacement_delay){
         double pin_x = p->new_coox + rel_x;
         double pin_y = p->new_cooy + rel_y;
         double hpwl = abs(pin_x - p->coox) + abs(pin_y - p->cooy);
-        double allow = (dspd_slk/displacement_delay)>0 ? (dspd_slk/displacement_delay) : 0;
+        double allow = (p->dspd_slk/displacement_delay)>0 ? (p->dspd_slk/displacement_delay) : 0;
         if(hpwl > allow) neg_cnt++;
     }
     if(neg_cnt > bit_num) return true;
