@@ -14,12 +14,12 @@ void InitialCenter(lib& LIB, inst& INST, list<cluster*>& KCR){
     }
     ff_list.sort(cmp);
 
-    int neg_cnt = 0;
-    for(auto& fi: ff_list){
-        //if(fi->d_pins[0]->slack <= 0) neg_cnt++;
-        if(fi->allow_dis <= 0) neg_cnt++;
-    }
-    cout << "Negative Slack FF Num: " << neg_cnt << endl;
+    // int neg_cnt = 0;
+    // for(auto& fi: ff_list){
+    //     //if(fi->d_pins[0]->slack <= 0) neg_cnt++;
+    //     if(fi->allow_dis <= 0) neg_cnt++;
+    // }
+    // cout << "Negative Slack FF Num: " << neg_cnt << endl;
 
 
 

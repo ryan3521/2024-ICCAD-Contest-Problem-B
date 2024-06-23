@@ -852,14 +852,14 @@ void placement::placeFlipFlopInst(lib& LIB, inst& INST, dieInfo& DIE, list<ffi*>
     int UPFFS_NUM = UPFFS.size();
     int DISM_NUM = dismantle_list.size();
 
-    while(UPFFS_NUM>0 || DISM_NUM>0){
+    while(UPFFS_NUM>0 || dismantle_list.size()>0){
         // cout << ff_cnt << ":" << endl;
         ts = clock();
         mincost = numeric_limits<double>::max();
         find = false; 
         // cout << "\033[2J\033[1;1H";
         // Step 1. Pick one ff from unplaced ff list or dismantle ff list to place
-        if(UPFFS_NUM>0 && DISM_NUM>0){
+        if(UPFFS_NUM>0 && dismantle_list.size()>0){
             if(UPFFS.front()->coox < dismantle_list.front()->coox){
                 fi = UPFFS.front();
                 UPFFS.pop_front();
@@ -868,7 +868,7 @@ void placement::placeFlipFlopInst(lib& LIB, inst& INST, dieInfo& DIE, list<ffi*>
             else{
                 fi = dismantle_list.front();
                 dismantle_list.pop_front();
-                DISM_NUM--;
+                //DISM_NUM--;
             }
         }
         else if(UPFFS_NUM>0){
@@ -880,7 +880,7 @@ void placement::placeFlipFlopInst(lib& LIB, inst& INST, dieInfo& DIE, list<ffi*>
         else{
             fi = dismantle_list.front();
             dismantle_list.pop_front();
-            DISM_NUM--;
+            //DISM_NUM--;
         }
 
         te = clock();
@@ -1170,28 +1170,29 @@ void placement::placeFlipFlopInst(lib& LIB, inst& INST, dieInfo& DIE, list<ffi*>
             }
             else{
                 // dismantle fi
+                cout << ff_cnt << " dismantle" << endl;
                 mbff_dismantle(fi, dismantle_list, LIB, DIE);
             }
         }
         else{
-            if(fi->cooy != best_row->start_y){
-                cout << "Error: FF place not match!" << endl;
-                cout << "FF count: " << ff_cnt << endl;
-                cout << "FF Name: " << fi->name << endl;
-                cout << "FF coox: " << fi->coox << endl;
-                cout << "FF cooy: " << fi->cooy << endl;
-                cout << "FF W: " << fi->type->size_x << endl;
-                cout << "FF H: " << fi->type->size_y << endl;
-                cout << "====================================" << endl;
-                cout << "Row " << idx << endl;
-                cout << "Row X: " << rows[idx]->start_x << endl;
-                cout << "Row Y: " << rows[idx]->start_y << endl;
-                cout << "Pivot: " << rows[idx]->pivot << endl;
-                rows[idx]->print_blocklist();
-                rows[idx]->print_spacelist();
+            // if(fi->cooy != best_row->start_y){
+            //     cout << "Error: FF place not match!" << endl;
+            //     cout << "FF count: " << ff_cnt << endl;
+            //     cout << "FF Name: " << fi->name << endl;
+            //     cout << "FF coox: " << fi->coox << endl;
+            //     cout << "FF cooy: " << fi->cooy << endl;
+            //     cout << "FF W: " << fi->type->size_x << endl;
+            //     cout << "FF H: " << fi->type->size_y << endl;
+            //     cout << "====================================" << endl;
+            //     cout << "Row " << idx << endl;
+            //     cout << "Row X: " << rows[idx]->start_x << endl;
+            //     cout << "Row Y: " << rows[idx]->start_y << endl;
+            //     cout << "Pivot: " << rows[idx]->pivot << endl;
+            //     rows[idx]->print_blocklist();
+            //     rows[idx]->print_spacelist();
 
-                break;
-            }
+            //     break;
+            // }
             // if(best_row == rows[178]){
             //     cout << "Placed FF Name: " << fi->name << endl;
             //     cout << "Placed IDX: " << best_pos_idx<< endl;
@@ -1204,6 +1205,7 @@ void placement::placeFlipFlopInst(lib& LIB, inst& INST, dieInfo& DIE, list<ffi*>
             //     cout << "--------------------------------" << endl;
                 
             // }
+            // cout << ff_cnt << " placed" << endl;
             place_formal(fi, best_row, best_pos_idx);
             // if(best_row == rows[178]) cout << "Row pivot: " << best_row->pivot << endl;
             PFFS.push_back(fi);
@@ -1215,15 +1217,15 @@ void placement::placeFlipFlopInst(lib& LIB, inst& INST, dieInfo& DIE, list<ffi*>
     time_end = clock();
     total_time = time_end - time_start;
 
-    cout << "Stage 0: " << 100*stage0_time/total_time << "%" << endl;
-    cout << "Stage 1: " << 100*stage1_time/total_time << "%" << endl;
-    cout << "Stage 2: " << 100*stage2_time/total_time << "%" << endl;
-    cout << "Stage 2: " << 100*stage3_time/total_time << "%" << endl;
+    // cout << "Stage 0: " << 100*stage0_time/total_time << "%" << endl;
+    // cout << "Stage 1: " << 100*stage1_time/total_time << "%" << endl;
+    // cout << "Stage 2: " << 100*stage2_time/total_time << "%" << endl;
+    // cout << "Stage 2: " << 100*stage3_time/total_time << "%" << endl;
 
-    cout << "Stage 0 Time: " << stage0_time/ 1000000.0  << " s" << endl;
-    cout << "Stage 1 Time: " << stage1_time/ 1000000.0  << " s" << endl;
-    cout << "Stage 2 Time: " << stage2_time/ 1000000.0  << " s" << endl;
-    cout << "Stage 3 Time: " << stage3_time/ 1000000.0  << " s" << endl;
+    cout << "Stage 0 Time: " << stage0_time/ 1000000.0  << " s ,(" << 100*stage0_time/total_time << " %)" << endl;
+    cout << "Stage 1 Time: " << stage1_time/ 1000000.0  << " s ,(" << 100*stage1_time/total_time << " %)" << endl;
+    cout << "Stage 2 Time: " << stage2_time/ 1000000.0  << " s ,(" << 100*stage2_time/total_time << " %)" << endl;
+    cout << "Stage 3 Time: " << stage3_time/ 1000000.0  << " s ,(" << 100*stage3_time/total_time << " %)" << endl;
     cout << "Total placement Time: " << total_time/ 1000000.0  << " s" << endl;
     return;
 }

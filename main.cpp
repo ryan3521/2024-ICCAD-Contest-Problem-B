@@ -47,8 +47,9 @@ int main(int argc, char** argv){
 
     KmeansCls(LIB, INST, KCR, NCLS);  
     MapClstoMBFF(LIB, KCR, MBFFS);
-
-    // FineTune(LIB, NCLS, MBFFS, UPFFS, DIE); // Not finish yet
+    FineTune(LIB, NCLS, MBFFS, UPFFS, DIE); // Not finish yet
+    PM.placeGateInst(INST);
+    PM.placeFlipFlopInst(LIB, INST, DIE, UPFFS, PFFS);
 
     // ffi* fi;
     // for(auto& it: INST.ff_umap){
@@ -66,8 +67,6 @@ int main(int argc, char** argv){
     //     }
     // }
 
-    // PM.placeGateInst(INST);
-    // PM.placeFlipFlopInst(LIB, INST, DIE, UPFFS, PFFS);
     double end = clock();
     cout << "Total execution time: " << (end - start) / 1000000.0  << " s" << '\n';
 

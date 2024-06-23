@@ -1,6 +1,6 @@
 CC = g++
 CFLAGS = -g -Wall -O3
-OBJS = lib.o inst.o netlist.o read_input.o placement.o cluster.o kmeans_cls.o cls_mapping.o
+OBJS = lib.o inst.o netlist.o read_input.o placement.o cluster.o kmeans_cls.o cls_mapping.o finetune.o
 BINS = main
 INFILE = 3.in
 
