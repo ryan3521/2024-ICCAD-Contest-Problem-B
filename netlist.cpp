@@ -95,6 +95,21 @@ void netlist::add_pin(string str, inst& INST){
             else{ // is clk pin
                 ffi_ptr->clk_pin->to_net = new_net;
                 new_net->opins.push_back(ffi_ptr->clk_pin);
+                if(INST.ff_clk_group.size() > 0){
+                    if(INST.ff_clk_group.back()->back()->clk_pin->to_net != new_net){
+                        list<ffi*>* list_ptr = new list<ffi*>;
+                        INST.ff_clk_group.push_back(list_ptr);
+                        list_ptr->push_back(ffi_ptr);
+                    }
+                    else{
+                        INST.ff_clk_group.back()->push_back(ffi_ptr);
+                    }
+                }
+                else{
+                    list<ffi*>* list_ptr = new list<ffi*>;
+                    INST.ff_clk_group.push_back(list_ptr);
+                    list_ptr->push_back(ffi_ptr);
+                }
             }
         }
         else{ // instance is Gate
