@@ -33,18 +33,17 @@ int main(int argc, char** argv){
     INST.SlackDispense_Q(DIE);
 
 
-    // KmeansCls(LIB, INST, KCR, NCLS);  
+    KmeansCls(DIE, LIB, INST, KCR, NCLS);  
     // MapClstoMBFF(LIB, KCR, MBFFS);
 
     for(auto& it: INST.ff_umap){
         NCLS.push_back(it.second);
     }
 
-    FineTune(LIB, NCLS, MBFFS, UPFFS, DIE); // Not finish yet
-    PM.placeGateInst(INST);
-    PM.placeFlipFlopInst(LIB, INST, DIE, UPFFS, PFFS);
-    Output("output.txt", PFFS, INST);
-
+    // FineTune(LIB, NCLS, MBFFS, UPFFS, DIE); // Not finish yet
+    // PM.placeGateInst(INST);
+    // PM.placeFlipFlopInst(LIB, INST, DIE, UPFFS, PFFS);
+    // Output("output.txt", PFFS, INST);
 
 
 
@@ -66,7 +65,7 @@ int main(int argc, char** argv){
     // }
 
     double end = clock();
-    cout << "Total execution time: " << (end - start) / 1000000.0  << " s" << '\n';
+    cout << "Total execution time: " << (end - start) / 1000.0  << " s" << '\n';
 
     // If placement success ...
     // Output PFFS Info 
