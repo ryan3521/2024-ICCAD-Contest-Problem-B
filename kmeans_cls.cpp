@@ -78,7 +78,6 @@ void DoCluster(double dis_delay, lib& LIB, inst& INST, vector<int>& map_to_clust
             // Find UP
             c = kcr[up_i];
             if(find_up){
-                hpwl_diff = abs(c->cen_x - f->cen_x) + abs(c->cen_y - f->cen_y);
                 if(find == true){
                     if(min_hpwl <= c->cen_x - f->cen_x){
                         find_up = false;
@@ -91,11 +90,13 @@ void DoCluster(double dis_delay, lib& LIB, inst& INST, vector<int>& map_to_clust
                 }
             }
             if(find_up){
+                hpwl_diff = abs(c->cen_x - f->cen_x) + abs(c->cen_y - f->cen_y);
                 if(f->allow_displace(c->cen_x, c->cen_y, dis_delay)==true && ((c->size)+(f->type->bit_num) <= LIB.max_ff_size)){
                     if(find == false){
                         find = true;
                         min_hpwl = hpwl_diff;
                         closest_c = c;
+                        map_to_cluster[ff_cnt] = up_i; 
                     }
                     else{
                         if(hpwl_diff < min_hpwl){
