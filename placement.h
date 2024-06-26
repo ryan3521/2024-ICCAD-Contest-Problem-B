@@ -16,6 +16,7 @@ class plcmt_row{
     private:
         static bool cmp_g(gatei* a, gatei* b);
     public:
+        int idx;
         bool is_tested;
         bool is_visited;
         double start_x;

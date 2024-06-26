@@ -8,7 +8,7 @@ cluster::cluster(double x, double y){
 }
 
 bool cluster::updateCentroid(){
-    double TH = 1; // (%)
+    double TH = 5; // (%)
     bool move = true;
     double new_cen_x = 0;
     double new_cen_y = 0;

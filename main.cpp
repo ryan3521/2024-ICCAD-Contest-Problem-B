@@ -34,35 +34,17 @@ int main(int argc, char** argv){
 
 
     KmeansCls(DIE, LIB, INST, KCR, NCLS);  
-    // MapClstoMBFF(LIB, KCR, MBFFS);
+    MapClstoMBFF(LIB, KCR, MBFFS);
 
-    for(auto& it: INST.ff_umap){
-        NCLS.push_back(it.second);
-    }
+    // for(auto& it: INST.ff_umap){
+    //     NCLS.push_back(it.second);
+    // }
 
-    // FineTune(LIB, NCLS, MBFFS, UPFFS, DIE); // Not finish yet
-    // PM.placeGateInst(INST);
-    // PM.placeFlipFlopInst(LIB, INST, DIE, UPFFS, PFFS);
+    FineTune(LIB, NCLS, MBFFS, UPFFS, DIE); // Not finish yet
+    PM.placeGateInst(INST);
+    PM.placeFlipFlopInst(LIB, INST, DIE, UPFFS, PFFS);
     // Output("output.txt", PFFS, INST);
 
-
-
-
-    // ffi* fi;
-    // for(auto& it: INST.ff_umap){
-    //     UPFFS.push_back(it.second);
-    //     fi = it.second;
-    //     for(auto& p: fi->d_pins){
-    //         p->to_new_ff = p->to_ff;
-    //         p->new_coox = p->coox;
-    //         p->new_cooy = p->cooy;
-    //     }
-    //     for(auto& p: fi->q_pins){
-    //         p->to_new_ff = p->to_ff;
-    //         p->new_coox = p->coox;
-    //         p->new_cooy = p->cooy;
-    //     }
-    // }
 
     double end = clock();
     cout << "Total execution time: " << (end - start) / 1000.0  << " s" << '\n';

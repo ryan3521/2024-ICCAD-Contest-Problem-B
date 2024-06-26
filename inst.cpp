@@ -290,7 +290,8 @@ bool ffi::is_too_far(double x, double y, double displacement_delay){
         double allow = (p->dspd_slk/displacement_delay)>0 ? (p->dspd_slk/displacement_delay) : 0;
         if(hpwl > allow) neg_cnt++;
     }
-    if(neg_cnt > bit_num) return true;
+    //if(neg_cnt > bit_num) return true;
+    if(neg_cnt > bit_num/2) return true;
     else return false;
 }
 

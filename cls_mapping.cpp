@@ -90,7 +90,7 @@ void MapClstoMBFF(lib& LIB, list<cluster*>& KCR, list<ffi*>& MBFFS){
         for(auto fc: LIB.opt_fftable[c->member_list.size()]){
             inst_name = "";
             inst_name = inst_name + "MA" + to_string(cnt);
-            cout << inst_name << endl;
+            // cout << inst_name << endl;
             mbff = new ffi(inst_name, 0, 0);
             mbff->type = fc;
             mbff->d_pins.reserve(fc->bit_num);

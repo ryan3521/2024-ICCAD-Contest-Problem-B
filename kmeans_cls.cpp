@@ -1,11 +1,12 @@
 #include "func.h"
 
+
 bool cmp_cx(cluster* a, cluster* b){
     return a->cen_x < b->cen_x;
 }
 
 bool cmp_ffx(ffi* a, ffi* b){
-    return a->coox < b->coox;
+    return a->cen_x < b->cen_y;
 }
 
 void InitialCenter(lib& LIB, inst& INST, list<ffi*>& ff_list , vector<cluster*>& kcr){
@@ -60,7 +61,8 @@ void DoCluster(double dis_delay, lib& LIB, inst& INST, vector<int>& map_to_clust
             map_to_cluster[i] = (double)i/(double)LIB.max_ff_size;
         }
     }
-
+    int t_cnt = 0;
+    int f_cnt = 0;
 
     for(const auto& f : ff_list){
         find      = false;
@@ -70,33 +72,35 @@ void DoCluster(double dis_delay, lib& LIB, inst& INST, vector<int>& map_to_clust
         closest_idx = map_to_cluster[ff_cnt];
         up_i = closest_idx;
         down_i = closest_idx - 1;
-
+        // cout << ff_cnt << endl;
         while(find_up==true || find_down==true){
             if(down_i < 0) find_down = false;
             if(up_i >= kcr.size()) find_up = false;
 
             // Find UP
             c = kcr[up_i];
-            if(find_up){
-                if(find == true){
-                    if(min_hpwl <= c->cen_x - f->cen_x){
-                        find_up = false;
-                    }
-                }
-            }
-            if(find_up){
-                if(f->allow_displace(c->cen_x, f->cen_y, dis_delay)==false && c->cen_x >= f->cen_x /*&& find==true*/){
-                    find_up = false;
-                }
-            }
+            // if(find_up){
+            //     if(find == true){
+            //         if(min_hpwl <= c->cen_x - f->cen_x){
+            //             find_up = false;
+            //         }
+            //     }
+            // }
+            // if(find_up){
+            //     if(f->allow_displace(c->cen_x, f->cen_y, dis_delay)==false && c->cen_x >= f->cen_x /*&& find==true*/){
+            //         find_up = false;
+            //     }
+            // }
             if(find_up){
                 hpwl_diff = abs(c->cen_x - f->cen_x) + abs(c->cen_y - f->cen_y);
                 if(f->allow_displace(c->cen_x, c->cen_y, dis_delay)==true && ((c->size)+(f->type->bit_num) <= LIB.max_ff_size)){
                     if(find == false){
                         find = true;
+                    t_cnt++;
                         min_hpwl = hpwl_diff;
                         closest_c = c;
                         map_to_cluster[ff_cnt] = up_i; 
+                        break;
                     }
                     else{
                         if(hpwl_diff < min_hpwl){
@@ -106,31 +110,34 @@ void DoCluster(double dis_delay, lib& LIB, inst& INST, vector<int>& map_to_clust
                         }
                     }
                 }
+                else f_cnt++;
                 up_i++;
             }
 
             // Find DOWN
             c = kcr[down_i];
-            if(find_down){
-                if(find == true){
-                    if(min_hpwl <=  f->cen_x - c->cen_x){
-                        find_down = false;
-                    }
-                }
-            }
-            if(find_down){
-                if(f->allow_displace(c->cen_x, f->cen_y, dis_delay)==false && c->cen_x <= f->cen_x /*&& find==true*/){
-                    find_down = false;
-                }
-            }
+            // if(find_down){
+            //     if(find == true){
+            //         if(min_hpwl <=  f->cen_x - c->cen_x){
+            //             find_down = false;
+            //         }
+            //     }
+            // }
+            // if(find_down){
+            //     if(f->allow_displace(c->cen_x, f->cen_y, dis_delay)==false && c->cen_x <= f->cen_x /*&& find==true*/){
+            //         find_down = false;
+            //     }
+            // }
             if(find_down){
                 hpwl_diff = abs(c->cen_x - f->cen_x) + abs(c->cen_y - f->cen_y);
                 if(f->allow_displace(c->cen_x, c->cen_y, dis_delay)==true && ((c->size)+(f->type->bit_num) <= LIB.max_ff_size)){
                     if(find == false){
                         find = true;
                         min_hpwl = hpwl_diff;
+                    t_cnt++;
                         closest_c = c;
                         map_to_cluster[ff_cnt] = down_i; 
+                        break;
                     }
                     else{
                         if(hpwl_diff < min_hpwl){
@@ -140,6 +147,7 @@ void DoCluster(double dis_delay, lib& LIB, inst& INST, vector<int>& map_to_clust
                         }
                     }
                 }
+                else f_cnt++;
                 down_i--;
             }
 
@@ -148,20 +156,25 @@ void DoCluster(double dis_delay, lib& LIB, inst& INST, vector<int>& map_to_clust
         if(find){ // If find, meaning this ff is belong to one cluster
            closest_c->size =  closest_c->size + f->type->bit_num;
            closest_c->member_list.push_back(f);
+           // cout << min_hpwl << endl;
         }
         else{// if not find, this ff is a non cluster instance.
             NCLS.push_back(f);
         }
+        
         ff_cnt++;
     }
     cout << "Clustered FFs   : " << INST.ff_umap.size() - NCLS.size() << endl;
     cout << "None cluster FFs: " << NCLS.size() << endl;
+
+    // cout << "True  CNT: " << t_cnt << endl;
+    // cout << "False CNT: " << f_cnt << endl;
 }
 
-bool UpdateCentroid(list<cluster*>& KCR){
+bool UpdateCentroid(vector<cluster*>& kcr){
     bool move;
     bool no_move = true;
-    for(const auto& c : KCR){
+    for(const auto& c : kcr){
         move = c->updateCentroid();
         if(move) no_move = false;
     }
@@ -174,7 +187,7 @@ void KmeansCls(dieInfo& DIE, lib& LIB, inst& INST, list<cluster*>& KCR, list<ffi
 
 
 
-    int ITR_BOUND = 10;
+    int ITR_BOUND = 1;
     int itr = 0;
     bool no_move;
     vector<cluster*> kcr;
@@ -195,7 +208,7 @@ void KmeansCls(dieInfo& DIE, lib& LIB, inst& INST, list<cluster*>& KCR, list<ffi
         cout << "Clustering (Itr" << itr << ") ..." << endl;
         
         DoCluster(DIE.displacement_delay, LIB, INST, map_to_cluster, ff_list, kcr, NCLS, itr);
-        no_move = UpdateCentroid(KCR);
+        no_move = UpdateCentroid(kcr);
         if(no_move){
             break;
         }

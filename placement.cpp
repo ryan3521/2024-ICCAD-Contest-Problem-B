@@ -656,6 +656,8 @@ void placement::initial(){
         }
     }
 
+    for(int i=0; i<rows.size(); i++) { rows[i]->idx = i; }
+
     return;
 }
 
