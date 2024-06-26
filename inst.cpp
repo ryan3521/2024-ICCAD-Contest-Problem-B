@@ -291,7 +291,7 @@ bool ffi::is_too_far(double x, double y, double displacement_delay){
         if(hpwl > allow) neg_cnt++;
     }
     //if(neg_cnt > bit_num) return true;
-    if(neg_cnt > bit_num/2) return true;
+    if(neg_cnt > bit_num) return true;
     else return false;
 }
 

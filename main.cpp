@@ -23,6 +23,12 @@ int main(int argc, char** argv){
     list<ffi*> MBFFS; // Store the new MBFFs after doing K-means Cluster
     list<ffi*> UPFFS; // Store all ffs which need to be placed (== NCLS + MBFFS)
     list<ffi*> PFFS; // Store all ffs which are placed
+    double orig_area  = 0;
+    double orig_power = 0;
+    double opt_area = 0;
+    double opt_power = 0;
+    int ori_bitnum = 0;
+    int aft_bitnum = 0;
 
 
 
@@ -31,28 +37,48 @@ int main(int argc, char** argv){
     ReadInput(argv[1], LIB, INST, DIE, NL, PM);
     LIB.construct_fftable(DIE);
     INST.SlackDispense_Q(DIE);
-
+    for(auto it: INST.ff_umap){
+        auto f = it.second;
+        orig_area = orig_area + f->type->area;
+        orig_power = orig_power + f->type->gate_power;
+        ori_bitnum = ori_bitnum + f->d_pins.size();
+    }
 
     KmeansCls(DIE, LIB, INST, KCR, NCLS);  
     MapClstoMBFF(LIB, KCR, MBFFS);
 
-    // for(auto& it: INST.ff_umap){
-    //     NCLS.push_back(it.second);
-    // }
+
 
     FineTune(LIB, NCLS, MBFFS, UPFFS, DIE); // Not finish yet
     PM.placeGateInst(INST);
     PM.placeFlipFlopInst(LIB, INST, DIE, UPFFS, PFFS);
+
+    for(auto f: PFFS){
+        opt_area = opt_area + f->type->area;
+        opt_power = opt_power + f->type->gate_power;
+        aft_bitnum = aft_bitnum + f->d_pins.size();
+    }
     // Output("output.txt", PFFS, INST);
 
 
     double end = clock();
     cout << "Total execution time: " << (end - start) / 1000.0  << " s" << '\n';
 
-    // If placement success ...
-    // Output PFFS Info 
-    // Done 
+    if(ori_bitnum == aft_bitnum)
+        cout << endl << "- bit num match -" << endl;
+    else 
+        cout << endl << "error: bit num not match" << endl;
 
+    cout << endl;
+    cout << "===============================" << endl;
+    cout << "Ori Power: " << orig_power << endl;
+    cout << "Opt Power: " << opt_power << endl;
+    cout << "Reduce: " << 100*(orig_power - opt_power)/orig_power << " %" << endl;
+    cout << "-------------------------------" << endl;
+    cout << "Ori Area: " << orig_area << endl;
+    cout << "Opt Area: " << opt_area << endl;
+    cout << "Reduce: " << 100*(orig_area - opt_area)/orig_area << " %" << endl;
+    cout << "===============================" << endl;
     
     return 0;
 }
