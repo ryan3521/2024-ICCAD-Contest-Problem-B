@@ -58,7 +58,7 @@ int main(int argc, char** argv){
         opt_power = opt_power + f->type->gate_power;
         aft_bitnum = aft_bitnum + f->d_pins.size();
     }
-    // Output("output.txt", PFFS, INST);
+    Output("output.txt", PFFS, INST);
 
 
     double end = clock();
