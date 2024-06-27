@@ -66,18 +66,18 @@ int main(int argc, char** argv){
 
 
     double end = clock();
-    cout << "Total execution time: " << (end - start) / 1000.0  << " s" << '\n';
 
     if(ori_bitnum == aft_bitnum)
-        cout << endl << "- bit num match -" << endl;
+        cout << endl << "success - bit num match -" << endl;
     else 
-        cout << endl << "error: bit num not match" << endl;
+        cout << endl << "error - bit num not match" << endl;
 
     ori_cost = DIE.Beta*orig_power + DIE.Gamma*orig_area;
     opt_cost = DIE.Beta*opt_power + DIE.Gamma*opt_area;
 
 
     cout << endl;
+    cout << "Optimize Report >>> " << endl;
     cout << "===============================" << endl;
     cout << "Ori Power: " << orig_power << endl;
     cout << "Opt Power: " << opt_power << endl;
@@ -91,6 +91,8 @@ int main(int argc, char** argv){
     cout << "Opt Cost: " << opt_cost << endl;
     cout << "Reduce: " << 100*(ori_cost - opt_cost)/ori_cost << " %" << endl;
     cout << "===============================" << endl;
+    
+    cout << endl << "Total execution time: " << (end - start) / 1000000.0  << " s" << '\n';
     
     return 0;
 }

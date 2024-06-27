@@ -2,6 +2,7 @@
 
 
 void ReadInput(string filename, lib& LIB, inst& INST, dieInfo&  DIE, netlist& NL, placement& PM){
+    bool PRINT_INFO = false;
     fstream fin;
     string title;
     string name;
@@ -28,20 +29,20 @@ void ReadInput(string filename, lib& LIB, inst& INST, dieInfo&  DIE, netlist& NL
     cout << "Start reading INPUT >>>" << endl;
 
     // Read weight
-    cout << "Reading weight ..." << endl;
+    if(PRINT_INFO) cout << "Reading weight ..." << endl;
     fin >> title >> DIE.Alpha;
     fin >> title >> DIE.Beta;
     fin >> title >> DIE.Gamma;
     fin >> title >> DIE.Lambda;
 
     // Read die info
-    cout << "Reading die info ..." << endl;
+    if(PRINT_INFO) cout << "Reading die info ..." << endl;
     fin >> title;
     fin >> coox >> cooy;
     fin >> DIE.die_width >> DIE.die_height;
 
     // Read input pin
-    cout << "Reading input pin ..." << endl;
+    if(PRINT_INFO) cout << "Reading input pin ..." << endl;
     fin >> title >> pin_num;
     for(int i=0; i<pin_num; i++){
         fin >> title >> name ;
@@ -50,7 +51,7 @@ void ReadInput(string filename, lib& LIB, inst& INST, dieInfo&  DIE, netlist& NL
     }
 
     // Read output pin
-    cout << "Reading output pin ..." << endl;
+    if(PRINT_INFO) cout << "Reading output pin ..." << endl;
     fin >> title >> pin_num;
     for(int i=0; i<pin_num; i++){
         fin >> title >> name ;
@@ -59,7 +60,7 @@ void ReadInput(string filename, lib& LIB, inst& INST, dieInfo&  DIE, netlist& NL
     }
 
     // Read Library (FF and Gate)
-    cout << "Reading library ..." << endl;
+    if(PRINT_INFO) cout << "Reading library ..." << endl;
     ffcell* new_ffcell;
     gcell* new_gcell;
     int cnt = 0;
@@ -106,7 +107,7 @@ void ReadInput(string filename, lib& LIB, inst& INST, dieInfo&  DIE, netlist& NL
 
 
     // Read instance
-    cout << "Reading Instance ..." << endl;
+    if(PRINT_INFO) cout << "Reading Instance ..." << endl;
     ffi* new_ffi;
     gatei* new_gatei;
     fin >> inst_num;
@@ -117,7 +118,7 @@ void ReadInput(string filename, lib& LIB, inst& INST, dieInfo&  DIE, netlist& NL
     }
 
     // Read Netlist
-    cout << "Reading Netlist ..." << endl;
+    if(PRINT_INFO) cout << "Reading Netlist ..." << endl;
     fin >> title >> net_num;
     NL.set_net_num(net_num);
 
@@ -132,13 +133,13 @@ void ReadInput(string filename, lib& LIB, inst& INST, dieInfo&  DIE, netlist& NL
     }
 
     // Read bin info
-    cout << "Reading bin info ..." << endl;
+    if(PRINT_INFO) cout << "Reading bin info ..." << endl;
     fin >> title >> DIE.bin_width;
     fin >> title >> DIE.bin_height;
     fin >> title >> DIE.bin_util;
 
     // Read placement row info
-    cout << "Reading placement row info ..." << endl;
+    if(PRINT_INFO) cout << "Reading placement row info ..." << endl;
     while(1){
         fin >> title ;
         if(title != "PlacementRows"){PM.initial(); break;}
@@ -148,12 +149,12 @@ void ReadInput(string filename, lib& LIB, inst& INST, dieInfo&  DIE, netlist& NL
 
 
     // Read DisplacementDelay
-    cout << "Reading DisplacementDelay ..." << endl;
+    if(PRINT_INFO) cout << "Reading DisplacementDelay ..." << endl;
     fin >> DIE.displacement_delay;
 
 
     // Read Q pin delay
-    cout << "Reading Q pin delay ..." << endl;
+    if(PRINT_INFO) cout << "Reading Q pin delay ..." << endl;
     while(1){
         fin >> title ;
         if(title != "QpinDelay") break;
@@ -163,7 +164,7 @@ void ReadInput(string filename, lib& LIB, inst& INST, dieInfo&  DIE, netlist& NL
     }
 
     // Read Timing Slack
-    cout << "Reading Timing Slack ..." << endl;
+    if(PRINT_INFO) cout << "Reading Timing Slack ..." << endl;
     while(1){
         if(title != "TimingSlack") break;
 
@@ -173,7 +174,7 @@ void ReadInput(string filename, lib& LIB, inst& INST, dieInfo&  DIE, netlist& NL
     }
 
     // Read Gate Power
-    cout << "Reading Gate Power ..." << endl;
+    if(PRINT_INFO) cout << "Reading Gate Power ..." << endl;
     while(1){
         if(title != "GatePower" || fin.eof()) break;
 
@@ -182,7 +183,7 @@ void ReadInput(string filename, lib& LIB, inst& INST, dieInfo&  DIE, netlist& NL
         fin >> title;
     }
 
-    cout << "Reading DONE" << endl;
+    if(PRINT_INFO) cout << "Reading DONE" << endl;
 
     return;
 }

@@ -750,7 +750,7 @@ int placement::closest_IDX(double x, double y){
 }
 
 void placement::placeGateInst(inst& INST){
-    cout << "Placing Gate >>>" << endl;
+    cout << endl << "Placing Gate >>>" << endl;
     // for(auto& it: INST.gate_umap){
     //     if(it.second->name == "C102728"){
     //         cout << it.first << endl;
@@ -848,7 +848,7 @@ void placement::placeFlipFlopInst(lib& LIB, inst& INST, dieInfo& DIE, list<ffi*>
     double stage3_time = 0;
     double time_start, time_end;
     double ts, te;
-    cout << "Placing FF >>>" << endl;
+    cout << endl << "FFs Placement Legalization >>>" << endl;
 
     dismantle_list.clear();
     UPFFS.sort(ff_cmp);

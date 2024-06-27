@@ -55,7 +55,7 @@ void SortRegList(list<reg*>& temp_list){
 }
 
 void MapClstoMBFF(lib& LIB, list<cluster*>& KCR, list<ffi*>& MBFFS){
-    cout << "Mapping cluster to MBFF >>>" << endl;
+    cout << endl << "Mapping cluster to MBFF >>>" << endl;
 
     int cnt;
     ffi* mbff;

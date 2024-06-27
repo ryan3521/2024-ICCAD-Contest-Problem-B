@@ -1,6 +1,7 @@
 #include "func.h"
 
 void Output(string filename, list<ffi*>& PFFS, inst& INST){
+    cout << endl << "Writing Output >>> " << endl;
     fstream fout;
     std::unordered_map<std::string,double> umap;
 
