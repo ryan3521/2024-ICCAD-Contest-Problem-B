@@ -43,7 +43,7 @@ void FineTune(lib& LIB, list<ffi*>& NCLS, list<ffi*>& MBFFS, list<ffi*>& UPFFS, 
         //     p->new_coox = p->coox;
         //     p->new_cooy = p->cooy;
         // }
-        UPFFS.push_back(fi);
+        UPFFS.push_back(new_fi);
         cnt++;
     }
     for(auto& fi: MBFFS){

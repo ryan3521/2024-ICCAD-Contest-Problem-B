@@ -428,6 +428,8 @@ double plcmt_row::place_trial(list<plcmt_row*>& tested_list, ffi* fi, bool& avai
     else{
         if(abs(start_x + site_num*site_w - w - sx) + abs(start_y - sy) >= global_mincost) return mincost;
     }
+
+    // cout << "row " << idx << endl; 
     // cout << "This row Y: " << start_y << endl;
     //cout << "DX: " << dx << endl;
     //cout << "DW: " << dw << endl;
@@ -655,6 +657,8 @@ void placement::initial(){
             hightlevel_list.push_back(pair<double, plcmt_row*>(pr->start_y + pr->site_h, pr));
         }
     }
+
+    for(int i=0; i<rows.size(); i++) { rows[i]->idx = i; }
 
     return;
 }
@@ -906,6 +910,8 @@ void placement::placeFlipFlopInst(lib& LIB, inst& INST, dieInfo& DIE, list<ffi*>
         tested_list.clear();
 
         // *************************** Stage 1 ***************************
+        // cout << "*************************** Stage 1 ***************************" << endl;
+        
         search_stack.clear();
         search_stack.push_back(rows[idx]);
         rows[idx]->is_visited = true;
@@ -925,11 +931,15 @@ void placement::placeFlipFlopInst(lib& LIB, inst& INST, dieInfo& DIE, list<ffi*>
                 if(p->is_visited == false){
                     if(find==true){
                         if(abs(p->start_y - fi->cooy) >= mincost){
+                            // cout << "row " << p->idx << " larger than mincost " << endl;
                             break;
                         }
                         if(fi->is_too_far(p->closest_x(fi->coox), p->start_y, DIE.displacement_delay) == false){
                             search_stack.push_back(p);
                             p->is_visited = true;
+                        }
+                        else{
+                            // cout << "row " << p->idx << " is too far " << endl;
                         }
                     }
                     else{
@@ -950,11 +960,15 @@ void placement::placeFlipFlopInst(lib& LIB, inst& INST, dieInfo& DIE, list<ffi*>
                 if(p->is_visited == false){
                     if(find==true){
                         if(abs(p->start_y - fi->cooy) >= mincost){
+                            // cout << "row " << p->idx << " larger than mincost " << endl;
                             break;
                         }
                         if(fi->is_too_far(p->closest_x(fi->coox), p->start_y, DIE.displacement_delay) == false){
                             search_stack.push_back(p);
                             p->is_visited = true;
+                        }
+                        else{
+                            // cout << "row " << p->idx << " is too far " << endl;
                         }
                     }
                     else{
@@ -974,12 +988,15 @@ void placement::placeFlipFlopInst(lib& LIB, inst& INST, dieInfo& DIE, list<ffi*>
             search_stack.pop_front();
         }
 
+        
+        // cout << "find = " << find << endl;
+        // cout << "mincost: " << mincost << endl;
         for(auto& p: search_stack) { p->is_visited = false; }
         te = clock();
         stage1_time = stage1_time + (te - ts);
         // *************************** Stage 2 ***************************
         ts = clock();
-
+        // cout << "*************************** Stage 2 ***************************" << endl;
         int up_i = idx + 1;
         int down_i = idx - 1;
         bool search_up = true;
@@ -1005,13 +1022,15 @@ void placement::placeFlipFlopInst(lib& LIB, inst& INST, dieInfo& DIE, list<ffi*>
                     }
                     else{
                         if(target_pr->is_tested == false){
-                            cost = target_pr->place_trial(tested_list, fi, available, pos_idx, mincost);
-                            if(available){
-                                find = true;
-                                if(cost < mincost){
-                                    mincost = cost;
-                                    best_pos_idx = pos_idx;
-                                    best_row = target_pr; 
+                            if(fi->is_too_far(target_pr->closest_x(fi->coox), target_pr->start_y, DIE.displacement_delay) == false){
+                                cost = target_pr->place_trial(tested_list, fi, available, pos_idx, mincost);
+                                if(available){
+                                    find = true;
+                                    if(cost < mincost){
+                                        mincost = cost;
+                                        best_pos_idx = pos_idx;
+                                        best_row = target_pr; 
+                                    }
                                 }
                             }
                         }
@@ -1053,17 +1072,17 @@ void placement::placeFlipFlopInst(lib& LIB, inst& INST, dieInfo& DIE, list<ffi*>
                     }
                 }
 
-                if(target_pr->is_tested == false){
-                    cost = target_pr->place_trial(tested_list, fi, available, pos_idx, mincost);
-                    if(available){
-                        find = true;
-                        if(cost < mincost){
-                            mincost = cost;
-                            best_pos_idx = pos_idx;
-                            best_row = target_pr; 
-                        }
-                    }
-                }
+                // if(target_pr->is_tested == false){
+                //     cost = target_pr->place_trial(tested_list, fi, available, pos_idx, mincost);
+                //     if(available){
+                //         find = true;
+                //         if(cost < mincost){
+                //             mincost = cost;
+                //             best_pos_idx = pos_idx;
+                //             best_row = target_pr; 
+                //         }
+                //     }
+                // }
                 up_i++;
             }
 
@@ -1077,13 +1096,15 @@ void placement::placeFlipFlopInst(lib& LIB, inst& INST, dieInfo& DIE, list<ffi*>
                     }
                     else{
                         if(target_pr->is_tested == false){
-                            cost = target_pr->place_trial(tested_list, fi, available, pos_idx, mincost);
-                            if(available){
-                                find = true;
-                                if(cost < mincost){
-                                    mincost = cost;
-                                    best_pos_idx = pos_idx;
-                                    best_row = target_pr; 
+                            if(fi->is_too_far(target_pr->closest_x(fi->coox), target_pr->start_y, DIE.displacement_delay) == false){
+                                cost = target_pr->place_trial(tested_list, fi, available, pos_idx, mincost);
+                                if(available){
+                                    find = true;
+                                    if(cost < mincost){
+                                        mincost = cost;
+                                        best_pos_idx = pos_idx;
+                                        best_row = target_pr; 
+                                    }
                                 }
                             }
                         }
@@ -1125,17 +1146,17 @@ void placement::placeFlipFlopInst(lib& LIB, inst& INST, dieInfo& DIE, list<ffi*>
                     }
                 }
 
-                if(target_pr->is_tested == false){
-                    cost = target_pr->place_trial(tested_list, fi, available, pos_idx, mincost);
-                    if(available){
-                        find = true;
-                        if(cost < mincost){
-                            mincost = cost;
-                            best_pos_idx = pos_idx;
-                            best_row = target_pr; 
-                        }
-                    }
-                }
+                // if(target_pr->is_tested == false){
+                //     cost = target_pr->place_trial(tested_list, fi, available, pos_idx, mincost);
+                //     if(available){
+                //         find = true;
+                //         if(cost < mincost){
+                //             mincost = cost;
+                //             best_pos_idx = pos_idx;
+                //             best_row = target_pr; 
+                //         }
+                //     }
+                // }
                 down_i--;
             }
         }
@@ -1170,7 +1191,7 @@ void placement::placeFlipFlopInst(lib& LIB, inst& INST, dieInfo& DIE, list<ffi*>
             }
             else{
                 // dismantle fi
-                cout << ff_cnt << " dismantle" << endl;
+                // cout << ff_cnt << " dismantle" << endl;
                 mbff_dismantle(fi, dismantle_list, LIB, DIE);
             }
         }
@@ -1206,6 +1227,8 @@ void placement::placeFlipFlopInst(lib& LIB, inst& INST, dieInfo& DIE, list<ffi*>
                 
             // }
             // cout << ff_cnt << " placed" << endl;
+
+            // cout << "mincost: " << mincost << endl;
             place_formal(fi, best_row, best_pos_idx);
             // if(best_row == rows[178]) cout << "Row pivot: " << best_row->pivot << endl;
             PFFS.push_back(fi);
