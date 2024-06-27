@@ -13,10 +13,10 @@ void InitialCenter(lib& LIB, inst& INST, list<ffi*>& ff_list , vector<cluster*>&
     int cnt = 0;
     cluster* cptr; // cluster pointer
     
-    ff_list.clear();
-    for(auto& it: INST.ff_umap){
-        ff_list.push_back(it.second);
-    }
+    // ff_list.clear();
+    // for(auto& it: INST.ff_umap){
+    //     ff_list.push_back(it.second);
+    // }
     ff_list.sort(cmp_ffx);
 
     kcr.clear();
@@ -38,7 +38,7 @@ void InitialCenter(lib& LIB, inst& INST, list<ffi*>& ff_list , vector<cluster*>&
     return;
 }
 
-void DoCluster(double dis_delay, lib& LIB, inst& INST, vector<int>& map_to_cluster, list<ffi*>& ff_list, vector<cluster*>& kcr, list<ffi*>& NCLS, int itr){
+void DoCluster(double dis_delay, lib& LIB, inst& INST, vector<int>& map_to_cluster, list<ffi*>& ff_list, vector<cluster*>& kcr, list<ffi*>& ncls, int itr){
     cluster* closest_c; // closest cluster
     cluster* c;
     double min_hpwl;
@@ -52,7 +52,7 @@ void DoCluster(double dis_delay, lib& LIB, inst& INST, vector<int>& map_to_clust
     int down_i;
 
     for(const auto& c : kcr){ c->clearMemberList(); }
-    NCLS.clear();
+    ncls.clear();
     sort(kcr.begin(), kcr.end(), cmp_cx);
 
     if(itr == 0){
@@ -159,13 +159,13 @@ void DoCluster(double dis_delay, lib& LIB, inst& INST, vector<int>& map_to_clust
            // cout << min_hpwl << endl;
         }
         else{// if not find, this ff is a non cluster instance.
-            NCLS.push_back(f);
+            ncls.push_back(f);
         }
         
         ff_cnt++;
     }
-    cout << "Clustered FFs   : " << INST.ff_umap.size() - NCLS.size() << endl;
-    cout << "None cluster FFs: " << NCLS.size() << endl;
+    cout << "Clustered FFs   : " << ff_list.size() - ncls.size() << endl;
+    cout << "None cluster FFs: " << ncls.size() << endl;
 
     // cout << "True  CNT: " << t_cnt << endl;
     // cout << "False CNT: " << f_cnt << endl;
@@ -187,37 +187,48 @@ void KmeansCls(dieInfo& DIE, lib& LIB, inst& INST, list<cluster*>& KCR, list<ffi
 
 
 
-    int ITR_BOUND = 1;
+    int ITR_BOUND = 20;
     int itr = 0;
     bool no_move;
     vector<cluster*> kcr;
+    list<ffi*> ncls;
     vector<int> map_to_cluster;
-    list<ffi*> ff_list;
+
 
 
 
     KCR.clear();
-    cout << "Initializing center ..." << endl;
-    InitialCenter(LIB, INST, ff_list, kcr);
 
-    map_to_cluster.clear();
-    map_to_cluster.resize(ff_list.size());
-
-
-    while(itr < ITR_BOUND){
-        cout << "Clustering (Itr" << itr << ") ..." << endl;
+    for(auto& clock_group_list: INST.ff_clk_group){
+        cout << endl << "Initializing center ..." << endl;
+        cout << "Group size: " << clock_group_list->size() << endl;
+        InitialCenter(LIB, INST, *clock_group_list, kcr);
         
-        DoCluster(DIE.displacement_delay, LIB, INST, map_to_cluster, ff_list, kcr, NCLS, itr);
-        no_move = UpdateCentroid(kcr);
-        if(no_move){
-            break;
+        itr = 0;
+        map_to_cluster.clear();
+        map_to_cluster.resize(clock_group_list->size());
+
+
+        while(itr < ITR_BOUND){
+            cout << "Clustering (Itr" << itr << ") ..." << endl;
+            
+            DoCluster(DIE.displacement_delay, LIB, INST, map_to_cluster, *clock_group_list, kcr, ncls, itr);
+            no_move = UpdateCentroid(kcr);
+            if(no_move){
+                break;
+            }
+            itr++;
         }
-        itr++;
+
+        for(auto&  c: kcr){
+            KCR.push_back(c);
+        }
+        for(auto&  fi: ncls){
+            NCLS.push_back(fi);
+        }
     }
 
-    for(auto&  c: kcr){
-        KCR.push_back(c);
-    }
+
 
     return;
 }

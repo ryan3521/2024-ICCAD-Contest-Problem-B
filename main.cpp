@@ -27,6 +27,8 @@ int main(int argc, char** argv){
     double orig_power = 0;
     double opt_area = 0;
     double opt_power = 0;
+    double ori_cost = 0;
+    double opt_cost = 0;
     int ori_bitnum = 0;
     int aft_bitnum = 0;
 
@@ -47,7 +49,9 @@ int main(int argc, char** argv){
     KmeansCls(DIE, LIB, INST, KCR, NCLS);  
     MapClstoMBFF(LIB, KCR, MBFFS);
 
-
+    // for(auto fi: INST.ff_umap){
+    //     NCLS.push_back(fi.second);
+    // }
 
     FineTune(LIB, NCLS, MBFFS, UPFFS, DIE); // Not finish yet
     PM.placeGateInst(INST);
@@ -69,6 +73,10 @@ int main(int argc, char** argv){
     else 
         cout << endl << "error: bit num not match" << endl;
 
+    ori_cost = DIE.Beta*orig_power + DIE.Gamma*orig_area;
+    opt_cost = DIE.Beta*opt_power + DIE.Gamma*opt_area;
+
+
     cout << endl;
     cout << "===============================" << endl;
     cout << "Ori Power: " << orig_power << endl;
@@ -78,6 +86,10 @@ int main(int argc, char** argv){
     cout << "Ori Area: " << orig_area << endl;
     cout << "Opt Area: " << opt_area << endl;
     cout << "Reduce: " << 100*(orig_area - opt_area)/orig_area << " %" << endl;
+    cout << "-------------------------------" << endl;
+    cout << "Ori Cost: " << ori_cost << endl;
+    cout << "Opt Cost: " << opt_cost << endl;
+    cout << "Reduce: " << 100*(ori_cost - opt_cost)/ori_cost << " %" << endl;
     cout << "===============================" << endl;
     
     return 0;
