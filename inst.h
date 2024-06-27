@@ -142,7 +142,7 @@ class inst{
         inst();
         void add_inst(lib& LIB, string inst_name, string typename_, double coox, double cooy);
         void set_TSlack(string inst_name, string pin_name, double slack);
-        void SlackDispense_Q(dieInfo& DIE);
+        void SlackDispense(dieInfo& DIE);
         void PrintFF();
         void PrintGate();
 

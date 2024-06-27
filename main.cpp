@@ -38,7 +38,7 @@ int main(int argc, char** argv){
     
     ReadInput(argv[1], LIB, INST, DIE, NL, PM);
     LIB.construct_fftable(DIE);
-    INST.SlackDispense_Q(DIE);
+    INST.SlackDispense(DIE);
     for(auto it: INST.ff_umap){
         auto f = it.second;
         orig_area = orig_area + f->type->area;

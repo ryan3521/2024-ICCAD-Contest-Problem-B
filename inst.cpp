@@ -121,12 +121,13 @@ double get_critical_slack(net* net_ptr){
     return critical_slack;
 }
 
-void inst::SlackDispense_Q(dieInfo& DIE){
+void inst::SlackDispense(dieInfo& DIE){
     int pcnt;
     bool no_pos_slack; // (no positive slack)
     double slack_sum;
     double min_pos_slack;
     ffi* ffptr;
+    // calculate Q pin slack
     for (auto it = ff_umap.begin(); it != ff_umap.end(); it++) {
         // pcnt = 0;
         // slack_sum = 0;
@@ -155,6 +156,23 @@ void inst::SlackDispense_Q(dieInfo& DIE){
 
         //ffptr->allow_dis = (no_pos_slack==true) ? 0 : min_pos_slack/(DIE.displacement_delay);
         ffptr->allow_dis = min_pos_slack/(DIE.displacement_delay);
+    }
+
+    // return redundant slack back to d pins
+    for(auto& it: ff_umap){
+        for(auto& p: it.second->d_pins){
+            if(p->to_net->ipins.front()->pin_type == 'g'){
+                if(p->to_net->ipins.front()->to_gate->get_critical_slack() == numeric_limits<double>::max()){
+                    p->dspd_slk = p->slack;
+                }
+                else if(p->dspd_slk > p->to_net->ipins.front()->to_gate->get_critical_slack()){
+                    p->dspd_slk = p->dspd_slk + (p->dspd_slk - p->to_net->ipins.front()->to_gate->get_critical_slack());
+                }
+            }
+            else if(p->to_net->ipins.front()->pin_type == 'd'){
+                p->dspd_slk = p->slack;
+            }
+        }
     }
     return;
 }
@@ -304,7 +322,9 @@ bool ffi::allow_displace(double target_x, double target_y, double displacement_d
         dis_hpwl   = ceil(p->to_net->ipins.front()->coox - target_x) + ceil(p->to_net->ipins.front()->cooy - target_y);
         allow_hpwl = ceil(p->coox - p->to_net->ipins.front()->coox) 
                    + ceil(p->cooy - p->to_net->ipins.front()->cooy); 
+
         allow_hpwl = allow_hpwl + p->dspd_slk/displacement_delay;
+
         if(allow_hpwl < dis_hpwl){
             return false;
         }
@@ -313,11 +333,24 @@ bool ffi::allow_displace(double target_x, double target_y, double displacement_d
     // verify Q pin
     for(auto& p: q_pins){
         for(auto& to_p: p->to_net->opins){
-            dis_hpwl   = ceil(to_p->coox - target_x) + ceil(to_p->cooy - target_y);
-            allow_hpwl = ceil(p->coox - to_p->coox) + ceil(p->cooy - to_p->cooy); 
-            allow_hpwl = allow_hpwl + p->dspd_slk/displacement_delay;
-            if(allow_hpwl < dis_hpwl){
-                return false;
+            if(to_p->pin_type == 'd'){
+                continue;
+            }
+            else if(to_p->pin_type == 'g'){
+                dis_hpwl   = ceil(to_p->coox - target_x) + ceil(to_p->cooy - target_y);
+                allow_hpwl = ceil(p->coox - to_p->coox) + ceil(p->cooy - to_p->cooy); 
+                allow_hpwl = allow_hpwl + to_p->to_gate->get_critical_slack()/displacement_delay;
+                if(allow_hpwl < dis_hpwl){
+                    return false;
+                }
+            }
+            else if(to_p->pin_type == 'f'){
+                dis_hpwl   = ceil(to_p->coox - target_x) + ceil(to_p->cooy - target_y);
+                allow_hpwl = ceil(p->coox - to_p->coox) + ceil(p->cooy - to_p->cooy); 
+                allow_hpwl = allow_hpwl + to_p->dspd_slk/displacement_delay;
+                if(allow_hpwl < dis_hpwl){
+                    return false;
+                }
             }
         }
     }
