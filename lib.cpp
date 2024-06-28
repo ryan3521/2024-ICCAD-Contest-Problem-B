@@ -280,12 +280,15 @@ void lib::construct_fftable(dieInfo& DIE){
             }
         }
     }
+    // for(int i=0; i<ffmapping_list.size(); i++ ){
+    //     cout << ffmapping_list[i] << endl;
+    // }
 
     // calculate the best configuration for each bit
     cost_table.clear();
     cost_table.resize(max_ff_size+1, -1);
     best_choice.resize(max_ff_size+1);
-    for(int i; i<best_choice.size(); i++){
+    for(int i=0; i<best_choice.size(); i++){
         best_choice[i].first  = -1;
         best_choice[i].second = -1;
     }
@@ -296,6 +299,11 @@ void lib::construct_fftable(dieInfo& DIE){
     }
 
     // back trace "best choice" vector and construct the "opt_fftable"
+    // for(int i=0; i<best_choice.size(); i++){
+    //     cout << "B" << i << endl;
+    //     cout << best_choice[i].first  << " , " << best_choice[i].second << endl;
+
+    // }
     opt_fftable.resize(max_ff_size+1);
     for(int i=0; i<=max_ff_size; i++){
         opt_fftable[i].clear();
@@ -315,12 +323,14 @@ void lib::construct_optlist(int bit, list<ffcell*>& opt_list){
     }
     
     if(best_choice[bit].second == -1){
-        opt_list.push_back(fftable_cost[bit].front());
+        opt_list.push_back(fftable_cost[best_choice[bit].first].front());
+        
         return;
     }
     else{
         construct_optlist(best_choice[bit].first,  opt_list);
         construct_optlist(best_choice[bit].second, opt_list);
+        return;
     }
 }
 

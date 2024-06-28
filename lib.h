@@ -86,9 +86,9 @@ class ffcell : public cell{
 
 class lib{
     private:
-        bool cmp_clk2Q(ffcell* a, ffcell* b);
-        bool cmp_APcost(ffcell* a, ffcell* b)
-        bool cmp_area(ffcell* a, ffcell* b);
+        static bool cmp_clk2Q(ffcell* a, ffcell* b);
+        static bool cmp_APcost(ffcell* a, ffcell* b);
+        static bool cmp_area(ffcell* a, ffcell* b);
         vector<int> ffmapping_list; // if ff bit_size=b exist ffmapping_list[b]=-1, else ffmapping_list[b]=next big_ff bit_size
         vector<int> mincost_list;
         double find_min_cost(int bit, dieInfo& DIE);

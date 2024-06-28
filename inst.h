@@ -29,7 +29,7 @@ class ffi{
         bool mark; // ??
         
 
-        double allow_displace; // (HPWL) AVG slack * displacement coefficient
+        double allow_dis; // (HPWL) AVG slack * displacement coefficient
 
 
 
@@ -49,6 +49,8 @@ class ffi{
         // Given coordinate x and y, base on this coordinate calculate if the negative slack pin numbers are more then a half
         // if the neg pin numbers are over the half, then return true, else false
         bool is_too_far(double x, double y, double displacement_delay);
+        bool allow_displace(double x, double y, double displacement_delay);
+
 };
 
 class reg{ // This class represent each bit of register in the design
@@ -115,6 +117,7 @@ class pin{ // pin prototype
         double dspd_slk;    // Only for pin type is 'f', the dispensed slack for 'D' and 'Q' pin 
 
         // Belongs to the new MBFF
+        string new_name;
         ffi* to_new_ff;
         double new_coox;
         double new_cooy;
@@ -133,12 +136,13 @@ class inst{
         unordered_map<string, bool> type_umap; // 0: ff, 1: gate
         unordered_map<string, ffi* > ff_umap;
         unordered_map<string, gatei* > gate_umap;
+        list<list<ffi*>*> ff_clk_group;
 
         // member functions        
         inst();
         void add_inst(lib& LIB, string inst_name, string typename_, double coox, double cooy);
         void set_TSlack(string inst_name, string pin_name, double slack);
-        void SlackDispense_Q(dieInfo& DIE);
+        void SlackDispense(dieInfo& DIE);
         void PrintFF();
         void PrintGate();
 
