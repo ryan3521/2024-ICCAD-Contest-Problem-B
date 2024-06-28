@@ -1,7 +1,10 @@
 #include "func.h"
 
+
+
 void FineTune(lib& LIB, list<ffi*>& NCLS, list<ffi*>& MBFFS, list<ffi*>& UPFFS, dieInfo& DIE){
-    cout << endl << "Start fine tune >>>" << endl;
+    bool PRINT_INFO = false;
+    if(PRINT_INFO) cout << endl << "Start fine tune >>>" << endl;
     int cnt;
     string inst_name;
     ffi* new_fi;

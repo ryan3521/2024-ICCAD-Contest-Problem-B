@@ -1,5 +1,6 @@
 #include "placement.h"
 
+
 // *******************************************************************
 // *                        CLASS plcmt_row                          *
 // *******************************************************************
@@ -431,8 +432,8 @@ double plcmt_row::place_trial(list<plcmt_row*>& tested_list, ffi* fi, bool& avai
 
     // cout << "row " << idx << endl; 
     // cout << "This row Y: " << start_y << endl;
-    //cout << "DX: " << dx << endl;
-    //cout << "DW: " << dw << endl;
+    // cout << "DX: " << dx << endl;
+    // cout << "DW: " << dw << endl;
     if(dx > pivot){
         int front = pivot;
         
@@ -750,7 +751,8 @@ int placement::closest_IDX(double x, double y){
 }
 
 void placement::placeGateInst(inst& INST){
-    cout << endl << "Placing Gate >>>" << endl;
+    bool PRINT_INFO = false;
+    if(PRINT_INFO) cout << endl << "Placing Gate >>>" << endl;
     // for(auto& it: INST.gate_umap){
     //     if(it.second->name == "C102728"){
     //         cout << it.first << endl;
@@ -763,7 +765,7 @@ void placement::placeGateInst(inst& INST){
 
         double temp = (x - rows[idx]->start_x)/rows[idx]->site_w;
         if(y != rows[idx]->start_y || abs(temp - int(temp)) != 0){
-            cout << "Error: gate instance is not on site." << endl;
+            if(PRINT_INFO) cout << "Error: gate instance is not on site." << endl;
             break;
         }
         // if(gi.second->name == "C102728"){
@@ -791,11 +793,11 @@ void placement::placeGateInst(inst& INST){
             //     cout << gi->name << endl;
             // }
             if(rows[i]->x_inrange(gi->coox, gi->coox+gi->type->size_x) == false){
-                cout << "Error: Not in range!" << endl;
+                if(PRINT_INFO) cout << "Error: Not in range!" << endl;
                 place_fail = true;
                 break;
             }
-            if(rows[i]->add_gate(gi->coox, gi->coox+gi->type->size_x, gi->type->size_y) == false){
+            if(rows[i]->add_gate(gi->coox, gi->coox+gi->type->size_x, gi->type->size_y) == false && PRINT_INFO == true){
                 cout << "ROW " << i << endl; 
                 cout << "ROW start X: " << rows[i]->start_x << endl;
                 cout << "ROW start Y: " << rows[i]->start_y << endl;
@@ -827,6 +829,7 @@ bool placement::ff_cmp(ffi* a, ffi* b){
 
 
 void placement::placeFlipFlopInst(lib& LIB, inst& INST, dieInfo& DIE, list<ffi*>& UPFFS, list<ffi*>& PFFS){
+    bool PRINT_INFO = false;
     int idx;
     int pos_idx;
     int best_pos_idx;
@@ -848,7 +851,7 @@ void placement::placeFlipFlopInst(lib& LIB, inst& INST, dieInfo& DIE, list<ffi*>
     double stage3_time = 0;
     double time_start, time_end;
     double ts, te;
-    cout << endl << "FFs Placement Legalization >>>" << endl;
+    if(PRINT_INFO) cout << endl << "FFs Placement Legalization >>>" << endl;
 
     dismantle_list.clear();
     UPFFS.sort(ff_cmp);
@@ -1071,18 +1074,6 @@ void placement::placeFlipFlopInst(lib& LIB, inst& INST, dieInfo& DIE, list<ffi*>
                         }
                     }
                 }
-
-                // if(target_pr->is_tested == false){
-                //     cost = target_pr->place_trial(tested_list, fi, available, pos_idx, mincost);
-                //     if(available){
-                //         find = true;
-                //         if(cost < mincost){
-                //             mincost = cost;
-                //             best_pos_idx = pos_idx;
-                //             best_row = target_pr; 
-                //         }
-                //     }
-                // }
                 up_i++;
             }
 
@@ -1145,18 +1136,6 @@ void placement::placeFlipFlopInst(lib& LIB, inst& INST, dieInfo& DIE, list<ffi*>
                         }
                     }
                 }
-
-                // if(target_pr->is_tested == false){
-                //     cost = target_pr->place_trial(tested_list, fi, available, pos_idx, mincost);
-                //     if(available){
-                //         find = true;
-                //         if(cost < mincost){
-                //             mincost = cost;
-                //             best_pos_idx = pos_idx;
-                //             best_row = target_pr; 
-                //         }
-                //     }
-                // }
                 down_i--;
             }
         }
@@ -1173,7 +1152,7 @@ void placement::placeFlipFlopInst(lib& LIB, inst& INST, dieInfo& DIE, list<ffi*>
         //              2. If this ff size if single bit, than placement legalization fail.
         ts = clock();
         if(find == false){
-            if(fi->type->bit_num == 1){
+            if(fi->type->bit_num == 1 && PRINT_INFO == true){
                 cout << "Error: Placement Legalization Fail!" << endl;
                 cout << "FF count: " << ff_cnt << endl;
                 cout << "FF Name: " << fi->name << endl;
@@ -1230,7 +1209,6 @@ void placement::placeFlipFlopInst(lib& LIB, inst& INST, dieInfo& DIE, list<ffi*>
 
             // cout << "mincost: " << mincost << endl;
             place_formal(fi, best_row, best_pos_idx);
-            // if(best_row == rows[178]) cout << "Row pivot: " << best_row->pivot << endl;
             PFFS.push_back(fi);
             ff_cnt++;
             te = clock();
@@ -1244,12 +1222,13 @@ void placement::placeFlipFlopInst(lib& LIB, inst& INST, dieInfo& DIE, list<ffi*>
     // cout << "Stage 1: " << 100*stage1_time/total_time << "%" << endl;
     // cout << "Stage 2: " << 100*stage2_time/total_time << "%" << endl;
     // cout << "Stage 2: " << 100*stage3_time/total_time << "%" << endl;
-
-    cout << "Stage 0 Time: " << stage0_time/ 1000000.0  << " s ,(" << 100*stage0_time/total_time << " %)" << endl;
-    cout << "Stage 1 Time: " << stage1_time/ 1000000.0  << " s ,(" << 100*stage1_time/total_time << " %)" << endl;
-    cout << "Stage 2 Time: " << stage2_time/ 1000000.0  << " s ,(" << 100*stage2_time/total_time << " %)" << endl;
-    cout << "Stage 3 Time: " << stage3_time/ 1000000.0  << " s ,(" << 100*stage3_time/total_time << " %)" << endl;
-    cout << "Total placement Time: " << total_time/ 1000000.0  << " s" << endl;
+    if(PRINT_INFO){
+        cout << "Stage 0 Time: " << stage0_time/ 1000000.0  << " s ,(" << 100*stage0_time/total_time << " %)" << endl;
+        cout << "Stage 1 Time: " << stage1_time/ 1000000.0  << " s ,(" << 100*stage1_time/total_time << " %)" << endl;
+        cout << "Stage 2 Time: " << stage2_time/ 1000000.0  << " s ,(" << 100*stage2_time/total_time << " %)" << endl;
+        cout << "Stage 3 Time: " << stage3_time/ 1000000.0  << " s ,(" << 100*stage3_time/total_time << " %)" << endl;
+        cout << "Total placement Time: " << total_time/ 1000000.0  << " s" << endl;
+    }
     return;
 }
 

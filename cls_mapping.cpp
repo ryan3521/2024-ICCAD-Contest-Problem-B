@@ -1,4 +1,6 @@
- #include "func.h"
+#include "func.h"
+
+
 
 bool cmp_x(reg* a, reg* b){
     return a->cen_x < b->cen_x;
@@ -55,7 +57,8 @@ void SortRegList(list<reg*>& temp_list){
 }
 
 void MapClstoMBFF(lib& LIB, list<cluster*>& KCR, list<ffi*>& MBFFS){
-    cout << endl << "Mapping cluster to MBFF >>>" << endl;
+    bool PRINT_INFO = false;
+    if(PRINT_INFO) cout << endl << "Mapping cluster to MBFF >>>" << endl;
 
     int cnt;
     ffi* mbff;

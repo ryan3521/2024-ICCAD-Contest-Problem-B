@@ -1,6 +1,7 @@
 #include "func.h"
 
 
+
 void ReadInput(string filename, lib& LIB, inst& INST, dieInfo&  DIE, netlist& NL, placement& PM){
     bool PRINT_INFO = false;
     fstream fin;
@@ -26,7 +27,7 @@ void ReadInput(string filename, lib& LIB, inst& INST, dieInfo&  DIE, netlist& NL
 
     fin.open(filename, ios::in);
 
-    cout << "Start reading INPUT >>>" << endl;
+    if(PRINT_INFO) cout << "Start reading INPUT >>>" << endl;
 
     // Read weight
     if(PRINT_INFO) cout << "Reading weight ..." << endl;

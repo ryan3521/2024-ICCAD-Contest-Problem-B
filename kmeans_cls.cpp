@@ -220,7 +220,8 @@ void AssignFFtoCls(lib& LIB, list<ffi*>& ff_list, list<ffi*>& ncls, vector<clust
 }
 
 void KmeansCls(dieInfo& DIE, lib& LIB, inst& INST, list<cluster*>& KCR, list<ffi*>& NCLS){
-    cout << endl << "K means cluster >>>" << endl;
+    bool PRINT_INFO = false;
+    if(PRINT_INFO) cout << endl << "K means cluster >>>" << endl;
 
 
 
@@ -274,12 +275,14 @@ void KmeansCls(dieInfo& DIE, lib& LIB, inst& INST, list<cluster*>& KCR, list<ffi
     for(auto& c: KCR){
         clsffcnt = clsffcnt + c->size;
     }
-    cout << "Clk net numbers: " << INST.ff_clk_group.size() << endl;
-    cout << "-------------------------------------------" << endl;
-    cout << "K-mean Cluster Done: " << endl;
-    cout << "Clustered FFs:     " << clsffcnt << endl;
-    cout << "Non-Clustered FFs: " << NCLS.size() << endl;
-    cout << "-------------------------------------------" << endl;
+    if(PRINT_INFO){
+        cout << "Clk net numbers: " << INST.ff_clk_group.size() << endl;
+        cout << "-------------------------------------------" << endl;
+        cout << "K-mean Cluster Done: " << endl;
+        cout << "Clustered FFs:     " << clsffcnt << endl;
+        cout << "Non-Clustered FFs: " << NCLS.size() << endl;
+        cout << "-------------------------------------------" << endl;
+    }
 
     return;
 }
