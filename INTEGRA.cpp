@@ -69,7 +69,7 @@ list<Diamond> INTEGRA::calMovableRegion(ffi* ff){
     list<pin*> const &pins = Q->to_net->opins;
     for(pin* const &pin:pins){
         if(pin->pin_type == 'f'){
-            slack = 
+            
             radius = calHPWL(Q,pin) + bias;
         }
         else if(pin->pin_type == 'g'){
