@@ -31,7 +31,7 @@ public:
     MaxClique();
     ~MaxClique();
 
-    double calHPWL(pin*,pin*);
+    double calHPWL(pin* from, pin* to);
     // Diamond calMovableRegion(...);
     // Rectangles calFeasibleRegion(list<Diamond> movableRegions);
 

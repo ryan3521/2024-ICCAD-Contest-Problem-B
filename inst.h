@@ -107,7 +107,7 @@ class pin{ // pin prototype
     public:
         string name;
         net* to_net;
-        gatei* to_gate;
+        gatei* to_gate;     // gate that current pin belongs to
         ffi* to_ff;
         char pin_type;      // f: flip flop pin; g: gate pin; d: die pin;
         double coox;
