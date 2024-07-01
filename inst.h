@@ -106,9 +106,9 @@ class net{
 class pin{ // pin prototype
     public:
         string name;
-        net* to_net;
+        net* to_net;        // net that current pin belongs to
         gatei* to_gate;     // gate that current pin belongs to
-        ffi* to_ff;
+        ffi* to_ff;         // FF that current pin belongs to
         char pin_type;      // f: flip flop pin; g: gate pin; d: die pin;
         double coox;
         double cooy;

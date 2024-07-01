@@ -1,6 +1,12 @@
+#ifndef INST_H
+#define INST_H
 #include "inst.h"
 
 struct Vertex{
+    Vertex();
+    Vertex(double x_in, double y_in);
+    ~Vertex();
+
     double x;
     double y;
 };
@@ -15,10 +21,11 @@ struct Rectangle{
 class Diamond{
 public:
     Diamond();
+    Diamond(vector<Vertex> c);
     ~Diamond();
 
-    // Rectangle rotate();
-    // 
+    Rectangle rotate();
+
 private:
     vector<Vertex> corners; // [0]: left
                             // [1]: bot
@@ -26,16 +33,21 @@ private:
                             // [3]: top
 };
 
-class MaxClique{
+class INTEGRA{
 public:
-    MaxClique();
-    ~MaxClique();
+    INTEGRA();
+    INTEGRA(inst I);
+    ~INTEGRA();
 
+    void run();
     double calHPWL(pin* from, pin* to);
-    // Diamond calMovableRegion(...);
-    // Rectangles calFeasibleRegion(list<Diamond> movableRegions);
+    list<Diamond> calMovableRegion(ffi* ff);
+    Rectangle calFeasibleRegion(list<Diamond> movableRegions);
 
 
 private:
-
+    inst INST;
 };
+
+
+#endif
