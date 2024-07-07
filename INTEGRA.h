@@ -1,6 +1,9 @@
-#ifndef INST_H
-#define INST_H
+#ifndef INTEGRA_H
+#define INTEGRA_H
 #include "inst.h"
+#include "netlist.h"
+#include <queue>
+#include <cfloat>
 
 struct Vertex{
     Vertex();
@@ -36,17 +39,21 @@ private:
 class INTEGRA{
 public:
     INTEGRA();
-    INTEGRA(inst I);
+    INTEGRA(inst I, netlist N);
     ~INTEGRA();
 
     void run();
     double calHPWL(pin* from, pin* to);
-    list<Diamond> calMovableRegion(ffi* ff);
+    void findTopFF();
+    void calMovableRegion();
     Rectangle calFeasibleRegion(list<Diamond> movableRegions);
 
 
 private:
     inst INST;
+    netlist NL;
+    list<ffi*> topFFs;
+    list<Rectangle> feasRegions;
 };
 
 

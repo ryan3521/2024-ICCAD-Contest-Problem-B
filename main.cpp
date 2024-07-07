@@ -8,6 +8,7 @@
 #include "netlist.h"
 #include "placement.h"
 #include "cluster.h"
+#include "INTEGRA.h"
 
 using namespace std;
 
@@ -46,12 +47,12 @@ int main(int argc, char** argv){
     //     ori_bitnum = ori_bitnum + f->d_pins.size();
     // }
 
-    KmeansCls(DIE, LIB, INST, KCR, NCLS);  
-    MapClstoMBFF(LIB, KCR, MBFFS);
-    FineTune(LIB, NCLS, MBFFS, UPFFS, DIE); // Not finish yet
-    PM.placeGateInst(INST);
-    PM.placeFlipFlopInst(LIB, INST, DIE, UPFFS, PFFS);
-    Output(argv[2], PFFS, INST);
+    // KmeansCls(DIE, LIB, INST, KCR, NCLS);  
+    // MapClstoMBFF(LIB, KCR, MBFFS);
+    // FineTune(LIB, NCLS, MBFFS, UPFFS, DIE); // Not finish yet
+    // PM.placeGateInst(INST);
+    // PM.placeFlipFlopInst(LIB, INST, DIE, UPFFS, PFFS);
+    // Output(argv[2], PFFS, INST);
 
     // for(auto fi: INST.ff_umap){
     //     NCLS.push_back(fi.second);
@@ -93,6 +94,10 @@ int main(int argc, char** argv){
     // cout << "===============================" << endl;
     
     // cout << endl << "Total execution time: " << (end - start) / 1000000.0  << " s" << '\n';
+
+    // ----------test----------
+    INTEGRA itgra;
+    itgra.run();
     
     return 0;
 }

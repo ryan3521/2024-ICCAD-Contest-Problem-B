@@ -116,6 +116,9 @@ class pin{ // pin prototype
         double slack;       // Only for pin type is 'f', and is belongs to "d_pins"
         double dspd_slk;    // Only for pin type is 'f', the dispensed slack for 'D' and 'Q' pin 
 
+        // Below are the variable newed by your friend Yuri
+        bool isVisited;
+
         // Belongs to the new MBFF
         string new_name;
         ffi* to_new_ff;
@@ -126,6 +129,7 @@ class pin{ // pin prototype
             to_gate = NULL;
             to_ff   = NULL;
             to_new_ff = NULL;
+            isVisited = false;
         }
 };
 
