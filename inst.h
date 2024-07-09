@@ -106,15 +106,18 @@ class net{
 class pin{ // pin prototype
     public:
         string name;
-        net* to_net;
-        gatei* to_gate;
-        ffi* to_ff;
+        net* to_net;        // net that current pin belongs to
+        gatei* to_gate;     // gate that current pin belongs to
+        ffi* to_ff;         // FF that current pin belongs to
         char pin_type;      // f: flip flop pin; g: gate pin; d: die pin;
         double coox;
         double cooy;
         bool io;            // Only for pin type is 'd', 0 stand for IN; 1 stand for OUT;
         double slack;       // Only for pin type is 'f', and is belongs to "d_pins"
         double dspd_slk;    // Only for pin type is 'f', the dispensed slack for 'D' and 'Q' pin 
+
+        // Below are the variable newed by your friend Yuri
+        bool isVisited;
 
         // Belongs to the new MBFF
         string new_name;
@@ -126,6 +129,7 @@ class pin{ // pin prototype
             to_gate = NULL;
             to_ff   = NULL;
             to_new_ff = NULL;
+            isVisited = false;
         }
 };
 
