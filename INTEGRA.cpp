@@ -1,17 +1,16 @@
 #include "INTEGRA.h"
 
-Vertex::Vertex(){
+Rectangle::Rectangle(): x(0.0), y(0.0), w(0.0), h(0.0), FF(nullptr) {
     ;
 }
 
-Vertex::Vertex(double x_in, double y_in):x(x_in), y(y_in) {
+Rectangle::Rectangle(double x_in, double y_in, double w_in, double h_in, ffi* FF_in): x(x_in), y(y_in), w(w_in), h(h_in), FF(FF_in) {
     ;
 }
 
-Vertex::~Vertex(){
+Rectangle::~Rectangle(){
     ;
 }
-
 
 INTEGRA::INTEGRA(){
     ;
@@ -29,7 +28,7 @@ Diamond::Diamond(){
     ;
 }
 
-Diamond::Diamond(vector<Vertex> c):corners(c){
+Diamond::Diamond(double x_in, double y_in, double r):x(x_in), y(y_in), radius(r) {
     ;
 }
 
@@ -76,9 +75,12 @@ void INTEGRA::findTopFF(){
     }
 }
 
-void INTEGRA::calMovableRegion(){
+void INTEGRA::calFeasibleRegion(){
     for(ffi* ff:topFFs){
-        list<Diamond> diamonds; // moveable regions
+        // *********************************
+        // *   Calculate Moveable Region   *
+        // *********************************
+        vector<Diamond> diamonds; // moveable regions
 
         queue<ffi*> ff_q;
         ff_q.push(ff);
@@ -99,10 +101,7 @@ void INTEGRA::calMovableRegion(){
             double bias = calHPWL(D,Q);
             double slack = D->slack;
             double radius = calHPWL(prevGatePin,D) + bias + slack;
-            diamonds.push_back(Diamond({Vertex(prevGatePin->coox - radius, prevGatePin->cooy),
-                                    Vertex(prevGatePin->coox, prevGatePin->cooy - radius),
-                                    Vertex(prevGatePin->coox + radius, prevGatePin->cooy),
-                                    Vertex(prevGatePin->coox, prevGatePin->cooy + radius)}));
+            diamonds.push_back(Diamond(prevGatePin->coox, prevGatePin->cooy,radius));
 
             // ************************************
             // *       Q pin movable regions      *
@@ -155,11 +154,26 @@ void INTEGRA::calMovableRegion(){
                     
                 }
                 // push current inst's moveable region into diamonds
-                diamonds.push_back(Diamond({Vertex(opin->coox - radius, opin->cooy),
-                                            Vertex(opin->coox, opin->cooy - radius),
-                                            Vertex(opin->coox + radius, opin->cooy),
-                                            Vertex(opin->coox, opin->cooy + radius)}));
+                diamonds.push_back(Diamond(opin->coox, opin->cooy, radius));
             }
+            // *********************************
+            // *   Calculate Feasible Region   *
+            // *********************************
+            double leftBound = diamonds[0].y + diamonds[0].x - diamonds[0].radius;
+            double rightBound = diamonds[0].y + diamonds[0].x - diamonds[0].radius;
+            double botBound = diamonds[0].y - diamonds[0].x - diamonds[0].radius;
+            double topBound = diamonds[0].y - diamonds[0].x + diamonds[0].radius;
+            size_t size = diamonds.size();
+            for(size_t i = 1; i < size; ++i){
+                double x = diamonds[i].x;
+                double y = diamonds[i].y;
+                double r = diamonds[i].radius;
+                leftBound = max(leftBound, y+x-r);
+                rightBound = min(rightBound, y+x-r);
+                botBound = max(botBound, y-x-r);
+                topBound = min(topBound, y+x-r);
+            }
+            feasRegions.push_back(Rectangle(leftBound, botBound, rightBound-leftBound, topBound-botBound, curFF));
         }
     }
 }
@@ -169,7 +183,8 @@ void INTEGRA::run(){
     findTopFF();
 
     // 2. Use BFS on every top level FFs, calculate their feasible region
-
+    calFeasibleRegion();
+    
     // 3. INTEGRA
     
 
