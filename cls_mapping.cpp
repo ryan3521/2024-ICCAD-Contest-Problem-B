@@ -1,5 +1,7 @@
 #include "func.h"
 
+
+
 bool cmp_x(reg* a, reg* b){
     return a->cen_x < b->cen_x;
 }
@@ -55,6 +57,9 @@ void SortRegList(list<reg*>& temp_list){
 }
 
 void MapClstoMBFF(lib& LIB, list<cluster*>& KCR, list<ffi*>& MBFFS){
+    bool PRINT_INFO = false;
+    if(PRINT_INFO) cout << endl << "Mapping cluster to MBFF >>>" << endl;
+
     int cnt;
     ffi* mbff;
     reg* rp; // reg pointer
@@ -63,13 +68,15 @@ void MapClstoMBFF(lib& LIB, list<cluster*>& KCR, list<ffi*>& MBFFS){
 
     MBFFS.clear();
 
-    for(auto c: KCR){
+    cnt = 0;
+    for(auto& c: KCR){
         temp_list.clear();
+        // cout << "C: " << c->member_list.size() << endl;
 
         if(c->member_list.size() == 0) continue;
 
         // For each cluster, push each bit of reg into 'temp list'
-        for(auto f: c->member_list){
+        for(auto& f: c->member_list){
             for(int b=0; b<f->type->bit_num; b++){
                 rp = new reg;
                 rp->dpin = f->d_pins[b];
@@ -82,11 +89,11 @@ void MapClstoMBFF(lib& LIB, list<cluster*>& KCR, list<ffi*>& MBFFS){
         SortRegList(temp_list);
 
         // Assign each single reg in the 'temp list' to new MBFF
-        cnt = 0;
         string inst_name;
         for(auto fc: LIB.opt_fftable[c->member_list.size()]){
             inst_name = "";
             inst_name = inst_name + "MA" + to_string(cnt);
+            // cout << inst_name << endl;
             mbff = new ffi(inst_name, 0, 0);
             mbff->type = fc;
             mbff->d_pins.reserve(fc->bit_num);
@@ -104,7 +111,9 @@ void MapClstoMBFF(lib& LIB, list<cluster*>& KCR, list<ffi*>& MBFFS){
                 // reg_list.push_back(rp);
             }      
             mbff->new_coor();
-            MBFFS.push_back(mbff);         
+            mbff->clk_pin = new pin;
+            MBFFS.push_back(mbff);   
+            cnt++;     
         }
     }
 }
