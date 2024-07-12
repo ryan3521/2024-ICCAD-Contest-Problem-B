@@ -177,6 +177,41 @@ void inst::SlackDispense(dieInfo& DIE){
     return;
 }
 
+void inst::DebankAllFF(lib& LIB){
+    // If ff is multibit ff, debank into single bit ff.
+    // The type of all single bit ffs will be the lowest cost one bit ff. 
+    int ff_cnt = 0;
+    ffi* new_fi;
+    ffcell* new_type;
+
+    for(auto& ori_list: ffs_ori){ 
+        list<ffi*>* sing_list = new list<ffi*>;
+        ffs_sing.push_back(sing_list);
+        for(auto& ori_ff: ori_list){
+            for(int i=0; i<ori_ff->d_pins.size(); i++){
+                inst_name = "";
+                inst_name = inst_name + "NFSB" + to_string(ff_cnt);
+                new_fi = new ffi(inst_name, 0, 0);
+                new_type = LIB.fftable_cost[1].front();
+
+                new_fi->type = new_type;
+
+                ori_ff->d_pins[i]->to_new_ff = new_fi;
+                ori_ff->q_pins[i]->to_new_ff = new_fi;
+                
+                new_fi->d_pins.push_back(ori_ff->d_pins[i]);
+                new_fi->q_pins.push_back(ori_ff->d_pins[i]);
+    
+                new_fi->new_coor();
+                new_fi->clk_pin = new pin;
+
+                sing_list->push_back(new_ffi);
+                ff_cnt++;
+            }
+        }
+    }
+}
+
 
 ffi::ffi(string name, double coox, double cooy){
     this->name = name;

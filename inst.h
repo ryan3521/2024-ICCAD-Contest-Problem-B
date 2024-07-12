@@ -140,7 +140,8 @@ class inst{
         unordered_map<string, bool> type_umap; // 0: ff, 1: gate
         unordered_map<string, ffi* > ff_umap;
         unordered_map<string, gatei* > gate_umap;
-        list<list<ffi*>*> ff_clk_group;
+        list<list<ffi*>*> ffs_ori;
+        list<list<ffi*>*> ffs_sing; // debank
 
         // member functions        
         inst();
@@ -149,6 +150,7 @@ class inst{
         void SlackDispense(dieInfo& DIE);
         void PrintFF();
         void PrintGate();
+        void DebankAllFF(lib& LIB);
 
 };
 
