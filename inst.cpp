@@ -183,11 +183,12 @@ void inst::DebankAllFF(lib& LIB){
     int ff_cnt = 0;
     ffi* new_fi;
     ffcell* new_type;
+    string inst_name;
 
     for(auto& ori_list: ffs_ori){ 
         list<ffi*>* sing_list = new list<ffi*>;
         ffs_sing.push_back(sing_list);
-        for(auto& ori_ff: ori_list){
+        for(auto& ori_ff: *ori_list){
             for(int i=0; i<ori_ff->d_pins.size(); i++){
                 inst_name = "";
                 inst_name = inst_name + "NFSB" + to_string(ff_cnt);
@@ -200,12 +201,12 @@ void inst::DebankAllFF(lib& LIB){
                 ori_ff->q_pins[i]->to_new_ff = new_fi;
                 
                 new_fi->d_pins.push_back(ori_ff->d_pins[i]);
-                new_fi->q_pins.push_back(ori_ff->d_pins[i]);
+                new_fi->q_pins.push_back(ori_ff->q_pins[i]);
     
                 new_fi->new_coor();
                 new_fi->clk_pin = new pin;
 
-                sing_list->push_back(new_ffi);
+                sing_list->push_back(new_fi);
                 ff_cnt++;
             }
         }
@@ -305,7 +306,9 @@ void ffi::new_coor(){
         my = my + d_pins[i]->cooy + q_pins[i]->cooy;
     }
     mx = mx/(double)(2*bit);
+    cen_x = mx;
     my = my/(double)(2*bit);
+    cen_y = my;
 
     for(int i=0; i<bit; i++){
         rx = rx + type->d_pins[i].x_plus + type->q_pins[i].x_plus;

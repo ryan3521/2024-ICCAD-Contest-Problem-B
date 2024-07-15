@@ -12,12 +12,17 @@ Rectangle::~Rectangle(){
     ;
 }
 
-INTEGRA::INTEGRA(){
-    ;
-}
+// INTEGRA::INTEGRA(){
+//     ;
+// }
 
-INTEGRA::INTEGRA(inst I, netlist N):INST(I), NL(N) {
-    ;
+// INTEGRA::INTEGRA(inst I, netlist N):INST(I), NL(N) {
+//     ;
+// }
+
+INTEGRA::INTEGRA(inst* I, netlist* N){
+    INST = I;
+    NL = N;
 }
 
 INTEGRA::~INTEGRA(){
@@ -42,7 +47,8 @@ double INTEGRA::calHPWL(pin* from, pin* to){
 
 void INTEGRA::findTopFF(){
     vector<pin*> visitedPins;
-    for(net* const &net:NL.nets){
+    cout << "Net num: " << NL->nets.size() << endl;
+    for(net* const &net:NL->nets){
         pin* inputPin = *(net->ipins.begin());
         if(inputPin->pin_type != 'd') continue;
 
@@ -57,7 +63,7 @@ void INTEGRA::findTopFF(){
             visitedPins.push_back(curPin);
             if(curPin->pin_type == 'd') continue;
             if(curPin->pin_type == 'f'){
-                topFFs.push_back(curPin->to_ff);
+                topFFs.push_back(curPin->to_new_ff);
                 continue;
             }
             // if curPin is gate pin
@@ -126,7 +132,7 @@ void INTEGRA::calFeasibleRegion(){
                         if(curPin->isVisited) continue;
                         if(curPin->pin_type == 'd') continue;
                         if(curPin->pin_type == 'f'){
-                            nextLevelFFs.push_back(curPin->to_ff);
+                            nextLevelFFs.push_back(curPin->to_new_ff);
                             continue;
                         }
                         // push the next level gate input pins into pin_q
@@ -176,6 +182,18 @@ void INTEGRA::calFeasibleRegion(){
             feasRegions.push_back(Rectangle(leftBound, botBound, rightBound-leftBound, topBound-botBound, curFF));
         }
     }
+}
+
+void INTEGRA::copyFSR(){
+    for(auto& rec: feasRegions){
+        rec.FF->fsr.x = rec.x;
+        rec.FF->fsr.y = rec.y;
+        rec.FF->fsr.w = rec.w;
+        rec.FF->fsr.h = rec.h;
+
+        cout << rec.FF->fsr.w << " " << rec.FF->fsr.h << endl;
+    }
+    cout << "Copy FSR done ..." << endl;
 }
 
 void INTEGRA::run(){

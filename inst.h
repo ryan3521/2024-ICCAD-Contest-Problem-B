@@ -13,6 +13,12 @@
 
 using namespace std;
 
+struct FSR{
+    double x;
+    double y;
+    double w;
+    double h;
+};
 
 class pin;
 class ffi{
@@ -27,7 +33,7 @@ class ffi{
         vector<pin*> q_pins;
         pin* clk_pin;
         bool mark; // ??
-        
+        FSR fsr;
 
         double allow_dis; // (HPWL) AVG slack * displacement coefficient
 

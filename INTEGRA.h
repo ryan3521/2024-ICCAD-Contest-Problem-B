@@ -30,19 +30,23 @@ public:
 
 class INTEGRA{
 public:
-    INTEGRA();
-    INTEGRA(inst I, netlist N);
+    // INTEGRA();
+    INTEGRA(inst* I, netlist* N);
     ~INTEGRA();
 
     void run();
     double calHPWL(pin* from, pin* to);
     void findTopFF();
     void calFeasibleRegion();
+    
+    // added by your friend Ryan!
+    void copyFSR();
+    
 
 
 private:
-    inst INST;
-    netlist NL;
+    inst* INST;
+    netlist* NL;
     list<ffi*> topFFs;
     vector<Rectangle> feasRegions;
 };
