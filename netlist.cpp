@@ -172,6 +172,7 @@ void netlist::add_pin(string str, inst& INST){
         pin_ptr->to_net = new_net;
         // cout << it4->second->name << endl;
         if(pin_ptr->io == 0){
+            // cout << "is input pin : " << pin_ptr->pin_type << endl;
             new_net->ipins.push_back(pin_ptr);
         }
         else{

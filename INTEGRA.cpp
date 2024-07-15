@@ -47,11 +47,19 @@ double INTEGRA::calHPWL(pin* from, pin* to){
 
 void INTEGRA::findTopFF(){
     vector<pin*> visitedPins;
-    cout << "Net num: " << NL->nets.size() << endl;
-    for(net* const &net:NL->nets){
-        pin* inputPin = *(net->ipins.begin());
-        if(inputPin->pin_type != 'd') continue;
 
+    // for(auto& n: NL->nets){
+    //     if(n->ipins.size() != 1){
+    //         cout << "Wrong: " << n->ipins.size() << " " << n->name << endl;
+    //     }
+    // }
+
+    for(net* const &net:NL->nets){
+        if(net->ipins.size() == 0) continue;
+        pin* inputPin = *(net->ipins.begin());
+        //cout << inputPin->pin_type << endl;
+        if(inputPin->pin_type != 'd') continue;
+        // cout << "Find die input pin" << endl;
         // traverse the circuit from current pin
         queue<pin*> q;
         q.push(inputPin);
@@ -199,7 +207,8 @@ void INTEGRA::copyFSR(){
 void INTEGRA::run(){
     // 1. Find all "Top Level FlipFlops"
     findTopFF();
-
+    cout << "Find top ff done" << endl;
+    cout << "Top FF Num: " << topFFs.size() << endl;
     // 2. Use BFS on every top level FFs, calculate their feasible region
     calFeasibleRegion();
     
