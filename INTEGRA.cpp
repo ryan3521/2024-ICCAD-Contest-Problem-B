@@ -55,14 +55,16 @@ void INTEGRA::findTopFF(){
     // }
 
     for(net* const &net:NL->nets){
-        if(net->ipins.size() == 0) continue;
+        if(net->ipins.empty()) continue;
         pin* inputPin = *(net->ipins.begin());
         //cout << inputPin->pin_type << endl;
         if(inputPin->pin_type != 'd') continue;
         // cout << "Find die input pin" << endl;
         // traverse the circuit from current pin
         queue<pin*> q;
-        q.push(inputPin);
+        for(pin* p:net->opins){
+            q.push(p);
+        }
         while(!q.empty()){
             pin* curPin = q.front();
             q.pop();
@@ -155,10 +157,15 @@ void INTEGRA::calFeasibleRegion(){
 
                     // Update next level FFs' slack
                     double minSlack = DBL_MAX;
+                    if(nextLevelFFs.empty()){
+                        radius = -1;
+                        continue;
+                    }
                     for(ffi* FF:nextLevelFFs){
+                        // cout << FF->d_pins[0]->slack << '\n';
                         if(FF->d_pins[0]->slack < minSlack) minSlack = FF->d_pins[0]->slack;
                     }
-
+                    
                     minSlack = (minSlack < 0)? minSlack : minSlack/2;
                     for(ffi* FF:nextLevelFFs){
                         FF->d_pins[0]->slack -= minSlack;
@@ -168,7 +175,7 @@ void INTEGRA::calFeasibleRegion(){
                     
                 }
                 // push current inst's moveable region into diamonds
-                diamonds.push_back(Diamond(opin->coox, opin->cooy, radius));
+                if(radius != -1) diamonds.push_back(Diamond(opin->coox, opin->cooy, radius));
             }
             // *********************************
             // *   Calculate Feasible Region   *
