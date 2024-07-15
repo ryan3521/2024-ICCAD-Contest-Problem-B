@@ -220,7 +220,7 @@ void AssignFFtoCls(lib& LIB, list<ffi*>& ff_list, list<ffi*>& ncls, vector<clust
 }
 
 void KmeansCls(dieInfo& DIE, lib& LIB, inst& INST, list<cluster*>& KCR, list<ffi*>& NCLS){
-    bool PRINT_INFO = false;
+    bool PRINT_INFO = true;
     if(PRINT_INFO) cout << endl << "K means cluster >>>" << endl;
 
 
@@ -238,7 +238,7 @@ void KmeansCls(dieInfo& DIE, lib& LIB, inst& INST, list<cluster*>& KCR, list<ffi
 
     KCR.clear();
 
-    for(auto& clock_group_list: INST.ff_clk_group){
+    for(auto& clock_group_list: INST.ffs_sing){
 
         InitialCenter(LIB, INST, *clock_group_list, kcr);
         //InitialCenter(LIB, INST, ff_list, kcr);
@@ -276,7 +276,7 @@ void KmeansCls(dieInfo& DIE, lib& LIB, inst& INST, list<cluster*>& KCR, list<ffi
         clsffcnt = clsffcnt + c->size;
     }
     if(PRINT_INFO){
-        cout << "Clk net numbers: " << INST.ff_clk_group.size() << endl;
+        cout << "Clk net numbers: " << INST.ffs_sing.size() << endl;
         cout << "-------------------------------------------" << endl;
         cout << "K-mean Cluster Done: " << endl;
         cout << "Clustered FFs:     " << clsffcnt << endl;

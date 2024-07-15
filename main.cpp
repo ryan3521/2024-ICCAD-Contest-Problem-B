@@ -13,12 +13,14 @@
 using namespace std;
 
 int main(int argc, char** argv){
+
     double start = clock();
     lib LIB;
     inst INST;
     dieInfo DIE;
     netlist NL;
     placement PM;
+    INTEGRA itgra(&INST, &NL);
     list<cluster*> KCR; // Kmeans Cluster Result
     list<ffi*> NCLS; // Store the non cluster ffs after doing K-means Cluster
     list<ffi*> MBFFS; // Store the new MBFFs after doing K-means Cluster
@@ -40,12 +42,15 @@ int main(int argc, char** argv){
     ReadInput(argv[1], LIB, INST, DIE, NL, PM);
     LIB.construct_fftable(DIE);
     INST.SlackDispense(DIE);
-    // for(auto it: INST.ff_umap){
-    //     auto f = it.second;
-    //     orig_area = orig_area + f->type->area;
-    //     orig_power = orig_power + f->type->gate_power;
-    //     ori_bitnum = ori_bitnum + f->d_pins.size();
-    // }
+    INST.DebankAllFF(LIB);
+    itgra.run();
+    itgra.copyFSR();
+    for(auto it: INST.ff_umap){
+        auto f = it.second;
+        orig_area = orig_area + f->type->area;
+        orig_power = orig_power + f->type->gate_power;
+        ori_bitnum = ori_bitnum + f->d_pins.size();
+    }
 
     // KmeansCls(DIE, LIB, INST, KCR, NCLS);  
     // MapClstoMBFF(LIB, KCR, MBFFS);
@@ -96,8 +101,8 @@ int main(int argc, char** argv){
     // cout << endl << "Total execution time: " << (end - start) / 1000000.0  << " s" << '\n';
 
     // ----------test----------
-    INTEGRA itgra;
-    itgra.run();
+    // INTEGRA itgra;
+    // itgra.run();
     
     return 0;
 }
