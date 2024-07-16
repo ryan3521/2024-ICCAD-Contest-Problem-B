@@ -14,10 +14,11 @@
 using namespace std;
 
 struct FSR{
-    double x;
-    double y;
-    double w;
-    double h;
+    bool can_move;
+    double xmax;
+    double xmin;
+    double ymax;
+    double ymin;
 };
 
 class pin;
@@ -56,6 +57,7 @@ class ffi{
         // if the neg pin numbers are over the half, then return true, else false
         bool is_too_far(double x, double y, double displacement_delay);
         bool allow_displace(double x, double y, double displacement_delay);
+        void calFSR();
 
 };
 
@@ -157,6 +159,7 @@ class inst{
         void PrintFF();
         void PrintGate();
         void DebankAllFF(lib& LIB);
+        void ConstructFSR(dieInfo& DIE);
 
 };
 

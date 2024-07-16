@@ -213,6 +213,13 @@ void inst::DebankAllFF(lib& LIB){
     }
 }
 
+void inst::ConstructFSR(dieInfo& DIE){
+    for(auto& fflist: ffs_sing){
+        for(auto& f: *fflist){
+            f->calFSR(DIE);
+        }
+    }
+}
 
 ffi::ffi(string name, double coox, double cooy){
     this->name = name;
@@ -378,6 +385,7 @@ bool ffi::allow_displace(double target_x, double target_y, double displacement_d
                 dis_hpwl   = ceil(to_p->coox - target_x) + ceil(to_p->cooy - target_y);
                 allow_hpwl = ceil(p->coox - to_p->coox) + ceil(p->cooy - to_p->cooy); 
                 allow_hpwl = allow_hpwl + to_p->to_gate->get_critical_slack()/displacement_delay;
+
                 if(allow_hpwl < dis_hpwl){
                     return false;
                 }
@@ -393,6 +401,74 @@ bool ffi::allow_displace(double target_x, double target_y, double displacement_d
         }
     }
     return true;
+}
+
+void ffi::calFSR(dieInfo& DIE){
+    pin* dpin = d_pins[0];
+    pin* qpin = q_pins[0];
+
+    for(auto& to_pin: dpin->to_net->ipins){
+        double radius;
+
+        // calcualate radius (movable HPWL)
+        radius = abs(to_pin->coox - cen_x) + abs(to_pin->cooy - cen_y) + dpin->dspd_slk/DIE.displacement_delay;
+
+        // rotate -45 degree
+        // x' = x + y
+        // y' = y - x
+        
+        fsr.xmax = (cen_x + radius) + (cen_y); 
+        fsr.xmin = (cen_x) + (cen_y - radius);
+        fsr.ymax = (cen_y + radius) - (cen_x);
+        fsr.ymin = (cen_y - radius) - (cen_x);
+    }
+    for(auto& to_pin: qpin->to_net->opins){
+        double radius;
+        double xmax;
+        double xmin;
+        double ymax;
+        double ymin;
+
+        // calcualate radius (movable HPWL)
+        if(to_pin->pin_type == 'g'){
+            radius = abs(to_pin->coox - cen_x) + abs(to_pin->cooy - cen_y) + to_pin->to_gate->get_critical_slack()/DIE.displacement_delay;
+            if(to_pin->to_gate->get_critical_slack() == numeric_limits<double>::max()) {
+                radius = (DIE.die_height > DIE.die_width) ? DIE.die_height : DIE.die_width;
+            }
+        }
+        else if(to_pin->pin_type == 'd'){
+            radius = (DIE.die_height > DIE.die_width) ? DIE.die_height : DIE.die_width;
+        }
+        else if(to_pin->pin_type == 'f'){
+            radius = abs(to_pin->coox - cen_x) + abs(to_pin->cooy - cen_y) + to_pin->dspd_slk/DIE.displacement_delay;
+        }
+
+        // rotate -45 degree
+        // x' = x + y
+        // y' = y - x
+        
+        xmax = (cen_x + radius) + (cen_y); 
+        xmin = (cen_x) + (cen_y - radius);
+        ymax = (cen_y + radius) - (cen_x);
+        ymin = (cen_y - radius) - (cen_x);
+
+        // update FSR
+        if(xmin > fsr.xmin) fsr.xmin = xmin;
+        if(xmax < fsr.xmax) fsr.xmax = xmax;
+        if(ymin > fsr.ymin) fsr.ymin = ymin;
+        if(ymax < fsr.ymax) fsr.ymax = ymax;
+    }
+
+    if(xmin > xmax || ymin > ymax){
+        fsr.can_move = false;
+        fsr.xmax = cen_x + cen_y;
+        fsr.xmin = fsr.xmax;
+        fsr.ymax = cen_y - cen_x;
+        fsr.ymin = fsr.ymax;
+    } 
+    else{
+        fsr.can_move = true;
+    }
 }
 
 void reg::update_cen(){

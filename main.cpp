@@ -43,8 +43,9 @@ int main(int argc, char** argv){
     LIB.construct_fftable(DIE);
     INST.SlackDispense(DIE);
     INST.DebankAllFF(LIB);
-    itgra.run();
-    itgra.copyFSR();
+    INST.ConstructFSR(DIE);
+    //itgra.run();
+    //itgra.copyFSR();
     for(auto it: INST.ff_umap){
         auto f = it.second;
         orig_area = orig_area + f->type->area;
