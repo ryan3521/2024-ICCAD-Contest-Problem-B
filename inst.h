@@ -15,10 +15,15 @@ using namespace std;
 
 struct FSR{
     bool can_move;
+    // ractangle parameters
     double xmax;
     double xmin;
     double ymax;
     double ymin;
+    double cen_x;
+    double cen_y;
+
+    // diamond parameters
 };
 
 class pin;

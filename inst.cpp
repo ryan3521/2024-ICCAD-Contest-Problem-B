@@ -468,6 +468,8 @@ void ffi::calFSR(dieInfo& DIE){
     } 
     else{
         fsr.can_move = true;
+        fsr.cen_x = (fsr.xmax + fsr.xmin)/2;
+        fsr.cen_y = (fsr.ymax + fsr.ymin)/2;
     }
 }
 
