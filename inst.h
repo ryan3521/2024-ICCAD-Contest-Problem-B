@@ -62,7 +62,7 @@ class ffi{
         // if the neg pin numbers are over the half, then return true, else false
         bool is_too_far(double x, double y, double displacement_delay);
         bool allow_displace(double x, double y, double displacement_delay);
-        void calFSR();
+        void calFSR(dieInfo& DIE);
 
 };
 

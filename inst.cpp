@@ -459,7 +459,7 @@ void ffi::calFSR(dieInfo& DIE){
         if(ymax < fsr.ymax) fsr.ymax = ymax;
     }
 
-    if(xmin > xmax || ymin > ymax){
+    if(fsr.xmin > fsr.xmax || fsr.ymin > fsr.ymax){
         fsr.can_move = false;
         fsr.xmax = cen_x + cen_y;
         fsr.xmin = fsr.xmax;

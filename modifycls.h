@@ -5,6 +5,8 @@
 #include "lib.h"
 
 class cls{
+    private:
+        int size_limit;
     public:
         int size;
         double pos_x;
@@ -12,9 +14,17 @@ class cls{
         list<ffi*> memb_ffs; 
         list<ffi*> cand_ffs;
 
+        double fsr_xmin;
+        double fsr_xmax;
+        double fsr_ymin;
+        double fsr_ymax;
+
         // Member functions
-        cls();
+        cls(int size_limit, double pos_x, double pos_y);
         void update_loc();
+        void clear_ffs();
+        void add_ff(ffi* f);
+        bool can_merge(ffi* f, double& hpwl_diff);
 };
 
 class banking{
@@ -23,6 +33,7 @@ class banking{
         lib*  LIB;
         dieInfo* DIE;
         void modifyKmeans();
+        
         
 
     public:
