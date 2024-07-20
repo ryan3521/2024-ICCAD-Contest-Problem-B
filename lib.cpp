@@ -312,6 +312,15 @@ void lib::construct_fftable(dieInfo& DIE){
     for(int b=1; b<=max_ff_size; b++){
         construct_optlist(b, opt_fftable[b]);
     }
+
+    mbff_cost.resize(opt_fftable.size());
+    for(int i=1; i<opt_fftable.size(); i++){
+        int cost_sum = 0;
+        for(auto& f: opt_fftable[i]){
+            cost_sum = cost_sum + f->area*DIE.Gamma + f->gate_power*DIE.Beta; 
+        }
+        mbff_cost[i] = cost_sum;
+    }
 }
 
 void lib::construct_optlist(int bit, list<ffcell*>& opt_list){

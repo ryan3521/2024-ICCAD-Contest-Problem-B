@@ -101,6 +101,7 @@ class lib{
         // if the list size in the fftable is 0, this mean the corresponding bit size MBFF doesn't exist in the LIB.
         // the list of each bit size is sorted by "cost per bit" (power*Beta + area*Gamma)/bit
         vector<list<ffcell*>> fftable_cost;
+        vector<double> mbff_cost;
 
         // The "fftable_c2q" only record the MBFF cell which truely exist in the given cell library
         // if the list size in the fftable is 0, this mean the corresponding bit size MBFF doesn't exist in the LIB.

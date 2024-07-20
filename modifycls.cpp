@@ -46,7 +46,29 @@ void cls::update_loc(){
         pos_x = sum_x/cnt;
         pos_y = sum_y/cnt;
     }
-    
+
+    list<ffi*> temp_list;
+    for(auto& f: memb_ffs) temp_list.push_back(f);
+    for(auto& f: cand_ffs) temp_list.push_back(f);
+    memb_ffs.clear();
+    cand_ffs.clear();
+    cand_canmerge_ffs.clear();
+    cand_cannotmerge_ffs.clear();
+    size = 0;
+
+    double hpwl; // useless
+    for(auto& f: temp_list){
+        if(this->can_merge(f, hpwl) == true && size < size_limit){
+            memb_ffs.push_back(f);
+            size++;
+        } 
+        else if(this->can_merge(f, hpwl) == true && size >= size_limit){
+            cand_canmerge_ffs.push_back(f);
+        }
+        else{
+            cand_cannotmerge_ffs.push_back(f);
+        }
+    }
 }
 
 void cls::clear_ffs(){
@@ -183,17 +205,95 @@ void banking::modifyKmeans(){
                 }
                 best_cls->add_ff(f);
             }
+
             // Step 3. Update loc.
             for(auto& c: cluster_list){
                 c->update_loc();
             }
-            // Step 4. Calculate cost.
-            for(auto& c: cluster_list){
 
+            // Step 4. Calculate cost.
+            new_cost = 0;
+            new_cost = new_cost + LIB->mbff_cost[1]*uncls_ffs.size();
+            for(auto& c: cluster_list){
+                new_cost = new_cost + LIB->mbff_cost[c->size];
+                new_cost = new_cost + LIB->mbff_cost[1]*(c->cand_canmerge_ffs.size() + c->cand_cannotmerge_ffs.size());
+            }
+            if(new_cost < old_cost){
+                old_cost = new_cost;
             }
             
-            // Step 5. Check insert or delete.
+            // Step 5. Check insert or delete. 
+            list<cls*> new_cls_list;
+            new_cls_list.clear();
+            auto it = cluster_list.begin();
+            while(it!=cluster_list.end()){
+                auto c = *it;
 
+                if(c->size <= 1){
+                    if(c->cand_cannotmerge_ffs.size() >= 2){
+                        // change this cluster position.
+                        double sum_x = 0;
+                        double sum_y = 0;
+                        double cnt   = c->cand_cannotmerge_ffs.size();
+
+                        for(auto& f: c->cand_canmerge_ffs){
+                            sum_x = sum_x + f->fsr.cen_x;
+                            sum_y = sum_y + f->fsr.cen_y;
+                        }
+                        c->pos_x = sum_x / cnt;
+                        c->pos_y = sum_y / cnt;
+                    }
+                    else{
+                        // delete this cluster.
+                        delete c;
+                        it = cluster_list.erase(it);
+                        continue;
+                    }
+                }    
+                else{
+                    if(c->cand_canmerge_ffs.size() >= 2){
+                        // add new cluster(s).
+                        int cnt = 0;
+                        cls* new_cls; 
+
+                        for(auto& f: c->cand_canmerge_ffs){
+                            cnt++;
+                            if(cnt == LIB->max_ff_size){
+                                cnt = 0;
+                                new_cls = new cls(LIB->max_ff_size, c->pos_x, c->pos_y); 
+                                new_cls_list.push_back(new_cls);
+                            }
+                        }
+                        if(cnt >= 2){
+                            new_cls = new cls(LIB->max_ff_size, c->pos_x, c->pos_y); 
+                            new_cls_list.push_back(new_cls);
+                        }
+                    }
+                    if(c->cand_canmerge_ffs.size() >= 2){
+                        // add one new cluster.
+                        cls* new_cls;
+                        double pos_x;
+                        double pos_y;
+                        double sum_x = 0;
+                        double sum_y = 0;
+                        double cnt   = c->cand_cannotmerge_ffs.size();
+
+                        for(auto& f: c->cand_canmerge_ffs){
+                            sum_x = sum_x + f->fsr.cen_x;
+                            sum_y = sum_y + f->fsr.cen_y;
+                        }
+                        pos_x = sum_x / cnt;
+                        pos_y = sum_y / cnt;
+                        new_cls = new cls(LIB->max_ff_size, pos_x, pos_y);
+                        new_cls_list.push_back(new_cls);
+                    }
+                }
+                it++;
+            }
+
+            for(auto& c: new_cls_list){
+                cluster_list.push_back(c);
+            }
         }
 
         // Step 6. Merge the unclustered ffs if cost decrease.

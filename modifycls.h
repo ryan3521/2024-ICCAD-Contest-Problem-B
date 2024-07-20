@@ -13,6 +13,8 @@ class cls{
         double pos_y;
         list<ffi*> memb_ffs; 
         list<ffi*> cand_ffs;
+        list<ffi*> cand_canmerge_ffs;
+        list<ffi*> cand_cannotmerge_ffs;
 
         double fsr_xmin;
         double fsr_xmax;
