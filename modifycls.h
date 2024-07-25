@@ -34,12 +34,17 @@ class banking{
         inst* INST;
         lib*  LIB;
         dieInfo* DIE;
+        list<ffi*>* UPFFS;
+        list<cls*> CLS; 
+        list<ffi*> NCLS;
+
         void modifyKmeans();
+        void cls_to_mbff();
         
         
 
     public:
-        banking(inst* INST, lib* LIB, dieInfo* DIE);
+        banking(inst* INST, lib* LIB, dieInfo* DIE, list<ffi*>* UPFFS);
         void run();
 
 };

@@ -1,6 +1,6 @@
 CC = g++
 CFLAGS = -std=c++11 -O3
-OBJS = lib.o inst.o netlist.o placement.o cluster.o kmeans_cls.o read_input.o cls_mapping.o finetune.o output.o INTEGRA.o
+OBJS = lib.o inst.o netlist.o placement.o cluster.o kmeans_cls.o read_input.o cls_mapping.o finetune.o output.o modifycls.o
 BINS = main
 INFILE = 3.in 
 OUTFILE = output.txt
