@@ -60,7 +60,25 @@ int main(int argc, char** argv){
     // KmeansCls(DIE, LIB, INST, KCR, NCLS);  
     // MapClstoMBFF(LIB, KCR, MBFFS);
     // FineTune(LIB, NCLS, MBFFS, UPFFS, DIE); // Not finish yet
+    // int bit_cnt = 0;
+    // int sb_cnt = 0;
+    // int arr[5] = {0, 0, 0, 0, 0};
+    // for(auto& f: UPFFS){
+    //     bit_cnt = bit_cnt + f->d_pins.size();
+    //     if(f->d_pins.size() == 1) sb_cnt ++;
+    //     arr[f->d_pins.size()]++;
+    // }
+    // cout << "Total bit num: " << bit_cnt << endl;
+    // cout << "Cluster num : " << bit_cnt - sb_cnt << endl;
+    // cout << "Non cluster num: " << sb_cnt << endl;
+
+    // for(int i=1; i<5; i++) cout << "Type " << i << ": " << arr[i] << endl;
+    
     FFBANK.run();
+
+    for(int b=1; b<5; b++){
+        cout << "Bit " << b << ": " << LIB.mbff_cost[b] << "; cost per bit: " << LIB.mbff_cost[b]/b << endl;
+    }
     
     for(auto f: UPFFS){
         opt_area = opt_area + f->type->area;

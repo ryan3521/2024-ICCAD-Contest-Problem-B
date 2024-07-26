@@ -96,7 +96,7 @@ void cls::add_ff(ffi* f){
     double hpwl_diff;
 
     if(can_merge(f, hpwl_diff) == true && size < size_limit){
-        if(size == 0){
+        if(memb_ffs.size() == 0){
             fsr_xmax = f->fsr.xmax;
             fsr_xmin = f->fsr.xmin;
             fsr_ymax = f->fsr.ymax;
@@ -158,7 +158,7 @@ void banking::modifyKmeans(){
     int itr_max = 10;
     int gcnt = 1;
     for(auto& ff_list: INST->ffs_sing){
-        cout << "G" << gcnt << ": " << ff_list->size() << " ============================================ " << endl;
+        // cout << "G" << gcnt << ": " << ff_list->size() << " ============================================ " << endl;
         gcnt++;
         list<cls*> cluster_list;
         list<ffi*> uncls_ffs;
@@ -189,21 +189,27 @@ void banking::modifyKmeans(){
         double hpwl_cost;
 
         while(itr_cnt < itr_max){
-            cout << endl;
-            cout << "   Itr " << itr_cnt << endl;
-            cout << "   cls num: " << cluster_list.size() << endl;
+            // cout << endl;
+            // cout << "   Itr " << itr_cnt << endl;
+            // cout << "   cls num: " << cluster_list.size() << endl;
             uncls_ffs.clear();
+            MultiClsFF* mcff_ptr;
+            list<MultiClsFF*> mcff_list;
+            mcff_list.clear();
+            int multi_cls_cnt;
             // Step 2. Do cluster.
-            cout << "   1. Do cluster" << endl;
+            //cout << "   1. Do cluster" << endl;
             for(auto& f: *ff_list){
                 if(f->fsr.can_move == false){
                     uncls_ffs.push_back(f);
                     continue;
                 }
+                multi_cls_cnt = 0;
                 best_cls = NULL;
                 min_hpwl = numeric_limits<double>::max();
                 for(auto& c: cluster_list){
                     if(c->can_merge(f, hpwl_cost)){
+                        multi_cls_cnt++;
                         if(min_hpwl > hpwl_cost){
                             min_hpwl = hpwl_cost;
                             best_cls = c;
@@ -224,33 +230,88 @@ void banking::modifyKmeans(){
                         }
                     }
                 }
-                best_cls->add_ff(f);
+
+                if(multi_cls_cnt > 1){
+                    if(best_cls->size < best_cls->size_limit) best_cls->size++;
+                    
+                    mcff_ptr = new MultiClsFF;
+                    mcff_ptr->f = f;
+                    mcff_ptr->to_cls = best_cls;
+                    mcff_list.push_back(mcff_ptr);
+                }
+                else{
+                    best_cls->add_ff(f);
+                }
+            }
+
+            int max_size;
+            for(auto& mcff: mcff_list){
+                max_size = mcff->to_cls->size;
+                best_cls = NULL;
+                if(mcff->to_cls->size == mcff->to_cls->size_limit){
+                    if(mcff->to_cls->size > mcff->to_cls->memb_ffs.size()) {
+                        mcff->to_cls->size--;
+                        mcff->to_cls->add_ff(mcff->f);
+                    }
+                    else {
+                        mcff->to_cls->cand_ffs.push_back(mcff->f);
+                    }
+                }
+                else{
+                    for(auto& c: cluster_list){
+                        if(c->size == c->size_limit){
+                            continue;
+                        }
+                    
+                        if(c->can_merge(mcff->f, hpwl_cost)){
+                            if(c->size >= max_size){
+                                best_cls = c;
+                                max_size = c->size;
+                            }
+                        }
+                    }
+                    if(best_cls != NULL){
+                        mcff->to_cls->size--;
+                        best_cls->add_ff(mcff->f);
+                    }
+                    else{
+                        if(mcff->to_cls->size > mcff->to_cls->memb_ffs.size()) {
+                            mcff->to_cls->size--;
+                            mcff->to_cls->add_ff(mcff->f);
+                        }
+                        else {
+                            mcff->to_cls->cand_ffs.push_back(mcff->f);
+                        }
+                    }
+                }
+                
+
             }
 
             // Step 3. Update loc.
-            cout << "   2. Update loc" << endl;
+            //cout << "   2. Update loc" << endl;
             int t_cnt = 0;
             int b_cnt = 0;
             int a_cnt = 0;
             int mbff_cnt = 0;
             for(auto& c: cluster_list){
-                cout << "memb size (b): " << c->size << ", ";
-                cout << "cand size: " << c->cand_ffs.size() ;
+                //cout << "memb size (b): " << c->size << ", ";
+                //cout << "cand size: " << c->cand_ffs.size() ;
                 b_cnt = b_cnt + c->size;
                 t_cnt = t_cnt + c->size;
                 t_cnt = t_cnt +  c->cand_ffs.size();
                 c->update_loc();
-                cout << "; memb size (a): " << c->size << endl;
+                //cout << "; memb size (a): " << c->size  << ", can merge cand size: " << c->cand_canmerge_ffs.size() << endl;
                 a_cnt = a_cnt + c->size;
                 if(c->size > 1) mbff_cnt ++;
                 // cout << "c size: " << c->size << endl;
             }
-            cout << "before size: " << b_cnt << ", after size: " << a_cnt << endl;
-            cout << "t cnt : " << t_cnt << endl;
-            cout << "mbff number: " << mbff_cnt << endl;
+            //cout << "before size: " << b_cnt << ", after size: " << a_cnt << endl;
+            //cout << "t cnt : " << t_cnt << endl;
+            //cout << "mbff number: " << mbff_cnt << endl;
 
             // Step 4. Calculate cost.
-            cout << "   3. Calculate cost" << endl;
+            //cout << "   3. Calculate cost" << endl;
             int b_array[5] = {0, 0, 0, 0, 0};
             int bit_cnt = 0;
             new_cost = 0;
@@ -268,9 +329,9 @@ void banking::modifyKmeans(){
                 b_array[1] = b_array[1]  + c->cand_canmerge_ffs.size() + c->cand_cannotmerge_ffs.size();
 
             }
-            for(int i=1; i<5; i++) cout << "Bit " << i << ": " <<  b_array[i] << endl;
+            //for(int i=1; i<5; i++) cout << "Bit " << i << ": " <<  b_array[i] << endl;
 
-            cout << "      cost = " << new_cost << endl;
+            //cout << "      cost = " << new_cost << endl;
 
             if(new_cost < old_cost){
                 old_cost = new_cost;
@@ -289,7 +350,7 @@ void banking::modifyKmeans(){
             }
             
             // Step 5. Check insert or delete. 
-            cout << "   4. Check insert or delete" << endl;
+            //cout << "   4. Check insert or delete" << endl;
             list<cls*> new_cls_list;
             new_cls_list.clear();
             auto it = cluster_list.begin();
@@ -336,7 +397,7 @@ void banking::modifyKmeans(){
                             new_cls_list.push_back(new_cls);
                         }
                     }
-                    if(c->cand_canmerge_ffs.size() >= 2){
+                    if(c->cand_cannotmerge_ffs.size() >= 2){
                         // add one new cluster.
                         cls* new_cls;
                         double pos_x;
@@ -358,17 +419,17 @@ void banking::modifyKmeans(){
                 it++;
             }
 
-            for(auto& c: cluster_list){
-                c->clear_ffs();
-            }
             for(auto& c: new_cls_list){
                 cluster_list.push_back(c);
+            }
+            for(auto& c: cluster_list){
+                c->clear_ffs();
             }
             itr_cnt++;
         }
 
         // Step 6. Merge the unclustered ffs if cost decrease.
-        break;
+        // break;
     }
 }
 
@@ -379,6 +440,10 @@ void banking::cls_to_mbff(){
     ffi* sf; // single bit ff
 
     for(auto& c: CLS){
+        // if(c->memb_ffs.size() == 3){
+        //     NCLS.push_back(c->memb_ffs.front());
+        //     c->memb_ffs.pop_front();
+        // }
         for(auto fc: LIB->opt_fftable[c->memb_ffs.size()]){
             inst_name = "";
             inst_name = inst_name + "NFMB" + to_string(cnt);
@@ -413,4 +478,18 @@ void banking::cls_to_mbff(){
 void banking::run(){
     modifyKmeans();
     cls_to_mbff();
+    int bit_cnt = 0;
+    int sb_cnt = 0;
+    int arr[5] = {0, 0, 0, 0, 0};
+    for(auto& f: *UPFFS){
+        bit_cnt = bit_cnt + f->d_pins.size();
+        if(f->d_pins.size() == 1) sb_cnt ++;
+        arr[f->d_pins.size()]++;
+    }
+    cout << "Total bit num: " << bit_cnt << endl;
+    cout << "Cluster num : " << bit_cnt - sb_cnt << endl;
+    cout << "Non cluster num: " << sb_cnt << endl;
+
+    for(int i=1; i<5; i++) cout << "Type " << i << ": " << arr[i] << endl;
+
 }

@@ -5,9 +5,8 @@
 #include "lib.h"
 
 class cls{
-    private:
-        int size_limit;
     public:
+        int size_limit;
         int size;
         double pos_x;
         double pos_y;
@@ -37,6 +36,11 @@ class banking{
         list<ffi*>* UPFFS;
         list<cls*> CLS; 
         list<ffi*> NCLS;
+
+        struct MultiClsFF{
+            ffi* f;
+            cls* to_cls;
+        };
 
         void modifyKmeans();
         void cls_to_mbff();
