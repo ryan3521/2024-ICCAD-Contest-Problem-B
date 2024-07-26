@@ -76,6 +76,14 @@ int main(int argc, char** argv){
     
     FFBANK.run();
 
+    // for(int i=1; i < 5; i++){
+    //     cout << "Size " << i << ": " ;
+    //     for(auto& ft: LIB.opt_fftable[i]){
+    //         cout << "type " << ft->bit_num << "; ";
+    //     }
+    //     cout << endl;
+    // }
+
     for(int b=1; b<5; b++){
         cout << "Bit " << b << ": " << LIB.mbff_cost[b] << "; cost per bit: " << LIB.mbff_cost[b]/b << endl;
     }

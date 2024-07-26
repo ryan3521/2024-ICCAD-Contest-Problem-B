@@ -154,11 +154,19 @@ banking::banking(inst* INST, lib* LIB, dieInfo* DIE, list<ffi*>* UPFFS){
     this->UPFFS = UPFFS;
 }
 
+bool cmp(ffi* a, ffi* b){
+    return a->fsr.cen_x < b->fsr.cen_x;
+}
+
 void banking::modifyKmeans(){
-    int itr_max = 10;
+    bool err = false;
+    int itr_max = 1000;
     int gcnt = 1;
+    int ff_cnt = 0;
+    // cout << "Group num: " << INST->ffs_sing.size() << endl;
     for(auto& ff_list: INST->ffs_sing){
-        // cout << "G" << gcnt << ": " << ff_list->size() << " ============================================ " << endl;
+        ff_list->sort(cmp);
+        //cout << "G" << gcnt << ": " << ff_list->size() << " ============================================ " << endl;
         gcnt++;
         list<cls*> cluster_list;
         list<ffi*> uncls_ffs;
@@ -182,12 +190,45 @@ void banking::modifyKmeans(){
             }
         }
 
-
         // Itr Loop:
         cls* best_cls;
         double min_hpwl;
         double hpwl_cost;
+        // Do normal K means to initial clusters position --------------------
+        for(int i=0; i<5; i++){
+            // cluster
+            for(auto& f: *ff_list){
+                best_cls = NULL;
+                min_hpwl = numeric_limits<double>::max();
+                for(auto& c: cluster_list){
+                    hpwl_cost = abs(f->fsr.cen_x - c->pos_x) + abs(f->fsr.cen_y - c->pos_y);
+                    if(c->size != c->size_limit && hpwl_cost < min_hpwl){
+                        best_cls = c;
+                        min_hpwl = hpwl_cost;
+                    }
+                }
+                best_cls->size++;
+                best_cls->memb_ffs.push_back(f);
+            }
+            // update loc
+            for(auto c: cluster_list){
+                if(c->size == 0) continue;
+                double sum_x = 0;
+                double sum_y = 0;
+                for(auto f: c->memb_ffs){
+                    sum_x = sum_x + f->fsr.cen_x;
+                    sum_y = sum_y + f->fsr.cen_y;
+                }
+                c->pos_x = sum_x/(double)c->size;
+                c->pos_y = sum_y/(double)c->size;
+                c->size = 0;
+                c->memb_ffs.clear();
+            }
+        }
 
+
+
+        bool same = false;
         while(itr_cnt < itr_max){
             // cout << endl;
             // cout << "   Itr " << itr_cnt << endl;
@@ -237,6 +278,7 @@ void banking::modifyKmeans(){
                     mcff_ptr = new MultiClsFF;
                     mcff_ptr->f = f;
                     mcff_ptr->to_cls = best_cls;
+
                     mcff_list.push_back(mcff_ptr);
                 }
                 else{
@@ -245,47 +287,98 @@ void banking::modifyKmeans(){
             }
 
             int max_size;
-            for(auto& mcff: mcff_list){
-                max_size = mcff->to_cls->size;
-                best_cls = NULL;
-                if(mcff->to_cls->size == mcff->to_cls->size_limit){
-                    if(mcff->to_cls->size > mcff->to_cls->memb_ffs.size()) {
-                        mcff->to_cls->size--;
-                        mcff->to_cls->add_ff(mcff->f);
-                    }
-                    else {
-                        mcff->to_cls->cand_ffs.push_back(mcff->f);
-                    }
-                }
-                else{
-                    for(auto& c: cluster_list){
-                        if(c->size == c->size_limit){
-                            continue;
-                        }
-                    
-                        if(c->can_merge(mcff->f, hpwl_cost)){
-                            if(c->size >= max_size){
-                                best_cls = c;
-                                max_size = c->size;
-                            }
-                        }
-                    }
-                    if(best_cls != NULL){
-                        mcff->to_cls->size--;
-                        best_cls->add_ff(mcff->f);
+            int best_potential_score;
+            bool no_move = false;
+            for(auto c: cluster_list){
+                c->potential_cnt  = 0;
+                c->potential_score = 0;
+                c->have_potential = false;
+            } 
+
+            while(no_move == false){
+                no_move = true;
+                for(auto& mcff: mcff_list){
+                    best_potential_score = -1;
+                    max_size = mcff->to_cls->size;
+                    best_cls = NULL;
+                    if(mcff->to_cls->size == mcff->to_cls->size_limit){
+                        // if(mcff->to_cls->size > mcff->to_cls->memb_ffs.size()) {
+                        //     mcff->to_cls->size--;
+                        //     mcff->to_cls->add_ff(mcff->f);
+                        // }
+                        // else {
+                        //     mcff->to_cls->cand_ffs.push_back(mcff->f);
+                        // }
+                        continue;
                     }
                     else{
-                        if(mcff->to_cls->size > mcff->to_cls->memb_ffs.size()) {
-                            mcff->to_cls->size--;
-                            mcff->to_cls->add_ff(mcff->f);
+                        for(auto& c: cluster_list){
+                            if(c->size == c->size_limit){
+                                continue;
+                            }
+                        
+                            if(c->can_merge(mcff->f, hpwl_cost) && c!=mcff->to_cls){
+                                if(c->have_potential){
+                                    if(best_potential_score == -1){
+                                        best_cls = c;
+                                        best_potential_score = c->potential_score;
+                                        no_move = false;
+                                    }
+                                    else if(c->potential_score < best_potential_score){
+                                        best_cls = c;
+                                        best_potential_score = c->potential_score;
+                                        no_move = false;
+                                    }
+                                }
+                                else if(c->size >= max_size && best_potential_score==-1){
+                                    best_cls = c;
+                                    max_size = c->size;
+                                    no_move = false;
+                                }
+                                c->potential_cnt++;
+                            }
                         }
-                        else {
-                            mcff->to_cls->cand_ffs.push_back(mcff->f);
+                        if(best_cls != NULL){
+                            mcff->to_cls->size--;
+                            mcff->to_cls->potential_cnt++;
+                            mcff->to_cls = best_cls;
+                            best_cls->potential_cnt--;
+                            best_cls->size++;
+                            // best_cls->add_ff(mcff->f);
+                        }
+                        else{
+                            // if(mcff->to_cls->size > mcff->to_cls->memb_ffs.size()) {
+                            //     mcff->to_cls->size--;
+                            //     mcff->to_cls->add_ff(mcff->f);
+                            // }
+                            // else {
+                            //     mcff->to_cls->cand_ffs.push_back(mcff->f);
+                            // }
+                            continue;
                         }
                     }
                 }
-                
+                for(auto c: cluster_list){
+                    if(c->size != c->size_limit && c->size+c->potential_cnt >= c->size_limit){
+                        c->have_potential = true;
+                        no_move = false;
+                        c->potential_score = c->potential_cnt;
+                    }
+                    else{
+                        c->have_potential = false;
+                    }
+                    c->potential_cnt = 0;
+                }
+            }
 
+            for(auto& mcff: mcff_list){
+                if(mcff->to_cls->size > mcff->to_cls->memb_ffs.size()) {
+                    mcff->to_cls->size--;
+                    mcff->to_cls->add_ff(mcff->f);
+                }
+                else {
+                    mcff->to_cls->cand_ffs.push_back(mcff->f);
+                }
             }
 
             // Step 3. Update loc.
@@ -298,9 +391,10 @@ void banking::modifyKmeans(){
                 //cout << "memb size (b): " << c->size << ", ";
                 //cout << "cand size: " << c->cand_ffs.size() ;
                 b_cnt = b_cnt + c->size;
-                t_cnt = t_cnt + c->size;
-                t_cnt = t_cnt +  c->cand_ffs.size();
+                //t_cnt = t_cnt + c->size;
+                //t_cnt = t_cnt +  c->cand_ffs.size();
                 c->update_loc();
+                // t_cnt = t_cnt + c->memb_ffs.size() + c->cand_canmerge_ffs.size() + c->cand_cannotmerge_ffs.size();
                 //cout << "; memb size (a): " << c->size  << ", can merge cand size: " << c->cand_canmerge_ffs.size() << endl;
                 a_cnt = a_cnt + c->size;
                 if(c->size > 1) mbff_cnt ++;
@@ -329,11 +423,11 @@ void banking::modifyKmeans(){
                 b_array[1] = b_array[1]  + c->cand_canmerge_ffs.size() + c->cand_cannotmerge_ffs.size();
 
             }
-            //for(int i=1; i<5; i++) cout << "Bit " << i << ": " <<  b_array[i] << endl;
 
-            //cout << "      cost = " << new_cost << endl;
 
-            if(new_cost < old_cost){
+            t_cnt = 0;
+            if(new_cost <= old_cost && same==false){
+                if(new_cost == old_cost) same = true;
                 old_cost = new_cost;
             }
             else{
@@ -345,7 +439,10 @@ void banking::modifyKmeans(){
                         NCLS.push_back(f);
                     }
                     CLS.push_back(c);
+                    t_cnt = t_cnt + c->memb_ffs.size() + c->cand_canmerge_ffs.size() + c->cand_cannotmerge_ffs.size();
                 }
+                for(auto f: uncls_ffs) NCLS.push_back(f);
+
                 break;
             }
             
@@ -429,8 +526,10 @@ void banking::modifyKmeans(){
         }
 
         // Step 6. Merge the unclustered ffs if cost decrease.
-        // break;
+
+        //break;
     }
+
 }
 
 void banking::cls_to_mbff(){
@@ -439,11 +538,8 @@ void banking::cls_to_mbff(){
     ffi* mbff;
     ffi* sf; // single bit ff
 
+
     for(auto& c: CLS){
-        // if(c->memb_ffs.size() == 3){
-        //     NCLS.push_back(c->memb_ffs.front());
-        //     c->memb_ffs.pop_front();
-        // }
         for(auto fc: LIB->opt_fftable[c->memb_ffs.size()]){
             inst_name = "";
             inst_name = inst_name + "NFMB" + to_string(cnt);

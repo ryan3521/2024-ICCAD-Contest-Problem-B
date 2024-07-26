@@ -359,7 +359,7 @@ double lib::find_min_cost(int bit, dieInfo& DIE){
     // mincost initialize: set mincost the cost of max_bit
     // Note: the max_bit ff must be a entity mbff
     f = fftable_cost[max_bit].front();
-    min_cost = f->cost_per_bit;
+    min_cost = (f->cost_per_bit)*(f->bit_num)/(double)bit;
     best_choice[bit].first = max_bit;
 
 

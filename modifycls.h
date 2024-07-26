@@ -20,6 +20,10 @@ class cls{
         double fsr_ymin;
         double fsr_ymax;
 
+        int potential_cnt;
+        int potential_score;
+        bool have_potential;
+
         // Member functions
         cls(int size_limit, double pos_x, double pos_y);
         void update_loc();
@@ -40,6 +44,7 @@ class banking{
         struct MultiClsFF{
             ffi* f;
             cls* to_cls;
+            bool is_memb;
         };
 
         void modifyKmeans();
