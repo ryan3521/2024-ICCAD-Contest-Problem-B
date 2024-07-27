@@ -154,8 +154,41 @@ banking::banking(inst* INST, lib* LIB, dieInfo* DIE, list<ffi*>* UPFFS){
     this->UPFFS = UPFFS;
 }
 
-bool cmp(ffi* a, ffi* b){
+bool cmp_ff(ffi* a, ffi* b){
     return a->fsr.cen_x < b->fsr.cen_x;
+}
+
+bool cmp_priority(pair<int, double> a, pair<int, double> b){
+    if(a.second == b.second){
+        return a.first < b.first;
+    }
+    return a.second < b.second;
+}
+
+
+void banking::initial_size_priority(){
+    for(int i=1; i<LIB->mbff_cost.size(); i++){
+        size_priority.push_back(pair<int, double>(i, LIB->mbff_cost[i]/(double)i));
+    }
+    size_priority.sort(cmp_priority);
+
+    int front_bit = -1; 
+
+    auto it = size_priority.begin();
+    while(it!=size_priority.end()){
+
+        if(front_bit == -1){
+            front_bit = it->first;
+        }
+        else if(it->first > front_bit){
+            it = size_priority.erase(it);
+            continue;
+        }
+        else{
+            front_bit = it->first;
+        }
+        it++;
+    }
 }
 
 void banking::modifyKmeans(){
@@ -163,190 +196,166 @@ void banking::modifyKmeans(){
     int itr_max = 1000;
     int gcnt = 1;
     int ff_cnt = 0;
+
+    initial_size_priority();
+
+
     // cout << "Group num: " << INST->ffs_sing.size() << endl;
     for(auto& ff_list: INST->ffs_sing){
-        ff_list->sort(cmp);
         //cout << "G" << gcnt << ": " << ff_list->size() << " ============================================ " << endl;
         gcnt++;
-        list<cls*> cluster_list;
-        list<ffi*> uncls_ffs;
+        list<ffi*> tbp_ffs; // tbp: to be placed
         cls* cls_ptr;
-        int cnt = 0;
-        int itr_cnt = 0;
-        double old_cost = numeric_limits<double>::max();
-        double new_cost;
-        
-        // Step 1. Initial clusters number and location.
-        for(auto& f: *ff_list){
-            if(cnt == 0){
-                cls_ptr = new cls(LIB->max_ff_size, f->fsr.cen_x, f->fsr.cen_y);
-                cluster_list.push_back(cls_ptr);
-            }
-            if(cnt == LIB->max_ff_size-1){
-                cnt = 0;
-            }
-            else{
-                cnt++;
-            }
-        }
 
-        // Itr Loop:
-        cls* best_cls;
-        double min_hpwl;
-        double hpwl_cost;
-        // Do normal K means to initial clusters position --------------------
-        for(int i=0; i<5; i++){
-            // cluster
-            for(auto& f: *ff_list){
-                best_cls = NULL;
-                min_hpwl = numeric_limits<double>::max();
-                for(auto& c: cluster_list){
-                    hpwl_cost = abs(f->fsr.cen_x - c->pos_x) + abs(f->fsr.cen_y - c->pos_y);
-                    if(c->size != c->size_limit && hpwl_cost < min_hpwl){
-                        best_cls = c;
-                        min_hpwl = hpwl_cost;
-                    }
+        for(auto& f: *ff_list) tbp_ffs.push_back(f);
+
+        auto prior = size_priority.begin();
+        while(prior != size_priority.end()){
+            
+            int cnt = 0;
+            int itr_cnt = 0;
+            double old_cost = numeric_limits<double>::max();
+            double new_cost;
+            list<cls*> cluster_list;
+            list<ffi*> uncls_ffs;
+            
+            // cout << "Prior " << prior->first << "========================" << endl;
+            tbp_ffs.sort(cmp_ff);
+            // cout << "ff num: " << tbp_ffs.size() << endl;
+            // Step 1. Initial clusters number and location.
+            for(auto& f: tbp_ffs){
+                if(cnt == 0){
+                    cls_ptr = new cls(prior->first, f->fsr.cen_x, f->fsr.cen_y);
+                    cluster_list.push_back(cls_ptr);
                 }
-                best_cls->size++;
-                best_cls->memb_ffs.push_back(f);
-            }
-            // update loc
-            for(auto c: cluster_list){
-                if(c->size == 0) continue;
-                double sum_x = 0;
-                double sum_y = 0;
-                for(auto f: c->memb_ffs){
-                    sum_x = sum_x + f->fsr.cen_x;
-                    sum_y = sum_y + f->fsr.cen_y;
-                }
-                c->pos_x = sum_x/(double)c->size;
-                c->pos_y = sum_y/(double)c->size;
-                c->size = 0;
-                c->memb_ffs.clear();
-            }
-        }
-
-
-
-        bool same = false;
-        while(itr_cnt < itr_max){
-            // cout << endl;
-            // cout << "   Itr " << itr_cnt << endl;
-            // cout << "   cls num: " << cluster_list.size() << endl;
-            uncls_ffs.clear();
-            MultiClsFF* mcff_ptr;
-            list<MultiClsFF*> mcff_list;
-            mcff_list.clear();
-            int multi_cls_cnt;
-            // Step 2. Do cluster.
-            //cout << "   1. Do cluster" << endl;
-            for(auto& f: *ff_list){
-                if(f->fsr.can_move == false){
-                    uncls_ffs.push_back(f);
-                    continue;
-                }
-                multi_cls_cnt = 0;
-                best_cls = NULL;
-                min_hpwl = numeric_limits<double>::max();
-                for(auto& c: cluster_list){
-                    if(c->can_merge(f, hpwl_cost)){
-                        multi_cls_cnt++;
-                        if(min_hpwl > hpwl_cost){
-                            min_hpwl = hpwl_cost;
-                            best_cls = c;
-                        }
-                        else{
-                            if(c->size > best_cls->size && c->size < LIB->max_ff_size){
-                                best_cls = c;
-                            }
-                            else if(best_cls->size == LIB->max_ff_size && c->size < LIB->max_ff_size){
-                                best_cls = c;
-                            }
-                        }
-                    }
-                    else{
-                        if(min_hpwl > hpwl_cost){
-                            min_hpwl = hpwl_cost;
-                            best_cls = c;
-                        }
-                    }
-                }
-
-                if(multi_cls_cnt > 1){
-                    if(best_cls->size < best_cls->size_limit) best_cls->size++;
-                    
-                    mcff_ptr = new MultiClsFF;
-                    mcff_ptr->f = f;
-                    mcff_ptr->to_cls = best_cls;
-
-                    mcff_list.push_back(mcff_ptr);
+                if(cnt == prior->first-1){
+                    cnt = 0;
                 }
                 else{
-                    best_cls->add_ff(f);
+                    cnt++;
                 }
             }
 
-            int max_size;
-            int best_potential_score;
-            bool no_move = false;
-            for(auto c: cluster_list){
-                c->potential_cnt  = 0;
-                c->potential_score = 0;
-                c->have_potential = false;
-            } 
 
-            while(no_move == false){
-                no_move = true;
-                for(auto& mcff: mcff_list){
-                    best_potential_score = -1;
-                    max_size = mcff->to_cls->size;
+            // Itr Loop:
+            cls* best_cls;
+            double min_hpwl;
+            double hpwl_cost;
+            // Do normal K means to initial clusters position --------------------
+            for(int i=0; i<5; i++){
+                // cluster
+                for(auto& f: tbp_ffs){
                     best_cls = NULL;
-                    if(mcff->to_cls->size == mcff->to_cls->size_limit){
-                        // if(mcff->to_cls->size > mcff->to_cls->memb_ffs.size()) {
-                        //     mcff->to_cls->size--;
-                        //     mcff->to_cls->add_ff(mcff->f);
-                        // }
-                        // else {
-                        //     mcff->to_cls->cand_ffs.push_back(mcff->f);
-                        // }
+                    min_hpwl = numeric_limits<double>::max();
+                    for(auto& c: cluster_list){
+                        hpwl_cost = abs(f->fsr.cen_x - c->pos_x) + abs(f->fsr.cen_y - c->pos_y);
+                        if(c->size != c->size_limit && hpwl_cost < min_hpwl){
+                            best_cls = c;
+                            min_hpwl = hpwl_cost;
+                        }
+                    }
+                    if(best_cls!=NULL){
+                        best_cls->size++;
+                        best_cls->memb_ffs.push_back(f);
+                    }
+                }
+                // update loc
+                for(auto c: cluster_list){
+                    if(c->size == 0) continue;
+                    double sum_x = 0;
+                    double sum_y = 0;
+                    for(auto f: c->memb_ffs){
+                        sum_x = sum_x + f->fsr.cen_x;
+                        sum_y = sum_y + f->fsr.cen_y;
+                    }
+                    c->pos_x = sum_x/(double)c->size;
+                    c->pos_y = sum_y/(double)c->size;
+                    c->size = 0;
+                    c->memb_ffs.clear();
+                }
+            }
+
+
+
+            bool same = false;
+            while(1){
+                // cout << endl;
+                // cout << "   Itr " << itr_cnt << endl;
+                // cout << "   cls num: " << cluster_list.size() << endl;
+                uncls_ffs.clear();
+                MultiClsFF* mcff_ptr;
+                list<MultiClsFF*> mcff_list;
+                mcff_list.clear();
+                int multi_cls_cnt;
+                // Step 2. Do cluster.
+                // cout << "   1. Do cluster" << endl;
+                
+                for(auto& f: tbp_ffs){
+                    if(f->fsr.can_move == false){
+                        uncls_ffs.push_back(f);
                         continue;
                     }
-                    else{
-                        for(auto& c: cluster_list){
-                            if(c->size == c->size_limit){
-                                continue;
+                    else if(cluster_list.size() == 0){
+                        uncls_ffs.push_back(f);
+                        continue;
+                    }
+                    multi_cls_cnt = 0;
+                    best_cls = NULL;
+                    min_hpwl = numeric_limits<double>::max();
+                    for(auto& c: cluster_list){
+                        if(c->can_merge(f, hpwl_cost)){
+                            multi_cls_cnt++;
+                            if(min_hpwl > hpwl_cost){
+                                min_hpwl = hpwl_cost;
+                                best_cls = c;
                             }
-                        
-                            if(c->can_merge(mcff->f, hpwl_cost) && c!=mcff->to_cls){
-                                if(c->have_potential){
-                                    if(best_potential_score == -1){
-                                        best_cls = c;
-                                        best_potential_score = c->potential_score;
-                                        no_move = false;
-                                    }
-                                    else if(c->potential_score < best_potential_score){
-                                        best_cls = c;
-                                        best_potential_score = c->potential_score;
-                                        no_move = false;
-                                    }
-                                }
-                                else if(c->size >= max_size && best_potential_score==-1){
+                            else{
+                                if(c->size > best_cls->size && c->size < prior->first){
                                     best_cls = c;
-                                    max_size = c->size;
-                                    no_move = false;
                                 }
-                                c->potential_cnt++;
+                                else if(best_cls->size == prior->first && c->size < prior->first){
+                                    best_cls = c;
+                                }
                             }
-                        }
-                        if(best_cls != NULL){
-                            mcff->to_cls->size--;
-                            mcff->to_cls->potential_cnt++;
-                            mcff->to_cls = best_cls;
-                            best_cls->potential_cnt--;
-                            best_cls->size++;
-                            // best_cls->add_ff(mcff->f);
                         }
                         else{
+                            if(min_hpwl > hpwl_cost){
+                                min_hpwl = hpwl_cost;
+                                best_cls = c;
+                            }
+                        }
+                    }
+
+                    if(multi_cls_cnt > 1){
+                        if(best_cls->size < best_cls->size_limit) best_cls->size++;
+                        
+                        mcff_ptr = new MultiClsFF;
+                        mcff_ptr->f = f;
+                        mcff_ptr->to_cls = best_cls;
+
+                        mcff_list.push_back(mcff_ptr);
+                    }
+                    else{
+                        best_cls->add_ff(f);
+                    }
+                }
+
+                int max_size;
+                int best_potential_score;
+                bool no_move = false;
+                for(auto c: cluster_list){
+                    c->potential_cnt  = 0;
+                    c->potential_score = 0;
+                    c->have_potential = false;
+                } 
+                
+                while(no_move == false){
+                    no_move = true;
+                    for(auto& mcff: mcff_list){
+                        best_potential_score = -1;
+                        max_size = mcff->to_cls->size;
+                        best_cls = NULL;
+                        if(mcff->to_cls->size == mcff->to_cls->size_limit){
                             // if(mcff->to_cls->size > mcff->to_cls->memb_ffs.size()) {
                             //     mcff->to_cls->size--;
                             //     mcff->to_cls->add_ff(mcff->f);
@@ -356,173 +365,265 @@ void banking::modifyKmeans(){
                             // }
                             continue;
                         }
-                    }
-                }
-                for(auto c: cluster_list){
-                    if(c->size != c->size_limit && c->size+c->potential_cnt >= c->size_limit){
-                        c->have_potential = true;
-                        no_move = false;
-                        c->potential_score = c->potential_cnt;
-                    }
-                    else{
-                        c->have_potential = false;
-                    }
-                    c->potential_cnt = 0;
-                }
-            }
-
-            for(auto& mcff: mcff_list){
-                if(mcff->to_cls->size > mcff->to_cls->memb_ffs.size()) {
-                    mcff->to_cls->size--;
-                    mcff->to_cls->add_ff(mcff->f);
-                }
-                else {
-                    mcff->to_cls->cand_ffs.push_back(mcff->f);
-                }
-            }
-
-            // Step 3. Update loc.
-            //cout << "   2. Update loc" << endl;
-            int t_cnt = 0;
-            int b_cnt = 0;
-            int a_cnt = 0;
-            int mbff_cnt = 0;
-            for(auto& c: cluster_list){
-                //cout << "memb size (b): " << c->size << ", ";
-                //cout << "cand size: " << c->cand_ffs.size() ;
-                b_cnt = b_cnt + c->size;
-                //t_cnt = t_cnt + c->size;
-                //t_cnt = t_cnt +  c->cand_ffs.size();
-                c->update_loc();
-                // t_cnt = t_cnt + c->memb_ffs.size() + c->cand_canmerge_ffs.size() + c->cand_cannotmerge_ffs.size();
-                //cout << "; memb size (a): " << c->size  << ", can merge cand size: " << c->cand_canmerge_ffs.size() << endl;
-                a_cnt = a_cnt + c->size;
-                if(c->size > 1) mbff_cnt ++;
-                // cout << "c size: " << c->size << endl;
-            }
-            //cout << "before size: " << b_cnt << ", after size: " << a_cnt << endl;
-            //cout << "t cnt : " << t_cnt << endl;
-            //cout << "mbff number: " << mbff_cnt << endl;
-
-            // Step 4. Calculate cost.
-            //cout << "   3. Calculate cost" << endl;
-            int b_array[5] = {0, 0, 0, 0, 0};
-            int bit_cnt = 0;
-            new_cost = 0;
-            new_cost = new_cost + LIB->mbff_cost[1]*uncls_ffs.size();
-            bit_cnt = bit_cnt + uncls_ffs.size();
-            b_array[1] = b_array[1]  + uncls_ffs.size();
-
-            for(auto& c: cluster_list){
-                new_cost = new_cost + LIB->mbff_cost[c->size];
-                bit_cnt = bit_cnt + c->size;
-
-                b_array[c->size]++;
-                new_cost = new_cost + LIB->mbff_cost[1]*(c->cand_canmerge_ffs.size() + c->cand_cannotmerge_ffs.size());
-                bit_cnt = bit_cnt + c->cand_canmerge_ffs.size() + c->cand_cannotmerge_ffs.size();
-                b_array[1] = b_array[1]  + c->cand_canmerge_ffs.size() + c->cand_cannotmerge_ffs.size();
-
-            }
-
-
-            t_cnt = 0;
-            if(new_cost <= old_cost && same==false){
-                if(new_cost == old_cost) same = true;
-                old_cost = new_cost;
-            }
-            else{
-                for(auto& c: cluster_list){
-                    for(auto& f: c->cand_canmerge_ffs){
-                        NCLS.push_back(f);
-                    }
-                    for(auto& f: c->cand_cannotmerge_ffs){
-                        NCLS.push_back(f);
-                    }
-                    CLS.push_back(c);
-                    t_cnt = t_cnt + c->memb_ffs.size() + c->cand_canmerge_ffs.size() + c->cand_cannotmerge_ffs.size();
-                }
-                for(auto f: uncls_ffs) NCLS.push_back(f);
-
-                break;
-            }
-            
-            // Step 5. Check insert or delete. 
-            //cout << "   4. Check insert or delete" << endl;
-            list<cls*> new_cls_list;
-            new_cls_list.clear();
-            auto it = cluster_list.begin();
-            while(it!=cluster_list.end()){
-                auto c = *it;
-
-                if(c->size <= 1){
-                    if(c->cand_cannotmerge_ffs.size() >= 2){
-                        // change this cluster position.
-                        double sum_x = 0;
-                        double sum_y = 0;
-                        double cnt   = c->cand_cannotmerge_ffs.size();
-
-                        for(auto& f: c->cand_canmerge_ffs){
-                            sum_x = sum_x + f->fsr.cen_x;
-                            sum_y = sum_y + f->fsr.cen_y;
+                        else{
+                            for(auto& c: cluster_list){
+                                if(c->size == c->size_limit){
+                                    continue;
+                                }
+                            
+                                if(c->can_merge(mcff->f, hpwl_cost) && c!=mcff->to_cls){
+                                    if(c->have_potential){
+                                        if(best_potential_score == -1){
+                                            best_cls = c;
+                                            best_potential_score = c->potential_score;
+                                            no_move = false;
+                                        }
+                                        else if(c->potential_score < best_potential_score){
+                                            best_cls = c;
+                                            best_potential_score = c->potential_score;
+                                            no_move = false;
+                                        }
+                                    }
+                                    else if(c->size >= max_size && best_potential_score==-1){
+                                        best_cls = c;
+                                        max_size = c->size;
+                                        no_move = false;
+                                    }
+                                    c->potential_cnt++;
+                                }
+                            }
+                            if(best_cls != NULL){
+                                mcff->to_cls->size--;
+                                mcff->to_cls->potential_cnt++;
+                                mcff->to_cls = best_cls;
+                                best_cls->potential_cnt--;
+                                best_cls->size++;
+                                // best_cls->add_ff(mcff->f);
+                            }
+                            else{
+                                // if(mcff->to_cls->size > mcff->to_cls->memb_ffs.size()) {
+                                //     mcff->to_cls->size--;
+                                //     mcff->to_cls->add_ff(mcff->f);
+                                // }
+                                // else {
+                                //     mcff->to_cls->cand_ffs.push_back(mcff->f);
+                                // }
+                                continue;
+                            }
                         }
-                        c->pos_x = sum_x / cnt;
-                        c->pos_y = sum_y / cnt;
+                    }
+                    for(auto c: cluster_list){
+                        if(c->size != c->size_limit && c->size+c->potential_cnt >= c->size_limit){
+                            c->have_potential = true;
+                            no_move = false;
+                            c->potential_score = c->potential_cnt;
+                        }
+                        else{
+                            c->have_potential = false;
+                        }
+                        c->potential_cnt = 0;
+                    }
+                }
+
+                for(auto& mcff: mcff_list){
+                    if(mcff->to_cls->size > mcff->to_cls->memb_ffs.size()) {
+                        mcff->to_cls->size--;
+                        mcff->to_cls->add_ff(mcff->f);
+                    }
+                    else {
+                        mcff->to_cls->cand_ffs.push_back(mcff->f);
+                    }
+                }
+
+                // Step 3. Update loc.
+                // cout << "   2. Update loc" << endl;
+                int t_cnt = 0;
+                int b_cnt = 0;
+                int a_cnt = 0;
+                int mbff_cnt = 0;
+                for(auto& c: cluster_list){
+                    //cout << "memb size (b): " << c->size << ", ";
+                    //cout << "cand size: " << c->cand_ffs.size() ;
+                    b_cnt = b_cnt + c->size;
+                    //t_cnt = t_cnt + c->size;
+                    //t_cnt = t_cnt +  c->cand_ffs.size();
+                    c->update_loc();
+                    // t_cnt = t_cnt + c->memb_ffs.size() + c->cand_canmerge_ffs.size() + c->cand_cannotmerge_ffs.size();
+                    //cout << "; memb size (a): " << c->size  << ", can merge cand size: " << c->cand_canmerge_ffs.size() << endl;
+                    a_cnt = a_cnt + c->size;
+                    if(c->size > 1) mbff_cnt ++;
+                    // cout << "c size: " << c->size << endl;
+                }
+                //cout << "before size: " << b_cnt << ", after size: " << a_cnt << endl;
+                //cout << "t cnt : " << t_cnt << endl;
+                //cout << "mbff number: " << mbff_cnt << endl;
+
+                // Step 4. Calculate cost.
+                //cout << "   3. Calculate cost" << endl;
+                int b_array[5] = {0, 0, 0, 0, 0};
+                int bit_cnt = 0;
+                new_cost = 0;
+                new_cost = new_cost + LIB->mbff_cost[1]*uncls_ffs.size();
+                bit_cnt = bit_cnt + uncls_ffs.size();
+                b_array[1] = b_array[1]  + uncls_ffs.size();
+
+                for(auto& c: cluster_list){
+                    new_cost = new_cost + LIB->mbff_cost[c->size];
+                    bit_cnt = bit_cnt + c->size;
+
+                    b_array[c->size]++;
+                    new_cost = new_cost + LIB->mbff_cost[1]*(c->cand_canmerge_ffs.size() + c->cand_cannotmerge_ffs.size());
+                    bit_cnt = bit_cnt + c->cand_canmerge_ffs.size() + c->cand_cannotmerge_ffs.size();
+                    b_array[1] = b_array[1]  + c->cand_canmerge_ffs.size() + c->cand_cannotmerge_ffs.size();
+
+                }
+
+                // cout << "cost " << new_cost << endl;
+                t_cnt = 0;
+                if(new_cost < old_cost){
+                    old_cost = new_cost;
+                    same = false;
+                }
+                else if(new_cost == old_cost && same==false){
+                    same = true;
+                }
+                else{
+                    auto prior_next = prior;
+                    int lower_bound = prior->first;
+
+                    prior_next++;
+                    while(prior_next != size_priority.end()){
+                        if(prior_next->first == lower_bound - 1){
+                            lower_bound = prior_next->first;
+                            prior_next++;
+                        }
+                        else{
+                            break;
+                        }
+                    }
+                    // cout << "Lower bound: " << lower_bound << endl;
+                    //cout << "prior next: " << prior_next->first << endl;
+                    tbp_ffs.clear();
+                    if(prior_next != size_priority.end()){
+                        for(auto& c: cluster_list){
+                            if(c->size >= lower_bound){
+                                CLS.push_back(c);
+                                for(auto& f: c->cand_canmerge_ffs){
+                                    tbp_ffs.push_back(f);
+                                }
+                                for(auto& f: c->cand_cannotmerge_ffs){
+                                    tbp_ffs.push_back(f);
+                                }
+                            }
+                            else{
+                                for(auto& f: c->memb_ffs){
+                                    tbp_ffs.push_back(f);
+                                }
+                                for(auto& f: c->cand_canmerge_ffs){
+                                    tbp_ffs.push_back(f);
+                                }
+                                for(auto& f: c->cand_cannotmerge_ffs){
+                                    tbp_ffs.push_back(f);
+                                }
+                            }
+                            for(auto f: uncls_ffs) tbp_ffs.push_back(f);
+                        }
                     }
                     else{
-                        // delete this cluster.
-                        delete c;
-                        it = cluster_list.erase(it);
-                        continue;
+                        for(auto& c: cluster_list){
+                            for(auto& f: c->cand_canmerge_ffs){
+                                NCLS.push_back(f);
+                            }
+                            for(auto& f: c->cand_cannotmerge_ffs){
+                                NCLS.push_back(f);
+                            }
+                            CLS.push_back(c);
+                            t_cnt = t_cnt + c->memb_ffs.size() + c->cand_canmerge_ffs.size() + c->cand_cannotmerge_ffs.size();
+                        }
+                        for(auto f: uncls_ffs) NCLS.push_back(f);
                     }
-                }    
-                else{
-                    if(c->cand_canmerge_ffs.size() >= 2){
-                        // add new cluster(s).
-                        int cnt = 0;
-                        cls* new_cls; 
+                    prior = prior_next;
+                    break;
+                }
+                
+                // Step 5. Check insert or delete. 
+                //cout << "   4. Check insert or delete" << endl;
+                list<cls*> new_cls_list;
+                new_cls_list.clear();
+                auto it = cluster_list.begin();
+                while(it!=cluster_list.end()){
+                    auto c = *it;
 
-                        for(auto& f: c->cand_canmerge_ffs){
-                            cnt++;
-                            if(cnt == LIB->max_ff_size){
-                                cnt = 0;
-                                new_cls = new cls(LIB->max_ff_size, c->pos_x, c->pos_y); 
+                    if(c->size <= 1){
+                        if(c->cand_cannotmerge_ffs.size() >= 2){
+                            // change this cluster position.
+                            double sum_x = 0;
+                            double sum_y = 0;
+                            double cnt   = c->cand_cannotmerge_ffs.size();
+
+                            for(auto& f: c->cand_canmerge_ffs){
+                                sum_x = sum_x + f->fsr.cen_x;
+                                sum_y = sum_y + f->fsr.cen_y;
+                            }
+                            c->pos_x = sum_x / cnt;
+                            c->pos_y = sum_y / cnt;
+                        }
+                        else{
+                            // delete this cluster.
+                            delete c;
+                            it = cluster_list.erase(it);
+                            continue;
+                        }
+                    }    
+                    else{
+                        if(c->cand_canmerge_ffs.size() >= 2){
+                            // add new cluster(s).
+                            int cnt = 0;
+                            cls* new_cls; 
+
+                            for(auto& f: c->cand_canmerge_ffs){
+                                cnt++;
+                                if(cnt == prior->first){
+                                    cnt = 0;
+                                    new_cls = new cls(prior->first, c->pos_x, c->pos_y); 
+                                    new_cls_list.push_back(new_cls);
+                                }
+                            }
+                            if(cnt >= 2){
+                                new_cls = new cls(prior->first, c->pos_x, c->pos_y); 
                                 new_cls_list.push_back(new_cls);
                             }
                         }
-                        if(cnt >= 2){
-                            new_cls = new cls(LIB->max_ff_size, c->pos_x, c->pos_y); 
+                        if(c->cand_cannotmerge_ffs.size() >= 2){
+                            // add one new cluster.
+                            cls* new_cls;
+                            double pos_x;
+                            double pos_y;
+                            double sum_x = 0;
+                            double sum_y = 0;
+                            double cnt   = c->cand_cannotmerge_ffs.size();
+
+                            for(auto& f: c->cand_canmerge_ffs){
+                                sum_x = sum_x + f->fsr.cen_x;
+                                sum_y = sum_y + f->fsr.cen_y;
+                            }
+                            pos_x = sum_x / cnt;
+                            pos_y = sum_y / cnt;
+                            new_cls = new cls(prior->first, pos_x, pos_y);
                             new_cls_list.push_back(new_cls);
                         }
                     }
-                    if(c->cand_cannotmerge_ffs.size() >= 2){
-                        // add one new cluster.
-                        cls* new_cls;
-                        double pos_x;
-                        double pos_y;
-                        double sum_x = 0;
-                        double sum_y = 0;
-                        double cnt   = c->cand_cannotmerge_ffs.size();
-
-                        for(auto& f: c->cand_canmerge_ffs){
-                            sum_x = sum_x + f->fsr.cen_x;
-                            sum_y = sum_y + f->fsr.cen_y;
-                        }
-                        pos_x = sum_x / cnt;
-                        pos_y = sum_y / cnt;
-                        new_cls = new cls(LIB->max_ff_size, pos_x, pos_y);
-                        new_cls_list.push_back(new_cls);
-                    }
+                    it++;
                 }
-                it++;
-            }
 
-            for(auto& c: new_cls_list){
-                cluster_list.push_back(c);
+                for(auto& c: new_cls_list){
+                    cluster_list.push_back(c);
+                }
+                for(auto& c: cluster_list){
+                    c->clear_ffs();
+                }
+                itr_cnt++;
             }
-            for(auto& c: cluster_list){
-                c->clear_ffs();
-            }
-            itr_cnt++;
         }
 
         // Step 6. Merge the unclustered ffs if cost decrease.

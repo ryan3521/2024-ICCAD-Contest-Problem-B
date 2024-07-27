@@ -40,13 +40,15 @@ class banking{
         list<ffi*>* UPFFS;
         list<cls*> CLS; 
         list<ffi*> NCLS;
-
+        list<pair<int ,double>> size_priority;
+        
         struct MultiClsFF{
             ffi* f;
             cls* to_cls;
             bool is_memb;
         };
 
+        void initial_size_priority();
         void modifyKmeans();
         void cls_to_mbff();
         
