@@ -94,9 +94,13 @@ double get_critical_slack(net* net_ptr){
         if(pin_ptr->pin_type == 'g'){
             if(pin_ptr->to_gate->is_visited()){
                 temp_slack = pin_ptr->to_gate->get_critical_slack();
-            } 
+            }
+            else if(pin_ptr->to_gate->is_tracking){
+                continue;
+            }
             else{
                 double gate_cslack = numeric_limits<double>::max();
+                pin_ptr->to_gate->is_tracking = true;
                 for(int i=0; i<pin_ptr->to_gate->opins.size(); i++){
                     temp_slack = get_critical_slack(pin_ptr->to_gate->opins[i]->to_net);
                     if(temp_slack < gate_cslack) gate_cslack = temp_slack;
@@ -303,6 +307,15 @@ void ffi::initial_PinInfo(){
     return;
 }
 
+void ffi::update_pin_loc(){
+    for(int i=0; i<d_pins.size(); i++){
+        d_pins[i]->new_coox = coox + type->d_pins[i].x_plus;
+        d_pins[i]->new_cooy = cooy + type->d_pins[i].y_plus;
+        q_pins[i]->new_coox = coox + type->q_pins[i].x_plus;
+        q_pins[i]->new_cooy = cooy + type->q_pins[i].y_plus;
+    }
+}
+
 void ffi::new_coor(){
     int bit = d_pins.size(); // this bit is the effective bit number, not the same as the "type->bit_num";
     double mx = 0;
@@ -488,6 +501,8 @@ gatei::gatei(string name, double coox, double cooy){
     this->cooy = cooy;
     v = false;
     critical_slack = numeric_limits<double>::max();
+    ns = numeric_limits<double>::max();
+    is_tracking = false;
 }
 
 void gatei::set_type(gcell* type){

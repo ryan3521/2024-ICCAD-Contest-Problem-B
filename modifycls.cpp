@@ -667,7 +667,9 @@ void banking::cls_to_mbff(){
                 if(c->memb_ffs.size() <= 0) break;
                 
                 sf = c->memb_ffs.front();
+                sf->d_pins[0]->new_name = fc->d_pins[i].name;
                 sf->d_pins[0]->to_new_ff = mbff;
+                sf->q_pins[0]->new_name = fc->q_pins[i].name;
                 sf->q_pins[0]->to_new_ff = mbff;
                 mbff->d_pins.push_back(sf->d_pins[0]);
                 mbff->q_pins.push_back(sf->q_pins[0]);

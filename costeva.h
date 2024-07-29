@@ -19,6 +19,8 @@ class costeva{
         double calTns();
         double calDensity();
 
+        double get_ns(gatei* g);
+
     public:
         costeva(dieInfo* DIE, lib* LIB, inst* INST);
         double evaluate(list<ffi*>* ff_list);
