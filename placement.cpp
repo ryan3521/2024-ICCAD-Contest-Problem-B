@@ -6,7 +6,7 @@
 // *******************************************************************
 
 // Constructor
-plcmt_row::plcmt_row(double sx, double sy, double sw, double sh, int sn){
+plcmt_row::plcmt_row(dieInfo* DIE, double sx, double sy, double sw, double sh, int sn){
     is_tested = false;
     is_visited = false;
     start_x = sx;
@@ -19,6 +19,7 @@ plcmt_row::plcmt_row(double sx, double sy, double sw, double sh, int sn){
     space_list.clear();
     up_rows.clear();
     down_rows.clear();
+    this->DIE = DIE;
     pivot = -1;
 }
 
@@ -610,10 +611,13 @@ void plcmt_row::print_spacelist(){
 // *******************************************************************
 // *                        CLASS placement                          *
 // *******************************************************************
-placement::placement(){
+placement::placement(lib* LIB, inst* INST, dieInfo* DIE){
     temp_rows.clear();
     rows.clear();
     new_ff_cnt = 0;
+    this->LIB  = LIB;
+    this->INST = INST;
+    this->DIE  = DIE;
 }
 
 bool placement::row_cmp(plcmt_row* a, plcmt_row* b){
@@ -622,7 +626,7 @@ bool placement::row_cmp(plcmt_row* a, plcmt_row* b){
 }
 
 void placement::addRow(double sx, double sy, double sw, double sh, int sn){
-    plcmt_row* pr = new plcmt_row(sx, sy, sw, sh, sn);
+    plcmt_row* pr = new plcmt_row(DIE, sx, sy, sw, sh, sn);
     temp_rows.push_back(pr);
 }
 
@@ -660,6 +664,39 @@ void placement::initial(){
     }
 
     for(int i=0; i<rows.size(); i++) { rows[i]->idx = i; }
+
+    // for(int i=0; i<rows.size(); i++){
+    //     plcmt_row* r = rows[i];
+    //     list<pair<int, int>> space_list;
+
+    //     space_list.push_back(pair<int, int>(0, r->site_num));
+
+    //     for(auto ur: r->up_rows){
+
+    //         for(auto rIt=space_list.rbegin(); rIt!=space_list.rend(); rIt++){
+    //             if(si>=rIt->first && si<=rIt->second){
+    //                 if(si==rIt->first && ei==rIt->second){
+    //                     space_list.erase(--rIt.base());
+    //                 }
+    //                 else if(si==rIt->first && ei<rIt->second){
+    //                     rIt->first = ei+1;
+    //                 }
+    //                 else if(si>rIt->first && ei<rIt->second){
+    //                     int t = rIt->second;
+    //                     rIt->second = si-1;
+    //                     auto it = rIt.base();
+    //                     space_list.insert(it, pair<int, int>(ei+1, t));
+    //                 }
+    //                 else if(si>rIt->first && ei==rIt->second){
+    //                     rIt->second = si-1;
+    //                 }
+    //                 return;
+    //             }
+    //         }
+    //     }
+    // }
+
+    
 
     return;
 }
@@ -750,15 +787,11 @@ int placement::closest_IDX(double x, double y){
     return idx;
 }
 
-void placement::placeGateInst(inst& INST){
-    bool PRINT_INFO = false;
+void placement::placeGateInst(){
+    bool PRINT_INFO = true;
     if(PRINT_INFO) cout << endl << "Placing Gate >>>" << endl;
-    // for(auto& it: INST.gate_umap){
-    //     if(it.second->name == "C102728"){
-    //         cout << it.first << endl;
-    //     }
-    // }
-    for(auto& gi: INST.gate_umap){
+
+    for(auto& gi: INST->gate_umap){
         double y = gi.second->cooy;
         double x = gi.second->coox;
         int idx = closest_IDX(x, y);
@@ -766,32 +799,21 @@ void placement::placeGateInst(inst& INST){
         double temp = (x - rows[idx]->start_x)/rows[idx]->site_w;
         if(y != rows[idx]->start_y || abs(temp - int(temp)) != 0){
             if(PRINT_INFO) cout << "Error: gate instance is not on site." << endl;
-            break;
         }
-        // if(gi.second->name == "C102728"){
-        //     cout << idx << endl;
-        //     cout << x << endl;
-        //     cout << y << endl;
-        //     cout << rows[idx]->start_y << endl;
-        // }
+
         rows[idx]->glist.push_back(gi.second);
     }
-    // cout << rows[605]->glist.front()->name << endl;
+
     int cnt;
     bool place_fail;
     gatei* gi_front;
-    // cout << "Row numbers: " << rows.size() << endl;
+
     for(int i=0; i<rows.size(); i++){
         rows[i]->sort_gate();
         place_fail = false;
         cnt = 0;
         for(auto& gi: rows[i]->glist){
-            // cout << "\033[2J\033[1;1H";
-            // rows[i]->print_blocklist();
-            // if(gi->coox == 22440){
-            //     cout << i << endl;
-            //     cout << gi->name << endl;
-            // }
+
             if(rows[i]->x_inrange(gi->coox, gi->coox+gi->type->size_x) == false){
                 if(PRINT_INFO) cout << "Error: Not in range!" << endl;
                 place_fail = true;
@@ -818,7 +840,7 @@ void placement::placeGateInst(inst& INST){
             cnt++;
         }
         if(place_fail) break;
-        // rows[i]->add_gblock(rows[i]->site_num*, rows[i]->site_num);
+
     }
 }
 
@@ -828,8 +850,8 @@ bool placement::ff_cmp(ffi* a, ffi* b){
 
 
 
-void placement::placeFlipFlopInst(lib& LIB, inst& INST, dieInfo& DIE, list<ffi*>& UPFFS, list<ffi*>& PFFS){
-    bool PRINT_INFO = false;
+void placement::placeFlipFlopInst(list<ffi*>& UPFFS, list<ffi*>& PFFS){
+    bool PRINT_INFO = true;
     int idx;
     int pos_idx;
     int best_pos_idx;
@@ -937,7 +959,7 @@ void placement::placeFlipFlopInst(lib& LIB, inst& INST, dieInfo& DIE, list<ffi*>
                             // cout << "row " << p->idx << " larger than mincost " << endl;
                             break;
                         }
-                        if(fi->is_too_far(p->closest_x(fi->coox), p->start_y, DIE.displacement_delay) == false){
+                        if(fi->is_too_far(p->closest_x(fi->coox), p->start_y, DIE->displacement_delay) == false){
                             search_stack.push_back(p);
                             p->is_visited = true;
                         }
@@ -947,7 +969,7 @@ void placement::placeFlipFlopInst(lib& LIB, inst& INST, dieInfo& DIE, list<ffi*>
                     }
                     else{
                         if(fi->type->bit_num > 1){
-                            if(fi->is_too_far(p->closest_x(fi->coox), p->start_y, DIE.displacement_delay) == false){
+                            if(fi->is_too_far(p->closest_x(fi->coox), p->start_y, DIE->displacement_delay) == false){
                                 search_stack.push_back(p);
                                 p->is_visited = true;
                             }
@@ -966,7 +988,7 @@ void placement::placeFlipFlopInst(lib& LIB, inst& INST, dieInfo& DIE, list<ffi*>
                             // cout << "row " << p->idx << " larger than mincost " << endl;
                             break;
                         }
-                        if(fi->is_too_far(p->closest_x(fi->coox), p->start_y, DIE.displacement_delay) == false){
+                        if(fi->is_too_far(p->closest_x(fi->coox), p->start_y, DIE->displacement_delay) == false){
                             search_stack.push_back(p);
                             p->is_visited = true;
                         }
@@ -976,7 +998,7 @@ void placement::placeFlipFlopInst(lib& LIB, inst& INST, dieInfo& DIE, list<ffi*>
                     }
                     else{
                         if(fi->type->bit_num > 1){
-                            if(fi->is_too_far(p->closest_x(fi->coox), p->start_y, DIE.displacement_delay) == false){
+                            if(fi->is_too_far(p->closest_x(fi->coox), p->start_y, DIE->displacement_delay) == false){
                                 search_stack.push_back(p);
                                 p->is_visited = true;
                             }
@@ -1025,7 +1047,7 @@ void placement::placeFlipFlopInst(lib& LIB, inst& INST, dieInfo& DIE, list<ffi*>
                     }
                     else{
                         if(target_pr->is_tested == false){
-                            if(fi->is_too_far(target_pr->closest_x(fi->coox), target_pr->start_y, DIE.displacement_delay) == false){
+                            if(fi->is_too_far(target_pr->closest_x(fi->coox), target_pr->start_y, DIE->displacement_delay) == false){
                                 cost = target_pr->place_trial(tested_list, fi, available, pos_idx, mincost);
                                 if(available){
                                     find = true;
@@ -1055,11 +1077,11 @@ void placement::placeFlipFlopInst(lib& LIB, inst& INST, dieInfo& DIE, list<ffi*>
                     }
                     else{
                         if(target_pr->is_tested == false){
-                            if(fi->is_too_far(fi->coox, target_pr->start_y, DIE.displacement_delay) == true){
+                            if(fi->is_too_far(fi->coox, target_pr->start_y, DIE->displacement_delay) == true){
                                 search_up = false;
                             }
                             else{
-                                if(fi->is_too_far(target_pr->closest_x(fi->coox), target_pr->start_y, DIE.displacement_delay) == false){
+                                if(fi->is_too_far(target_pr->closest_x(fi->coox), target_pr->start_y, DIE->displacement_delay) == false){
                                     cost = target_pr->place_trial(tested_list, fi, available, pos_idx, mincost);
                                     if(available){
                                         find = true;
@@ -1087,7 +1109,7 @@ void placement::placeFlipFlopInst(lib& LIB, inst& INST, dieInfo& DIE, list<ffi*>
                     }
                     else{
                         if(target_pr->is_tested == false){
-                            if(fi->is_too_far(target_pr->closest_x(fi->coox), target_pr->start_y, DIE.displacement_delay) == false){
+                            if(fi->is_too_far(target_pr->closest_x(fi->coox), target_pr->start_y, DIE->displacement_delay) == false){
                                 cost = target_pr->place_trial(tested_list, fi, available, pos_idx, mincost);
                                 if(available){
                                     find = true;
@@ -1117,11 +1139,11 @@ void placement::placeFlipFlopInst(lib& LIB, inst& INST, dieInfo& DIE, list<ffi*>
                     }
                     else{
                         if(target_pr->is_tested == false){
-                            if(fi->is_too_far(fi->coox, target_pr->start_y, DIE.displacement_delay) == true){
+                            if(fi->is_too_far(fi->coox, target_pr->start_y, DIE->displacement_delay) == true){
                                 search_down = false;
                             }
                             else{
-                                if(fi->is_too_far(target_pr->closest_x(fi->coox), target_pr->start_y, DIE.displacement_delay) == false){
+                                if(fi->is_too_far(target_pr->closest_x(fi->coox), target_pr->start_y, DIE->displacement_delay) == false){
                                     cost = target_pr->place_trial(tested_list, fi, available, pos_idx, mincost);
                                     if(available){
                                         find = true;
@@ -1171,7 +1193,7 @@ void placement::placeFlipFlopInst(lib& LIB, inst& INST, dieInfo& DIE, list<ffi*>
             else{
                 // dismantle fi
                 // cout << ff_cnt << " dismantle" << endl;
-                mbff_dismantle(fi, dismantle_list, LIB, DIE);
+                mbff_dismantle(fi, dismantle_list);
             }
         }
         else{
@@ -1242,7 +1264,7 @@ void placement::place_formal(ffi* fi, plcmt_row* best_row, int best_pos_idx){
     return;
 }
 
-void placement::mbff_dismantle(ffi* fi, list<ffi*>& dismantle_list, lib& LIB, dieInfo& DIE){
+void placement::mbff_dismantle(ffi* fi, list<ffi*>& dismantle_list){
     int ori_size  = fi->d_pins.size(); // ori: original
     int new_size1 = (double)ori_size/2.0;
     int new_size2 = ori_size - new_size1; 
@@ -1250,11 +1272,11 @@ void placement::mbff_dismantle(ffi* fi, list<ffi*>& dismantle_list, lib& LIB, di
     int pin_cnt = 0;
     bool dismantle = false;
     bool replace = false;
-    ffcell* small_type = LIB.fftable_area[fi->type->bit_num].front();
+    ffcell* small_type = LIB->fftable_area[fi->type->bit_num].front();
     ffi* new_fi;
     string inst_name;
 
-    if(fi->type->area == LIB.fftable_area[fi->type->bit_num].front()->area){
+    if(fi->type->area == LIB->fftable_area[fi->type->bit_num].front()->area){
         // It means that this type of MBFF is the smallest size of this bit.
         // No other choice but only dismantle this mbff.
         dismantle = true;
@@ -1262,15 +1284,15 @@ void placement::mbff_dismantle(ffi* fi, list<ffi*>& dismantle_list, lib& LIB, di
     else{
         double AP_cost = 0; // area power sum
 
-        for(auto& ft: LIB.opt_fftable[new_size1]){
-            AP_cost = AP_cost + DIE.Gamma*ft->area + DIE.Beta*ft->gate_power;
+        for(auto& ft: LIB->opt_fftable[new_size1]){
+            AP_cost = AP_cost + DIE->Gamma*ft->area + DIE->Beta*ft->gate_power;
         }
-        for(auto& ft: LIB.opt_fftable[new_size2]){
-            AP_cost = AP_cost + DIE.Gamma*ft->area + DIE.Beta*ft->gate_power;
+        for(auto& ft: LIB->opt_fftable[new_size2]){
+            AP_cost = AP_cost + DIE->Gamma*ft->area + DIE->Beta*ft->gate_power;
         }
         AP_cost = AP_cost/(double)ori_size;
 
-        if(AP_cost <= (DIE.Gamma*small_type->area + DIE.Beta*small_type->gate_power)/(double)ori_size){
+        if(AP_cost <= (DIE->Gamma*small_type->area + DIE->Beta*small_type->gate_power)/(double)ori_size){
             dismantle = true;
         }
         else{
@@ -1280,7 +1302,7 @@ void placement::mbff_dismantle(ffi* fi, list<ffi*>& dismantle_list, lib& LIB, di
 
     if(dismantle){
         remain_size = new_size1;
-        for(auto& ft: LIB.opt_fftable[new_size1]){
+        for(auto& ft: LIB->opt_fftable[new_size1]){
             inst_name = "";
             inst_name = inst_name + "MB" + to_string(new_ff_cnt);
             new_fi = new ffi(inst_name, 0, 0);
@@ -1311,7 +1333,7 @@ void placement::mbff_dismantle(ffi* fi, list<ffi*>& dismantle_list, lib& LIB, di
         }
 
         remain_size = new_size2;
-        for(auto& ft: LIB.opt_fftable[new_size2]){
+        for(auto& ft: LIB->opt_fftable[new_size2]){
             inst_name = "";
             inst_name = inst_name + "MB" + to_string(new_ff_cnt);
             new_fi = new ffi(inst_name, 0, 0);

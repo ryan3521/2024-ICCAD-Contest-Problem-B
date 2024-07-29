@@ -4,7 +4,7 @@ OBJS = lib.o inst.o netlist.o placement.o cluster.o kmeans_cls.o read_input.o cl
 BINS = main
 TC1  = sampleCase
 TC2  = testcase1_0614.txt
-INFILE = ./Testcase/$(TC1)
+INFILE = ./Testcase/$(TC2)
 OUTFILE = output.txt
 
 all: $(BINS)

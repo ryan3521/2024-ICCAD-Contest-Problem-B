@@ -20,7 +20,7 @@ int main(int argc, char** argv){
     inst INST;
     dieInfo DIE;
     netlist NL;
-    placement PM;
+    placement PM(&LIB, &INST, &DIE);
     // INTEGRA itgra(&INST, &NL);
     list<cluster*> KCR; // Kmeans Cluster Result
     list<ffi*> NCLS; // Store the non cluster ffs after doing K-means Cluster
@@ -48,8 +48,6 @@ int main(int argc, char** argv){
     INST.DebankAllFF(LIB);
     INST.ConstructFSR(DIE);
 
-    //itgra.run();
-    //itgra.copyFSR();
     for(auto it: INST.ff_umap){
         auto f = it.second;
         orig_area = orig_area + f->type->area;
@@ -75,22 +73,10 @@ int main(int argc, char** argv){
     // for(int i=1; i<5; i++) cout << "Type " << i << ": " << arr[i] << endl;
     
     FFBANK.run();
-
-    // for(int i=1; i < 5; i++){
-    //     cout << "Size " << i << ": " ;
-    //     for(auto& ft: LIB.opt_fftable[i]){
-    //         cout << "type " << ft->bit_num << "; ";
-    //     }
-    //     cout << endl;
-    // }
-
-    // for(int b=1; b<5; b++){
-    //     cout << "Bit " << b << ": " << LIB.mbff_cost[b] << "; cost per bit: " << LIB.mbff_cost[b]/b << endl;
-    // }
     
 
-    PM.placeGateInst(INST);
-    PM.placeFlipFlopInst(LIB, INST, DIE, UPFFS, PFFS);
+    PM.placeGateInst();
+    PM.placeFlipFlopInst( UPFFS, PFFS);
     Output(argv[2], PFFS, INST);
 
     for(auto f: PFFS){
@@ -98,11 +84,6 @@ int main(int argc, char** argv){
         opt_power = opt_power + f->type->gate_power;
         aft_bitnum = aft_bitnum + f->d_pins.size();
     }
-    // for(auto fi: INST.ff_umap){
-    //     NCLS.push_back(fi.second);
-    // }
-
-
 
 
     double end = clock();
@@ -134,9 +115,6 @@ int main(int argc, char** argv){
     
     cout << endl << "Total execution time: " << (end - start) / 1000000.0  << " s" << '\n';
 
-    // ----------test----------
-    // INTEGRA itgra;
-    // itgra.run();
     
     return 0;
 }
