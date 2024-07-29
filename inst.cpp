@@ -549,7 +549,7 @@ gatei::gatei(string name, double coox, double cooy){
     v = false;
     critical_slack = numeric_limits<double>::max();
     min_cs = numeric_limits<double>::max();
-    ns = numeric_limits<double>::max();
+    consume_time = numeric_limits<double>::min();
     is_tracking = false;
 }
 

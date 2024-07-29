@@ -14,12 +14,14 @@ class costeva{
         inst* INST;
         list<ffi*>* ffs;
 
+        double aproxTns();
+        double calOriTns();
         double calArea();
         double calPower();
         double calTns();
         double calDensity();
 
-        double get_ns(gatei* g);
+        double get_ct(gatei* g);
 
     public:
         costeva(dieInfo* DIE, lib* LIB, inst* INST);

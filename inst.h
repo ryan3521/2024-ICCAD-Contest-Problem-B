@@ -90,7 +90,7 @@ class gatei{
         double cooy;
         vector<pin*> ipins;
         vector<pin*> opins;
-        double ns; // is used to trace the negative slack
+        double consume_time; // is used to trace the negative slack
         bool is_tracking;
         double min_cs; // smallest critical slack
 

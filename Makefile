@@ -1,6 +1,6 @@
 CC = g++
 CFLAGS = -std=c++11 -O3
-OBJS = lib.o inst.o netlist.o placement.o cluster.o kmeans_cls.o read_input.o cls_mapping.o finetune.o output.o modifycls.o
+OBJS = lib.o inst.o netlist.o placement.o cluster.o kmeans_cls.o read_input.o cls_mapping.o finetune.o output.o modifycls.o costeva.o
 BINS = main
 TC1  = sampleCase
 TC2  = testcase1_0614.txt

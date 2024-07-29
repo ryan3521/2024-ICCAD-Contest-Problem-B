@@ -9,6 +9,7 @@
 #include "placement.h"
 #include "cluster.h"
 #include "modifycls.h"
+#include "costeva.h"
 // #include "INTEGRA.h"
 
 using namespace std;
@@ -21,6 +22,7 @@ int main(int argc, char** argv){
     dieInfo DIE;
     netlist NL;
     placement PM(&LIB, &INST, &DIE);
+    costeva COST(&DIE, &LIB, &INST);
     // INTEGRA itgra(&INST, &NL);
     list<cluster*> KCR; // Kmeans Cluster Result
     list<ffi*> NCLS; // Store the non cluster ffs after doing K-means Cluster
@@ -55,9 +57,9 @@ int main(int argc, char** argv){
         ori_bitnum = ori_bitnum + f->d_pins.size();
     }
 
-    // KmeansCls(DIE, LIB, INST, KCR, NCLS);  
-    // MapClstoMBFF(LIB, KCR, MBFFS);
-    // FineTune(LIB, NCLS, MBFFS, UPFFS, DIE); // Not finish yet
+    KmeansCls(DIE, LIB, INST, KCR, NCLS);  
+    MapClstoMBFF(LIB, KCR, MBFFS);
+    FineTune(LIB, NCLS, MBFFS, UPFFS, DIE); // Not finish yet
     // int bit_cnt = 0;
     // int sb_cnt = 0;
     // int arr[5] = {0, 0, 0, 0, 0};
@@ -72,12 +74,27 @@ int main(int argc, char** argv){
 
     // for(int i=1; i<5; i++) cout << "Type " << i << ": " << arr[i] << endl;
     
-    FFBANK.run();
+    // for(auto it: INST.ff_umap){
+    //     auto f = it.second;
+    //     UPFFS.push_back(f);
+    //     f->cen_x = (f->fsr.cen_x - f->fsr.
+    //     for(int i=0; i<f->d_pins.size(); i++){
+    //         f->d_pins[i]->to_new_ff = f;
+    //         f->d_pins[i]->new_coox = f->d_pins[i]->coox;
+    //         f->d_pins[i]->new_cooy = f->d_pins[i]->cooy;
+    //         f->q_pins[i]->to_new_ff = f;
+    //         f->q_pins[i]->new_coox = f->q_pins[i]->coox;
+    //         f->q_pins[i]->new_cooy = f->q_pins[i]->cooy;
+    //     }
+    // }
+    // COST.evaluate(&UPFFS);
+    // FFBANK.run();
     // for(auto f: UPFFS){
     //     opt_area = opt_area + f->type->area;
     //     opt_power = opt_power + f->type->gate_power;
     //     aft_bitnum = aft_bitnum + f->d_pins.size();
     // }
+
 
     PM.placeGateInst();
     PM.placeFlipFlopInst( UPFFS, PFFS);
@@ -117,9 +134,11 @@ int main(int argc, char** argv){
     cout << "Reduce: " << 100*(ori_cost - opt_cost)/ori_cost << " %" << endl;
     cout << "===============================" << endl;
     
+    cout << "Total cost: " << COST.evaluate(&PFFS) << endl;
+
     cout << endl << "Total execution time: " << (end - start) / 1000000.0  << " s" << '\n';
 
-    
+
     return 0;
 }
 
