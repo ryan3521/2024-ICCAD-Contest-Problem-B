@@ -185,12 +185,14 @@ void inst::DebankAllFF(lib& LIB){
     ffcell* new_type;
     string inst_name;
 
+
     for(auto& ori_list: ffs_ori){ 
         list<ffi*>* sing_list = new list<ffi*>;
         ffs_sing.push_back(sing_list);
         for(auto& ori_ff: *ori_list){
             for(int i=0; i<ori_ff->d_pins.size(); i++){
                 inst_name = "";
+                // Note: "NFSB" mean New FF Single Bit
                 inst_name = inst_name + "NFSB" + to_string(ff_cnt);
                 new_fi = new ffi(inst_name, 0, 0);
                 new_type = LIB.fftable_cost[1].front();

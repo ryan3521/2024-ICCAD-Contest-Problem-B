@@ -84,20 +84,20 @@ int main(int argc, char** argv){
     //     cout << endl;
     // }
 
-    for(int b=1; b<5; b++){
-        cout << "Bit " << b << ": " << LIB.mbff_cost[b] << "; cost per bit: " << LIB.mbff_cost[b]/b << endl;
-    }
+    // for(int b=1; b<5; b++){
+    //     cout << "Bit " << b << ": " << LIB.mbff_cost[b] << "; cost per bit: " << LIB.mbff_cost[b]/b << endl;
+    // }
     
-    for(auto f: UPFFS){
+
+    PM.placeGateInst(INST);
+    PM.placeFlipFlopInst(LIB, INST, DIE, UPFFS, PFFS);
+    Output(argv[2], PFFS, INST);
+
+    for(auto f: PFFS){
         opt_area = opt_area + f->type->area;
         opt_power = opt_power + f->type->gate_power;
         aft_bitnum = aft_bitnum + f->d_pins.size();
     }
-
-    // PM.placeGateInst(INST);
-    // PM.placeFlipFlopInst(LIB, INST, DIE, UPFFS, PFFS);
-    // Output(argv[2], PFFS, INST);
-
     // for(auto fi: INST.ff_umap){
     //     NCLS.push_back(fi.second);
     // }
@@ -107,10 +107,10 @@ int main(int argc, char** argv){
 
     double end = clock();
 
-    // if(ori_bitnum == aft_bitnum)
-    //     cout << endl << "success - bit num match -" << endl;
-    // else 
-    //     cout << endl << "error - bit num not match" << endl;
+    if(ori_bitnum == aft_bitnum)
+        cout << endl << "success - bit num match -" << endl;
+    else 
+        cout << endl << "error - bit num not match" << endl;
 
     ori_cost = DIE.Beta*orig_power + DIE.Gamma*orig_area;
     opt_cost = DIE.Beta*opt_power + DIE.Gamma*opt_area;

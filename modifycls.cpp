@@ -72,6 +72,18 @@ void cls::update_loc(){
     for(auto& f: temp_list){
         if(this->can_merge(f, hpwl) == true && size < size_limit){
             memb_ffs.push_back(f);
+            if(size == 0){
+                fsr_xmax = f->fsr.xmax;
+                fsr_xmin = f->fsr.xmin;
+                fsr_ymax = f->fsr.ymax;
+                fsr_ymin = f->fsr.ymin;
+            }
+            else{
+                if(f->fsr.xmax < fsr_xmax) fsr_xmax = f->fsr.xmax;
+                if(f->fsr.xmin > fsr_xmin) fsr_xmin = f->fsr.xmin;
+                if(f->fsr.ymax < fsr_ymax) fsr_ymax = f->fsr.ymax;
+                if(f->fsr.ymin > fsr_ymin) fsr_ymin = f->fsr.ymin;
+            }
             size++;
         } 
         else if(this->can_merge(f, hpwl) == true && size >= size_limit){
@@ -643,6 +655,7 @@ void banking::cls_to_mbff(){
     for(auto& c: CLS){
         for(auto fc: LIB->opt_fftable[c->memb_ffs.size()]){
             inst_name = "";
+            // Note: "NFMB" mean New FF Multi Bit
             inst_name = inst_name + "NFMB" + to_string(cnt);
 
             mbff = new ffi(inst_name, 0, 0);
@@ -660,7 +673,26 @@ void banking::cls_to_mbff(){
                 mbff->q_pins.push_back(sf->q_pins[0]);
                 c->memb_ffs.pop_front();
             }      
-            mbff->new_coor();
+            // determine new mbff coordinate ------------------
+            double cen_x_, cen_y_;
+            cen_x_ = (c->fsr_xmax + c->fsr_xmin) / 2;
+            cen_y_ = (c->fsr_ymax + c->fsr_ymin) / 2;
+
+            mbff->cen_x = (cen_x_ - cen_y_) / 2;
+            mbff->cen_y = (cen_x_ + cen_y_) / 2;
+
+            double rx = 0; // relative centroid
+            double ry = 0; // relative centroid
+            for(int i=0; i<mbff->d_pins.size(); i++){
+                rx = rx + mbff->type->d_pins[i].x_plus + mbff->type->q_pins[i].x_plus;
+                ry = ry + mbff->type->d_pins[i].y_plus + mbff->type->q_pins[i].y_plus;
+            }
+            rx = rx/(double)(2*mbff->d_pins.size());
+            ry = ry/(double)(2*mbff->d_pins.size());
+
+            mbff->coox = ((mbff->cen_x - rx) < 0) ? 0 : (mbff->cen_x - rx);
+            mbff->cooy = ((mbff->cen_y - ry) < 0) ? 0 : (mbff->cen_y - ry);
+            // ------------------------------------------------
             mbff->clk_pin = new pin;
             UPFFS->push_back(mbff);   
             cnt++;     
