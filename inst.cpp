@@ -125,6 +125,45 @@ double get_critical_slack(net* net_ptr){
     return critical_slack;
 }
 
+double get_min_cs(gatei* g){
+    if(g->v == true){
+        return g->min_cs;
+    }
+    if(g->is_tracking == true){
+        return numeric_limits<double>::max();
+    }
+
+
+    g->is_tracking = true;
+    g->min_cs = g->get_critical_slack();
+
+    for(auto p: g->ipins){
+        if(p->to_net == NULL) continue;
+
+        auto sp = p->to_net->ipins.front();
+        if(sp->pin_type == 'f'){
+            g->v = true;
+            return g->min_cs;
+        }
+    }
+
+    for(auto p: g->ipins){
+        if(p->to_net == NULL) continue;
+
+        auto sp = p->to_net->ipins.front();
+        double temp_min_cs;
+        if(sp->pin_type == 'g'){
+            temp_min_cs = get_min_cs(sp->to_gate);
+            if(temp_min_cs < g->min_cs) {
+                g->min_cs = temp_min_cs;
+            }
+        }
+    }
+    g->v = true;
+
+    return g->min_cs;
+}
+
 void inst::SlackDispense(dieInfo& DIE){
     int pcnt;
     bool no_pos_slack; // (no positive slack)
@@ -163,14 +202,22 @@ void inst::SlackDispense(dieInfo& DIE){
     }
 
     // return redundant slack back to d pins
+    for(auto& it: gate_umap){
+        auto g = it.second;
+        g->v = false;
+        g->is_tracking = false;
+    }
+
     for(auto& it: ff_umap){
         for(auto& p: it.second->d_pins){
             if(p->to_net->ipins.front()->pin_type == 'g'){
-                if(p->to_net->ipins.front()->to_gate->get_critical_slack() == numeric_limits<double>::max()){
+                double min_cs = get_min_cs(p->to_net->ipins.front()->to_gate);
+                if(min_cs == numeric_limits<double>::max()){
                     p->dspd_slk = p->slack;
                 }
-                else if(p->dspd_slk > p->to_net->ipins.front()->to_gate->get_critical_slack()){
-                    p->dspd_slk = p->dspd_slk + (p->dspd_slk - p->to_net->ipins.front()->to_gate->get_critical_slack());
+                else if(p->dspd_slk > min_cs){
+                    p->dspd_slk = p->dspd_slk + (p->dspd_slk - min_cs);
+                    if(p->dspd_slk > p->slack) p->dspd_slk = p->slack;
                 }
             }
             else if(p->to_net->ipins.front()->pin_type == 'd'){
@@ -501,6 +548,7 @@ gatei::gatei(string name, double coox, double cooy){
     this->cooy = cooy;
     v = false;
     critical_slack = numeric_limits<double>::max();
+    min_cs = numeric_limits<double>::max();
     ns = numeric_limits<double>::max();
     is_tracking = false;
 }

@@ -73,7 +73,11 @@ int main(int argc, char** argv){
     // for(int i=1; i<5; i++) cout << "Type " << i << ": " << arr[i] << endl;
     
     FFBANK.run();
-    
+    // for(auto f: UPFFS){
+    //     opt_area = opt_area + f->type->area;
+    //     opt_power = opt_power + f->type->gate_power;
+    //     aft_bitnum = aft_bitnum + f->d_pins.size();
+    // }
 
     PM.placeGateInst();
     PM.placeFlipFlopInst( UPFFS, PFFS);

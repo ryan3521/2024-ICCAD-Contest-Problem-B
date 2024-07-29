@@ -90,9 +90,10 @@ class gatei{
         double cooy;
         vector<pin*> ipins;
         vector<pin*> opins;
-        double ns;
+        double ns; // is used to trace the negative slack
         bool is_tracking;
- 
+        double min_cs; // smallest critical slack
+
 
 
         gatei(string, double, double);
@@ -175,4 +176,5 @@ class inst{
 };
 
 double get_critical_slack(net* net_ptr);
+double get_min_cs(gatei* g);
 #endif

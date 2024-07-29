@@ -102,10 +102,12 @@ double costeva::get_ns(gatei* g){
     if(g->is_tracking == true){
         return numeric_limits<double>::max();
     }
-    
+    g->is_tracking = true;
     double min_ns = numeric_limits<double>::max();
 
     for(auto p: g->ipins){
+        if(p->to_net == NULL) continue;
+
         double temp_ns;
         if(p->to_net->ipins.front()->pin_type == 'g'){
             temp_ns = get_ns(p->to_net->ipins.front()->to_gate);
@@ -124,6 +126,7 @@ double costeva::get_ns(gatei* g){
             continue;
         }
     }
+    g->v = true;
     g->ns = min_ns;
     return min_ns;
 }
