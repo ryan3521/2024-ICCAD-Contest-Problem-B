@@ -65,7 +65,7 @@ double costeva::calTns(){
     double tns = 0;
     for(auto& f: *ffs){
         for(int i=0; i<f->d_pins.size(); i++){
-            double slack;
+            double slack = 0;
             pin* p = f->d_pins[i];
             
             if(p->to_net->ipins.front()->pin_type == 'f'){

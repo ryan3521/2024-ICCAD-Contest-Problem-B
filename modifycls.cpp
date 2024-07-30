@@ -653,6 +653,11 @@ void banking::cls_to_mbff(){
 
 
     for(auto& c: CLS){
+        // 1.4142135623730950488
+        // cout << "FSR W: ";
+        // cout << (c->fsr_xmax - c->fsr_xmin)/1.4142135623730950488 << endl;
+        // cout << "FSR H: ";
+        // cout << (c->fsr_ymax - c->fsr_ymin)/1.4142135623730950488 << endl;
         for(auto fc: LIB->opt_fftable[c->memb_ffs.size()]){
             inst_name = "";
             // Note: "NFMB" mean New FF Multi Bit
@@ -692,8 +697,8 @@ void banking::cls_to_mbff(){
             rx = rx/(double)(2*mbff->d_pins.size());
             ry = ry/(double)(2*mbff->d_pins.size());
 
-            mbff->coox = ((mbff->cen_x - rx) < 0) ? 0 : (mbff->cen_x - rx);
-            mbff->cooy = ((mbff->cen_y - ry) < 0) ? 0 : (mbff->cen_y - ry);
+            mbff->coox = (mbff->cen_x - rx);
+            mbff->cooy = (mbff->cen_y - ry);
             // ------------------------------------------------
             mbff->clk_pin = new pin;
             UPFFS->push_back(mbff);   

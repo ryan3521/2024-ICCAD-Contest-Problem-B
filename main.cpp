@@ -57,9 +57,9 @@ int main(int argc, char** argv){
         ori_bitnum = ori_bitnum + f->d_pins.size();
     }
 
-    KmeansCls(DIE, LIB, INST, KCR, NCLS);  
-    MapClstoMBFF(LIB, KCR, MBFFS);
-    FineTune(LIB, NCLS, MBFFS, UPFFS, DIE); // Not finish yet
+    // KmeansCls(DIE, LIB, INST, KCR, NCLS);  
+    // MapClstoMBFF(LIB, KCR, MBFFS);
+    // FineTune(LIB, NCLS, MBFFS, UPFFS, DIE); // Not finish yet
     // int bit_cnt = 0;
     // int sb_cnt = 0;
     // int arr[5] = {0, 0, 0, 0, 0};
@@ -87,8 +87,18 @@ int main(int argc, char** argv){
     //         f->q_pins[i]->new_cooy = f->q_pins[i]->cooy;
     //     }
     // }
-    // COST.evaluate(&UPFFS);
-    // FFBANK.run();
+    FFBANK.run();
+    COST.evaluate(&UPFFS);
+
+    for(int i=1; i<5; i++){
+        cout << "Bit " << i << ": ";
+        if(LIB.opt_fftable[i].size() > 0) {
+            cout << "Width  " << LIB.opt_fftable[i].front()->size_x << ", ";
+            cout << "Height " << LIB.opt_fftable[i].front()->size_y << ", ";
+        }
+        cout << endl;
+    }
+
     // for(auto f: UPFFS){
     //     opt_area = opt_area + f->type->area;
     //     opt_power = opt_power + f->type->gate_power;

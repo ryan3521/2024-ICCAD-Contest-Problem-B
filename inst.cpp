@@ -356,10 +356,14 @@ void ffi::initial_PinInfo(){
 
 void ffi::update_pin_loc(){
     for(int i=0; i<d_pins.size(); i++){
-        d_pins[i]->new_coox = coox + type->d_pins[i].x_plus;
-        d_pins[i]->new_cooy = cooy + type->d_pins[i].y_plus;
-        q_pins[i]->new_coox = coox + type->q_pins[i].x_plus;
-        q_pins[i]->new_cooy = cooy + type->q_pins[i].y_plus;
+        // d_pins[i]->new_coox = coox + type->d_pins[i].x_plus;
+        // d_pins[i]->new_cooy = cooy + type->d_pins[i].y_plus;
+        // q_pins[i]->new_coox = coox + type->q_pins[i].x_plus;
+        // q_pins[i]->new_cooy = cooy + type->q_pins[i].y_plus;
+        d_pins[i]->new_coox = cen_x + type->size_x/(double)2;
+        d_pins[i]->new_cooy = cen_y + type->size_x/(double)2;
+        q_pins[i]->new_coox = cen_x + type->size_x/(double)2;
+        q_pins[i]->new_cooy = cen_y + type->size_x/(double)2;
     }
 }
 
@@ -508,7 +512,7 @@ void ffi::calFSR(dieInfo& DIE){
         // rotate -45 degree
         // x' = x + y
         // y' = y - x
-        
+        cout << radius << endl;   
         xmax = (cen_x + radius) + (cen_y); 
         xmin = (cen_x) + (cen_y - radius);
         ymax = (cen_y + radius) - (cen_x);
@@ -521,7 +525,8 @@ void ffi::calFSR(dieInfo& DIE){
         if(ymax < fsr.ymax) fsr.ymax = ymax;
     }
 
-    if(fsr.xmin > fsr.xmax || fsr.ymin > fsr.ymax){
+    if(fsr.xmin >= fsr.xmax || fsr.ymin >= fsr.ymax){
+        
         fsr.can_move = false;
         fsr.xmax = cen_x + cen_y;
         fsr.xmin = fsr.xmax;
