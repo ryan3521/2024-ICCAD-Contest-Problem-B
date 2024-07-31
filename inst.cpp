@@ -356,14 +356,10 @@ void ffi::initial_PinInfo(){
 
 void ffi::update_pin_loc(){
     for(int i=0; i<d_pins.size(); i++){
-        // d_pins[i]->new_coox = coox + type->d_pins[i].x_plus;
-        // d_pins[i]->new_cooy = cooy + type->d_pins[i].y_plus;
-        // q_pins[i]->new_coox = coox + type->q_pins[i].x_plus;
-        // q_pins[i]->new_cooy = cooy + type->q_pins[i].y_plus;
-        d_pins[i]->new_coox = cen_x + type->size_x/(double)2;
-        d_pins[i]->new_cooy = cen_y + type->size_x/(double)2;
-        q_pins[i]->new_coox = cen_x + type->size_x/(double)2;
-        q_pins[i]->new_cooy = cen_y + type->size_x/(double)2;
+        d_pins[i]->new_coox = coox + type->d_pins[i].x_plus;
+        d_pins[i]->new_cooy = cooy + type->d_pins[i].y_plus;
+        q_pins[i]->new_coox = coox + type->q_pins[i].x_plus;
+        q_pins[i]->new_cooy = cooy + type->q_pins[i].y_plus;
     }
 }
 
@@ -478,15 +474,25 @@ void ffi::calFSR(dieInfo& DIE){
 
         // calcualate radius (movable HPWL)
         radius = abs(to_pin->coox - cen_x) + abs(to_pin->cooy - cen_y) + dpin->dspd_slk/DIE.displacement_delay;
-
         // rotate -45 degree
         // x' = x + y
         // y' = y - x
         
-        fsr.xmax = (cen_x + radius) + (cen_y); 
-        fsr.xmin = (cen_x) + (cen_y - radius);
-        fsr.ymax = (cen_y + radius) - (cen_x);
-        fsr.ymin = (cen_y - radius) - (cen_x);
+        fsr.xmax = (to_pin->coox + radius) + (to_pin->cooy); 
+        fsr.xmin = (to_pin->coox) + (to_pin->cooy - radius);
+        fsr.ymax = (to_pin->cooy + radius) - (to_pin->coox);
+        fsr.ymin = (to_pin->cooy - radius) - (to_pin->coox);
+
+        // if(dpin->to_ff->name == "C60607"){
+        //     cout << "radius: " << radius << endl;
+        //     cout << "ori hpwl: " << abs(to_pin->coox - cen_x) + abs(to_pin->cooy - cen_y) << endl;
+        //     cout << "additional hpwl: " << dpin->dspd_slk/DIE.displacement_delay << endl;
+        
+        //     cout << "fsr xmax: " << fsr.xmax << endl;
+        //     cout << "fsr xmin: " << fsr.xmin << endl;
+        //     cout << "fsr ymax: " << fsr.ymax << endl;
+        //     cout << "fsr ymin: " << fsr.ymin << endl;
+        // }     
     }
     for(auto& to_pin: qpin->to_net->opins){
         double radius;
@@ -512,11 +518,11 @@ void ffi::calFSR(dieInfo& DIE){
         // rotate -45 degree
         // x' = x + y
         // y' = y - x
-        cout << radius << endl;   
-        xmax = (cen_x + radius) + (cen_y); 
-        xmin = (cen_x) + (cen_y - radius);
-        ymax = (cen_y + radius) - (cen_x);
-        ymin = (cen_y - radius) - (cen_x);
+        // cout << radius << endl;   
+        xmax = (to_pin->coox + radius) + (to_pin->cooy); 
+        xmin = (to_pin->coox) + (to_pin->cooy - radius);
+        ymax = (to_pin->cooy + radius) - (to_pin->coox);
+        ymin = (to_pin->cooy - radius) - (to_pin->coox);
 
         // update FSR
         if(xmin > fsr.xmin) fsr.xmin = xmin;

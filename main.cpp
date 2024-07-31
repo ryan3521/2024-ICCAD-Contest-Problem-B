@@ -77,7 +77,8 @@ int main(int argc, char** argv){
     // for(auto it: INST.ff_umap){
     //     auto f = it.second;
     //     UPFFS.push_back(f);
-    //     f->cen_x = (f->fsr.cen_x - f->fsr.
+    //     f->cen_x = (f->fsr.cen_x - f->fsr.cen_y) / 2;
+    //     f->cen_y = (f->fsr.cen_x + f->fsr.cen_y) / 2;
     //     for(int i=0; i<f->d_pins.size(); i++){
     //         f->d_pins[i]->to_new_ff = f;
     //         f->d_pins[i]->new_coox = f->d_pins[i]->coox;
@@ -87,45 +88,48 @@ int main(int argc, char** argv){
     //         f->q_pins[i]->new_cooy = f->q_pins[i]->cooy;
     //     }
     // }
-    FFBANK.run();
-    COST.evaluate(&UPFFS);
 
-    for(int i=1; i<5; i++){
-        cout << "Bit " << i << ": ";
-        if(LIB.opt_fftable[i].size() > 0) {
-            cout << "Width  " << LIB.opt_fftable[i].front()->size_x << ", ";
-            cout << "Height " << LIB.opt_fftable[i].front()->size_y << ", ";
-        }
-        cout << endl;
-    }
+    int neg_cnt = 0;
+    FFBANK.run();
 
     // for(auto f: UPFFS){
-    //     opt_area = opt_area + f->type->area;
-    //     opt_power = opt_power + f->type->gate_power;
-    //     aft_bitnum = aft_bitnum + f->d_pins.size();
+    //     for(int i=0; i<f->d_pins.size(); i++){
+    //         auto p = f->d_pins[i];
+    //         auto sp = p->to_net->ipins.front();
+    //         double ori_hpwl = ;
+    //         double new_hpwl;
+    //     }
     // }
+    cout << "Total cost : " << COST.evaluate(&UPFFS) << endl;
 
 
-    PM.placeGateInst();
-    PM.placeFlipFlopInst( UPFFS, PFFS);
-    Output(argv[2], PFFS, INST);
-
-    for(auto f: PFFS){
+    for(auto f: UPFFS){
         opt_area = opt_area + f->type->area;
         opt_power = opt_power + f->type->gate_power;
         aft_bitnum = aft_bitnum + f->d_pins.size();
     }
 
 
-    double end = clock();
+    // PM.placeGateInst();
+    // PM.placeFlipFlopInst( UPFFS, PFFS);
+    // Output(argv[2], PFFS, INST);
 
-    if(ori_bitnum == aft_bitnum)
-        cout << endl << "success - bit num match -" << endl;
-    else 
-        cout << endl << "error - bit num not match" << endl;
+    // for(auto f: PFFS){
+    //     opt_area = opt_area + f->type->area;
+    //     opt_power = opt_power + f->type->gate_power;
+    //     aft_bitnum = aft_bitnum + f->d_pins.size();
+    // }
 
-    ori_cost = DIE.Beta*orig_power + DIE.Gamma*orig_area;
-    opt_cost = DIE.Beta*opt_power + DIE.Gamma*opt_area;
+
+    // double end = clock();
+
+    // if(ori_bitnum == aft_bitnum)
+    //     cout << endl << "success - bit num match -" << endl;
+    // else 
+    //     cout << endl << "error - bit num not match" << endl;
+
+    // ori_cost = DIE.Beta*orig_power + DIE.Gamma*orig_area;
+    // opt_cost = DIE.Beta*opt_power + DIE.Gamma*opt_area;
 
 
     cout << endl;
@@ -144,9 +148,9 @@ int main(int argc, char** argv){
     cout << "Reduce: " << 100*(ori_cost - opt_cost)/ori_cost << " %" << endl;
     cout << "===============================" << endl;
     
-    cout << "Total cost: " << COST.evaluate(&PFFS) << endl;
+    // cout << "Total cost: " << COST.evaluate(&PFFS) << endl;
 
-    cout << endl << "Total execution time: " << (end - start) / 1000000.0  << " s" << '\n';
+    // cout << endl << "Total execution time: " << (end - start) / 1000000.0  << " s" << '\n';
 
 
     return 0;

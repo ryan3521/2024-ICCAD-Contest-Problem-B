@@ -538,8 +538,8 @@ void banking::modifyKmeans(){
                                     tbp_ffs.push_back(f);
                                 }
                             }
-                            for(auto f: uncls_ffs) tbp_ffs.push_back(f);
                         }
+                        for(auto f: uncls_ffs) tbp_ffs.push_back(f);
                     }
                     else{
                         for(auto& c: cluster_list){
@@ -679,7 +679,12 @@ void banking::cls_to_mbff(){
                 mbff->d_pins.push_back(sf->d_pins[0]);
                 mbff->q_pins.push_back(sf->q_pins[0]);
                 c->memb_ffs.pop_front();
-            }      
+            }    
+            mbff->fsr.xmax = c->fsr_xmax;  
+            mbff->fsr.xmin = c->fsr_xmin;  
+            mbff->fsr.ymax = c->fsr_ymax;  
+            mbff->fsr.ymin = c->fsr_ymin;
+
             // determine new mbff coordinate ------------------
             double cen_x_, cen_y_;
             cen_x_ = (c->fsr_xmax + c->fsr_xmin) / 2;
@@ -712,6 +717,7 @@ void banking::cls_to_mbff(){
 }
 
 void banking::run(){
+    cout << endl << "Start FF Banking ..." << endl;
     modifyKmeans();
     cls_to_mbff();
     int bit_cnt = 0;
