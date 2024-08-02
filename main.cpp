@@ -128,8 +128,8 @@ int main(int argc, char** argv){
     // else 
     //     cout << endl << "error - bit num not match" << endl;
 
-    // ori_cost = DIE.Beta*orig_power + DIE.Gamma*orig_area;
-    // opt_cost = DIE.Beta*opt_power + DIE.Gamma*opt_area;
+    ori_cost = DIE.Beta*orig_power + DIE.Gamma*orig_area;
+    opt_cost = DIE.Beta*opt_power + DIE.Gamma*opt_area;
 
 
     cout << endl;
