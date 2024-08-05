@@ -14,6 +14,8 @@
 
 using namespace std;
 
+
+
 int main(int argc, char** argv){
 
     double start = clock();
@@ -50,12 +52,16 @@ int main(int argc, char** argv){
     INST.DebankAllFF(LIB);
     INST.ConstructFSR(DIE);
 
-    for(auto it: INST.ff_umap){
-        auto f = it.second;
-        orig_area = orig_area + f->type->area;
-        orig_power = orig_power + f->type->gate_power;
-        ori_bitnum = ori_bitnum + f->d_pins.size();
-    }
+
+    DrawFFs(DIE, LIB, INST);
+    DrawGates(DIE, LIB, INST);
+
+    // for(auto it: INST.ff_umap){
+    //     auto f = it.second;
+    //     orig_area = orig_area + f->type->area;
+    //     orig_power = orig_power + f->type->gate_power;
+    //     ori_bitnum = ori_bitnum + f->d_pins.size();
+    // }
 
     // KmeansCls(DIE, LIB, INST, KCR, NCLS);  
     // MapClstoMBFF(LIB, KCR, MBFFS);
@@ -74,40 +80,15 @@ int main(int argc, char** argv){
 
     // for(int i=1; i<5; i++) cout << "Type " << i << ": " << arr[i] << endl;
     
-    // for(auto it: INST.ff_umap){
-    //     auto f = it.second;
-    //     UPFFS.push_back(f);
-    //     f->cen_x = (f->fsr.cen_x - f->fsr.cen_y) / 2;
-    //     f->cen_y = (f->fsr.cen_x + f->fsr.cen_y) / 2;
-    //     for(int i=0; i<f->d_pins.size(); i++){
-    //         f->d_pins[i]->to_new_ff = f;
-    //         f->d_pins[i]->new_coox = f->d_pins[i]->coox;
-    //         f->d_pins[i]->new_cooy = f->d_pins[i]->cooy;
-    //         f->q_pins[i]->to_new_ff = f;
-    //         f->q_pins[i]->new_coox = f->q_pins[i]->coox;
-    //         f->q_pins[i]->new_cooy = f->q_pins[i]->cooy;
-    //     }
-    // }
 
-    int neg_cnt = 0;
-    FFBANK.run();
+    // int neg_cnt = 0;
+    // FFBANK.run();
 
     // for(auto f: UPFFS){
-    //     for(int i=0; i<f->d_pins.size(); i++){
-    //         auto p = f->d_pins[i];
-    //         auto sp = p->to_net->ipins.front();
-    //         double ori_hpwl = ;
-    //         double new_hpwl;
-    //     }
+    //     opt_area = opt_area + f->type->area;
+    //     opt_power = opt_power + f->type->gate_power;
+    //     aft_bitnum = aft_bitnum + f->d_pins.size();
     // }
-    cout << "Total cost : " << COST.evaluate(&UPFFS) << endl;
-
-
-    for(auto f: UPFFS){
-        opt_area = opt_area + f->type->area;
-        opt_power = opt_power + f->type->gate_power;
-        aft_bitnum = aft_bitnum + f->d_pins.size();
-    }
 
 
     // PM.placeGateInst();
@@ -132,21 +113,21 @@ int main(int argc, char** argv){
     opt_cost = DIE.Beta*opt_power + DIE.Gamma*opt_area;
 
 
-    cout << endl;
-    cout << "Optimize Report >>> " << endl;
-    cout << "===============================" << endl;
-    cout << "Ori Power: " << orig_power << endl;
-    cout << "Opt Power: " << opt_power << endl;
-    cout << "Reduce: " << 100*(orig_power - opt_power)/orig_power << " %" << endl;
-    cout << "-------------------------------" << endl;
-    cout << "Ori Area: " << orig_area << endl;
-    cout << "Opt Area: " << opt_area << endl;
-    cout << "Reduce: " << 100*(orig_area - opt_area)/orig_area << " %" << endl;
-    cout << "-------------------------------" << endl;
-    cout << "Ori Cost: " << ori_cost << endl;
-    cout << "Opt Cost: " << opt_cost << endl;
-    cout << "Reduce: " << 100*(ori_cost - opt_cost)/ori_cost << " %" << endl;
-    cout << "===============================" << endl;
+    // cout << endl;
+    // cout << "Optimize Report >>> " << endl;
+    // cout << "===============================" << endl;
+    // cout << "Ori Power: " << orig_power << endl;
+    // cout << "Opt Power: " << opt_power << endl;
+    // cout << "Reduce: " << 100*(orig_power - opt_power)/orig_power << " %" << endl;
+    // cout << "-------------------------------" << endl;
+    // cout << "Ori Area: " << orig_area << endl;
+    // cout << "Opt Area: " << opt_area << endl;
+    // cout << "Reduce: " << 100*(orig_area - opt_area)/orig_area << " %" << endl;
+    // cout << "-------------------------------" << endl;
+    // cout << "Ori Cost: " << ori_cost << endl;
+    // cout << "Opt Cost: " << opt_cost << endl;
+    // cout << "Reduce: " << 100*(ori_cost - opt_cost)/ori_cost << " %" << endl;
+    // cout << "===============================" << endl;
     
     // cout << "Total cost: " << COST.evaluate(&PFFS) << endl;
 

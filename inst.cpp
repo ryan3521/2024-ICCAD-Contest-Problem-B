@@ -274,7 +274,7 @@ void inst::ConstructFSR(dieInfo& DIE){
             if(f->fsr.can_move == 0) neg_cnt++;
         }
     }
-    cout << "Cannot merge cnt: " << neg_cnt << endl;
+    //cout << "Cannot merge cnt: " << neg_cnt << endl;
 }
 
 ffi::ffi(string name, double coox, double cooy){
@@ -486,16 +486,7 @@ void ffi::calFSR(dieInfo& DIE){
         fsr.ymax = (to_pin->cooy + radius) - (to_pin->coox);
         fsr.ymin = (to_pin->cooy - radius) - (to_pin->coox);
 
-        if(dpin->to_ff->name == "C60607"){
-            cout << "radius: " << radius << endl;
-            cout << "ori hpwl: " << abs(to_pin->coox - cen_x) + abs(to_pin->cooy - cen_y) << endl;
-            cout << "additional hpwl: " << dpin->dspd_slk/DIE.displacement_delay << endl;
-        
-            cout << "fsr xmax: " << fsr.xmax << endl;
-            cout << "fsr xmin: " << fsr.xmin << endl;
-            cout << "fsr ymax: " << fsr.ymax << endl;
-            cout << "fsr ymin: " << fsr.ymin << endl;
-        }     
+   
     }
     for(auto& to_pin: qpin->to_net->opins){
         double radius;

@@ -16,5 +16,7 @@ void KmeansCls(dieInfo&, lib&, inst&, list<cluster*>&, list<ffi*>&);
 void MapClstoMBFF(lib&, list<cluster*>&, list<ffi*>&);
 void FineTune(lib&, list<ffi*>&, list<ffi*>&, list<ffi*>&, dieInfo&);
 void Output(string , list<ffi*>& , inst& );
+void DrawFFs(dieInfo&, lib&, inst&);
+void DrawGates(dieInfo&, lib&, inst&);
 
 #endif
