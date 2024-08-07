@@ -679,7 +679,8 @@ void banking::cls_to_mbff(){
                 mbff->d_pins.push_back(sf->d_pins[0]);
                 mbff->q_pins.push_back(sf->q_pins[0]);
                 c->memb_ffs.pop_front();
-            }    
+            }
+            mbff->fsr.can_move = true;    
             mbff->fsr.xmax = c->fsr_xmax;  
             mbff->fsr.xmin = c->fsr_xmin;  
             mbff->fsr.ymax = c->fsr_ymax;  

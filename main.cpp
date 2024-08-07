@@ -53,8 +53,8 @@ int main(int argc, char** argv){
     INST.ConstructFSR(DIE);
 
 
-    DrawFFs(DIE, LIB, INST);
-    DrawGates(DIE, LIB, INST);
+    
+    // DrawGates(DIE, LIB, INST);
 
     // for(auto it: INST.ff_umap){
     //     auto f = it.second;
@@ -82,8 +82,8 @@ int main(int argc, char** argv){
     
 
     // int neg_cnt = 0;
-    // FFBANK.run();
-
+    FFBANK.run();
+    DrawFFs(DIE, LIB, INST, UPFFS);
     // for(auto f: UPFFS){
     //     opt_area = opt_area + f->type->area;
     //     opt_power = opt_power + f->type->gate_power;

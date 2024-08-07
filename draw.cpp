@@ -1,7 +1,11 @@
 #include "func.h"
 
-void DrawFFs(dieInfo& DIE, lib& LIB, inst& INST){
-    // Format:
+void DrawFFs(dieInfo& DIE, lib& LIB, inst& INST, list<ffi*>& UPFFS){
+    fstream fout;
+
+// ==============================================================================================
+    fout.open("./Draw/ff_original.txt", ios::out);
+    // Format: Original FFs
     // --------------
     // Die.W Die.H
     // FF num
@@ -13,12 +17,37 @@ void DrawFFs(dieInfo& DIE, lib& LIB, inst& INST){
     // .
     // --------------
 
-    fstream fout;
-    fout.open("./Draw/ff.txt", ios::out);
+    fout << DIE.die_width << " " << DIE.die_height << endl;
+
+    int ffcnt = INST.ff_umap.size();
+    fout << ffcnt << endl;
+
+    for(auto itr: INST.ff_umap){
+        auto f = itr.second;
+        fout << f->name << " " << f->coox << " " << f->cooy << " ";
+        fout << f->type->size_x << " " << f->type->size_y << " ";
+        fout << endl;
+    } 
+
+    fout.close();
+
+// ==============================================================================================
+    fout.open("./Draw/ff_single_bit.txt", ios::out);
+    // Format: Single Bit FFs (Debank All)
+    // --------------
+    // Die.W Die.H
+    // FF num
+    // Name X Y W H canmove fsr.xmax fsr.xmin fsr.ymax fsr.ymin
+    // Name X Y W H canmove fsr.xmax fsr.xmin fsr.ymax fsr.ymin
+    // Name X Y W H canmove fsr.xmax fsr.xmin fsr.ymax fsr.ymin
+    // .
+    // .
+    // .
+    // --------------
 
     fout << DIE.die_width << " " << DIE.die_height << endl;
 
-    int ffcnt = 0;
+    ffcnt = 0;
     for(auto flist: INST.ffs_sing){
         ffcnt = ffcnt + flist->size();
     } 
@@ -28,12 +57,53 @@ void DrawFFs(dieInfo& DIE, lib& LIB, inst& INST){
         for(auto f: *flist){
             fout << f->name << " " << f->coox << " " << f->cooy << " ";
             fout << f->type->size_x << " " << f->type->size_y << " ";
+            fout << f->fsr.can_move << " ";
+            fout << f->fsr.xmax << " ";
+            fout << f->fsr.xmin << " ";
+            fout << f->fsr.ymax << " ";
+            fout << f->fsr.ymin << " ";
             fout << endl;
         }
     } 
 
 
     fout.close();
+// ==============================================================================================
+    fout.open("./Draw/ff_multi_bit.txt", ios::out);
+    // Format: Multi Bit FFs (After Banking)
+    // --------------
+    // Die.W Die.H
+    // FF num
+    // Name X Y W H bit_num canmove fsr.xmax fsr.xmin fsr.ymax fsr.ymin
+    // Name X Y W H bit_num canmove fsr.xmax fsr.xmin fsr.ymax fsr.ymin
+    // Name X Y W H bit_num canmove fsr.xmax fsr.xmin fsr.ymax fsr.ymin
+    // .
+    // .
+    // .
+    // --------------
+
+    fout << DIE.die_width << " " << DIE.die_height << endl;
+
+    ffcnt = UPFFS.size();
+    fout << ffcnt << endl;
+
+    for(auto f: UPFFS){
+
+        fout << f->name << " " << f->coox << " " << f->cooy << " ";
+        fout << f->type->size_x << " " << f->type->size_y << " ";
+        fout << f->type->bit_num << " ";
+        fout << f->fsr.can_move << " ";
+        fout << f->fsr.xmax << " ";
+        fout << f->fsr.xmin << " ";
+        fout << f->fsr.ymax << " ";
+        fout << f->fsr.ymin << " ";
+        fout << endl;
+
+    } 
+
+
+    fout.close();
+
     return;
 }
 
