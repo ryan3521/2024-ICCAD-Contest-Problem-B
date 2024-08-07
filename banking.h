@@ -6,30 +6,10 @@
 
 class cls{
     public:
-        int size_limit;
         int size;
-        double pos_x;
-        double pos_y;
-        list<ffi*> memb_ffs; 
-        list<ffi*> cand_ffs;
-        list<ffi*> cand_canmerge_ffs;
-        list<ffi*> cand_cannotmerge_ffs;
+        list<ffi*> pos_slack_members;
+        list<ffi*> neg_slack_members;
 
-        double fsr_xmin;
-        double fsr_xmax;
-        double fsr_ymin;
-        double fsr_ymax;
-
-        int potential_cnt;
-        int potential_score;
-        bool have_potential;
-
-        // Member functions
-        cls(int size_limit, double pos_x, double pos_y);
-        void update_loc();
-        void clear_ffs();
-        void add_ff(ffi* f);
-        bool can_merge(ffi* f, double& hpwl_diff);
 };
 
 class banking{
@@ -38,21 +18,36 @@ class banking{
         lib*  LIB;
         dieInfo* DIE;
         list<ffi*>* UPFFS;
-        list<cls*> CLS; 
-        list<ffi*> NCLS;
         list<pair<int ,double>> size_priority;
-        
-        struct MultiClsFF{
-            ffi* f;
-            cls* to_cls;
-            bool is_memb;
-        };
+        list<ffi*> banking_ffs;
+        list<ffi*> ncls_ffs;
+        list<cls*> clusters;
+
 
         void initial_size_priority();
-        void modifyKmeans();
-        void cls_to_mbff();
+        // ********* INTEGRA ********* //
+        struct se;
         
-        
+        struct ff2se{
+            ff2se(ffi* f_): f{f_} {} 
+
+            ffi* f;
+            list<se*>::iterator s_it;
+            list<se*>::iterator e_it;
+        };
+
+        struct se{
+            se(int t, double coo, ff2se* tf): type{t}, coor{coo}, to_ff{tf} {}
+
+            int type; // 0: start, 1: end
+            double coor;
+            ff2se* to_ff;
+        };
+
+        static bool cmp_se(se* a, se* b);
+        void integra(int target_size);
+
+              
 
     public:
         banking(inst* INST, lib* LIB, dieInfo* DIE, list<ffi*>* UPFFS);
