@@ -7,10 +7,8 @@
 #include "die_info.h"
 #include "netlist.h"
 #include "placement.h"
-#include "cluster.h"
 #include "modifycls.h"
 #include "costeva.h"
-// #include "INTEGRA.h"
 
 using namespace std;
 
@@ -25,8 +23,6 @@ int main(int argc, char** argv){
     netlist NL;
     placement PM(&LIB, &INST, &DIE);
     costeva COST(&DIE, &LIB, &INST);
-    // INTEGRA itgra(&INST, &NL);
-    list<cluster*> KCR; // Kmeans Cluster Result
     list<ffi*> NCLS; // Store the non cluster ffs after doing K-means Cluster
     list<ffi*> MBFFS; // Store the new MBFFs after doing K-means Cluster
     list<ffi*> UPFFS; // Store all ffs which need to be placed (== NCLS + MBFFS)
@@ -53,9 +49,6 @@ int main(int argc, char** argv){
     INST.ConstructFSR(DIE);
 
 
-    
-    // DrawGates(DIE, LIB, INST);
-
     // for(auto it: INST.ff_umap){
     //     auto f = it.second;
     //     orig_area = orig_area + f->type->area;
@@ -63,27 +56,8 @@ int main(int argc, char** argv){
     //     ori_bitnum = ori_bitnum + f->d_pins.size();
     // }
 
-    // KmeansCls(DIE, LIB, INST, KCR, NCLS);  
-    // MapClstoMBFF(LIB, KCR, MBFFS);
-    // FineTune(LIB, NCLS, MBFFS, UPFFS, DIE); // Not finish yet
-    // int bit_cnt = 0;
-    // int sb_cnt = 0;
-    // int arr[5] = {0, 0, 0, 0, 0};
-    // for(auto& f: UPFFS){
-    //     bit_cnt = bit_cnt + f->d_pins.size();
-    //     if(f->d_pins.size() == 1) sb_cnt ++;
-    //     arr[f->d_pins.size()]++;
-    // }
-    // cout << "Total bit num: " << bit_cnt << endl;
-    // cout << "Cluster num : " << bit_cnt - sb_cnt << endl;
-    // cout << "Non cluster num: " << sb_cnt << endl;
-
-    // for(int i=1; i<5; i++) cout << "Type " << i << ": " << arr[i] << endl;
-    
-
-    // int neg_cnt = 0;
     FFBANK.run();
-    DrawFFs(DIE, LIB, INST, UPFFS);
+
     // for(auto f: UPFFS){
     //     opt_area = opt_area + f->type->area;
     //     opt_power = opt_power + f->type->gate_power;
@@ -109,8 +83,8 @@ int main(int argc, char** argv){
     // else 
     //     cout << endl << "error - bit num not match" << endl;
 
-    ori_cost = DIE.Beta*orig_power + DIE.Gamma*orig_area;
-    opt_cost = DIE.Beta*opt_power + DIE.Gamma*opt_area;
+    // ori_cost = DIE.Beta*orig_power + DIE.Gamma*orig_area;
+    // opt_cost = DIE.Beta*opt_power + DIE.Gamma*opt_area;
 
 
     // cout << endl;
