@@ -312,6 +312,15 @@ void lib::construct_fftable(dieInfo& DIE){
     for(int b=1; b<=max_ff_size; b++){
         construct_optlist(b, opt_fftable[b]);
     }
+
+    mbff_cost.resize(opt_fftable.size());
+    for(int i=1; i<opt_fftable.size(); i++){
+        int cost_sum = 0;
+        for(auto& f: opt_fftable[i]){
+            cost_sum = cost_sum + f->area*DIE.Gamma + f->gate_power*DIE.Beta; 
+        }
+        mbff_cost[i] = cost_sum;
+    }
 }
 
 void lib::construct_optlist(int bit, list<ffcell*>& opt_list){
@@ -350,7 +359,7 @@ double lib::find_min_cost(int bit, dieInfo& DIE){
     // mincost initialize: set mincost the cost of max_bit
     // Note: the max_bit ff must be a entity mbff
     f = fftable_cost[max_bit].front();
-    min_cost = f->cost_per_bit;
+    min_cost = (f->cost_per_bit)*(f->bit_num)/(double)bit;
     best_choice[bit].first = max_bit;
 
 

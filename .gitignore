@@ -1,4 +1,5 @@
 *.o
 main
+main.exe
 .vscode
-
+.png

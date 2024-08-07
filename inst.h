@@ -14,10 +14,16 @@
 using namespace std;
 
 struct FSR{
-    double x;
-    double y;
-    double w;
-    double h;
+    bool can_move;
+    // ractangle parameters
+    double xmax;
+    double xmin;
+    double ymax;
+    double ymin;
+    double cen_x;
+    double cen_y;
+
+    // diamond parameters
 };
 
 class pin;
@@ -51,11 +57,13 @@ class ffi{
         // Function "new_coor()" will calculate the coox, cooy according to the d_pins and q_pins "old coordinate"
         // After find out the new coox, cooy; It will also calculate the new coox and cooy for each pin (D and Q)
         void new_coor();
+        void update_pin_loc();
 
         // Given coordinate x and y, base on this coordinate calculate if the negative slack pin numbers are more then a half
         // if the neg pin numbers are over the half, then return true, else false
         bool is_too_far(double x, double y, double displacement_delay);
         bool allow_displace(double x, double y, double displacement_delay);
+        void calFSR(dieInfo& DIE);
 
 };
 
@@ -72,16 +80,20 @@ class reg{ // This class represent each bit of register in the design
 
 class gatei{
     private:
-        bool v; // mark v = 1 if this gate is visited
         double critical_slack;
 
     public:
+        bool v; // mark v = 1 if this gate is visited
         string name;
         gcell* type;
         double coox;
         double cooy;
         vector<pin*> ipins;
         vector<pin*> opins;
+        double consume_time; // is used to trace the negative slack
+        bool is_tracking;
+        double min_cs; // smallest critical slack
+
 
 
         gatei(string, double, double);
@@ -130,6 +142,8 @@ class pin{ // pin prototype
         ffi* to_new_ff;
         double new_coox;
         double new_cooy;
+
+
         pin(){
             to_net  = NULL;
             to_gate = NULL;
@@ -157,8 +171,10 @@ class inst{
         void PrintFF();
         void PrintGate();
         void DebankAllFF(lib& LIB);
+        void ConstructFSR(dieInfo& DIE);
 
 };
 
 double get_critical_slack(net* net_ptr);
+double get_min_cs(gatei* g);
 #endif

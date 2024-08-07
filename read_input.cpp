@@ -77,17 +77,18 @@ void ReadInput(string filename, lib& LIB, inst& INST, dieInfo&  DIE, netlist& NL
             new_ffcell = new ffcell(name, title, bit_num, size_x, size_y, pin_num);
 
             // Read pin info
-            for(int i=0; i<pin_num-1; i++){
+            for(int i=0; i<pin_num; i++){
                 fin >> title >> name >> coox >> cooy;
-                // cout << title << " " << name <<" " << coox<<" " << cooy << endl;
-                new_ffcell->add_pin(name, coox, cooy);
+                if(title == "CLK"){
+                    // Add CLK pin
+                    new_ffcell->set_CLKpin(name, coox, cooy);
+                }
+                else{
+                    // Add D pin or Q pin
+                    new_ffcell->add_pin(name, coox, cooy);
+                }
             }
-            // Read CLK pin
-            fin >> title >> name >> coox >> cooy;
-            // cout << title << " " << name <<" " << coox<<" " << cooy << endl;
-            //cout << coox << endl;
-            new_ffcell->set_CLKpin(name, coox, cooy);
-            
+
             LIB.add_cell(new_ffcell);
         }
         else{

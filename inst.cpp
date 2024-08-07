@@ -94,9 +94,13 @@ double get_critical_slack(net* net_ptr){
         if(pin_ptr->pin_type == 'g'){
             if(pin_ptr->to_gate->is_visited()){
                 temp_slack = pin_ptr->to_gate->get_critical_slack();
-            } 
+            }
+            else if(pin_ptr->to_gate->is_tracking){
+                continue;
+            }
             else{
                 double gate_cslack = numeric_limits<double>::max();
+                pin_ptr->to_gate->is_tracking = true;
                 for(int i=0; i<pin_ptr->to_gate->opins.size(); i++){
                     temp_slack = get_critical_slack(pin_ptr->to_gate->opins[i]->to_net);
                     if(temp_slack < gate_cslack) gate_cslack = temp_slack;
@@ -119,6 +123,45 @@ double get_critical_slack(net* net_ptr){
     }
 
     return critical_slack;
+}
+
+double get_min_cs(gatei* g){
+    if(g->v == true){
+        return g->min_cs;
+    }
+    if(g->is_tracking == true){
+        return numeric_limits<double>::max();
+    }
+
+
+    g->is_tracking = true;
+    g->min_cs = g->get_critical_slack();
+
+    for(auto p: g->ipins){
+        if(p->to_net == NULL) continue;
+
+        auto sp = p->to_net->ipins.front();
+        if(sp->pin_type == 'f'){
+            g->v = true;
+            return g->min_cs;
+        }
+    }
+
+    for(auto p: g->ipins){
+        if(p->to_net == NULL) continue;
+
+        auto sp = p->to_net->ipins.front();
+        double temp_min_cs;
+        if(sp->pin_type == 'g'){
+            temp_min_cs = get_min_cs(sp->to_gate);
+            if(temp_min_cs < g->min_cs) {
+                g->min_cs = temp_min_cs;
+            }
+        }
+    }
+    g->v = true;
+
+    return g->min_cs;
 }
 
 void inst::SlackDispense(dieInfo& DIE){
@@ -159,14 +202,22 @@ void inst::SlackDispense(dieInfo& DIE){
     }
 
     // return redundant slack back to d pins
+    for(auto& it: gate_umap){
+        auto g = it.second;
+        g->v = false;
+        g->is_tracking = false;
+    }
+
     for(auto& it: ff_umap){
         for(auto& p: it.second->d_pins){
             if(p->to_net->ipins.front()->pin_type == 'g'){
-                if(p->to_net->ipins.front()->to_gate->get_critical_slack() == numeric_limits<double>::max()){
+                double min_cs = get_min_cs(p->to_net->ipins.front()->to_gate);
+                if(min_cs == numeric_limits<double>::max()){
                     p->dspd_slk = p->slack;
                 }
-                else if(p->dspd_slk > p->to_net->ipins.front()->to_gate->get_critical_slack()){
-                    p->dspd_slk = p->dspd_slk + (p->dspd_slk - p->to_net->ipins.front()->to_gate->get_critical_slack());
+                else if(p->dspd_slk > min_cs){
+                    p->dspd_slk = p->dspd_slk + (p->dspd_slk - min_cs);
+                    if(p->dspd_slk > p->slack) p->dspd_slk = p->slack;
                 }
             }
             else if(p->to_net->ipins.front()->pin_type == 'd'){
@@ -185,12 +236,14 @@ void inst::DebankAllFF(lib& LIB){
     ffcell* new_type;
     string inst_name;
 
+
     for(auto& ori_list: ffs_ori){ 
         list<ffi*>* sing_list = new list<ffi*>;
         ffs_sing.push_back(sing_list);
         for(auto& ori_ff: *ori_list){
             for(int i=0; i<ori_ff->d_pins.size(); i++){
                 inst_name = "";
+                // Note: "NFSB" mean New FF Single Bit
                 inst_name = inst_name + "NFSB" + to_string(ff_cnt);
                 new_fi = new ffi(inst_name, 0, 0);
                 new_type = LIB.fftable_cost[1].front();
@@ -213,6 +266,16 @@ void inst::DebankAllFF(lib& LIB){
     }
 }
 
+void inst::ConstructFSR(dieInfo& DIE){
+    int neg_cnt = 0;
+    for(auto& fflist: ffs_sing){
+        for(auto& f: *fflist){
+            f->calFSR(DIE);
+            if(f->fsr.can_move == 0) neg_cnt++;
+        }
+    }
+    //cout << "Cannot merge cnt: " << neg_cnt << endl;
+}
 
 ffi::ffi(string name, double coox, double cooy){
     this->name = name;
@@ -292,6 +355,15 @@ void ffi::initial_PinInfo(){
     clk_pin->coox = coox + type->clk_pin.x_plus;
     clk_pin->cooy = cooy + type->clk_pin.y_plus;
     return;
+}
+
+void ffi::update_pin_loc(){
+    for(int i=0; i<d_pins.size(); i++){
+        d_pins[i]->new_coox = coox + type->d_pins[i].x_plus;
+        d_pins[i]->new_cooy = cooy + type->d_pins[i].y_plus;
+        q_pins[i]->new_coox = coox + type->q_pins[i].x_plus;
+        q_pins[i]->new_cooy = cooy + type->q_pins[i].y_plus;
+    }
 }
 
 void ffi::new_coor(){
@@ -378,6 +450,7 @@ bool ffi::allow_displace(double target_x, double target_y, double displacement_d
                 dis_hpwl   = ceil(to_p->coox - target_x) + ceil(to_p->cooy - target_y);
                 allow_hpwl = ceil(p->coox - to_p->coox) + ceil(p->cooy - to_p->cooy); 
                 allow_hpwl = allow_hpwl + to_p->to_gate->get_critical_slack()/displacement_delay;
+
                 if(allow_hpwl < dis_hpwl){
                     return false;
                 }
@@ -395,6 +468,78 @@ bool ffi::allow_displace(double target_x, double target_y, double displacement_d
     return true;
 }
 
+void ffi::calFSR(dieInfo& DIE){
+    pin* dpin = d_pins[0];
+    pin* qpin = q_pins[0];
+
+    for(auto& to_pin: dpin->to_net->ipins){
+        double radius;
+
+        // calcualate radius (movable HPWL)
+        radius = abs(to_pin->coox - cen_x) + abs(to_pin->cooy - cen_y) + dpin->dspd_slk/DIE.displacement_delay;
+        // rotate -45 degree
+        // x' = x + y
+        // y' = y - x
+        
+        fsr.xmax = (to_pin->coox + radius) + (to_pin->cooy); 
+        fsr.xmin = (to_pin->coox) + (to_pin->cooy - radius);
+        fsr.ymax = (to_pin->cooy + radius) - (to_pin->coox);
+        fsr.ymin = (to_pin->cooy - radius) - (to_pin->coox);
+
+   
+    }
+    for(auto& to_pin: qpin->to_net->opins){
+        double radius;
+        double xmax;
+        double xmin;
+        double ymax;
+        double ymin;
+
+        // calcualate radius (movable HPWL)
+        if(to_pin->pin_type == 'g'){
+            radius = abs(to_pin->coox - cen_x) + abs(to_pin->cooy - cen_y) + to_pin->to_gate->get_critical_slack()/DIE.displacement_delay;
+            if(to_pin->to_gate->get_critical_slack() == numeric_limits<double>::max()) {
+                radius = (DIE.die_height > DIE.die_width) ? DIE.die_height : DIE.die_width;
+            }
+        }
+        else if(to_pin->pin_type == 'd'){
+            radius = (DIE.die_height > DIE.die_width) ? DIE.die_height : DIE.die_width;
+        }
+        else if(to_pin->pin_type == 'f'){
+            radius = abs(to_pin->coox - cen_x) + abs(to_pin->cooy - cen_y) + to_pin->dspd_slk/DIE.displacement_delay;
+        }
+
+        // rotate -45 degree
+        // x' = x + y
+        // y' = y - x
+        // cout << radius << endl;   
+        xmax = (to_pin->coox + radius) + (to_pin->cooy); 
+        xmin = (to_pin->coox) + (to_pin->cooy - radius);
+        ymax = (to_pin->cooy + radius) - (to_pin->coox);
+        ymin = (to_pin->cooy - radius) - (to_pin->coox);
+
+        // update FSR
+        if(xmin > fsr.xmin) fsr.xmin = xmin;
+        if(xmax < fsr.xmax) fsr.xmax = xmax;
+        if(ymin > fsr.ymin) fsr.ymin = ymin;
+        if(ymax < fsr.ymax) fsr.ymax = ymax;
+    }
+
+    if(fsr.xmin >= fsr.xmax || fsr.ymin >= fsr.ymax){
+        
+        fsr.can_move = false;
+        fsr.xmax = cen_x + cen_y;
+        fsr.xmin = fsr.xmax;
+        fsr.ymax = cen_y - cen_x;
+        fsr.ymin = fsr.ymax;
+    } 
+    else{
+        fsr.can_move = true;
+        fsr.cen_x = (fsr.xmax + fsr.xmin)/2;
+        fsr.cen_y = (fsr.ymax + fsr.ymin)/2;
+    }
+}
+
 void reg::update_cen(){
     cen_x = (dpin->coox + qpin->coox)/2;
     cen_y = (dpin->cooy + qpin->cooy)/2;
@@ -408,6 +553,9 @@ gatei::gatei(string name, double coox, double cooy){
     this->cooy = cooy;
     v = false;
     critical_slack = numeric_limits<double>::max();
+    min_cs = numeric_limits<double>::max();
+    consume_time = numeric_limits<double>::min();
+    is_tracking = false;
 }
 
 void gatei::set_type(gcell* type){

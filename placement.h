@@ -12,8 +12,11 @@
 
 using namespace std;
 
+
 class plcmt_row{
     private:
+        dieInfo* DIE;
+
         static bool cmp_g(gatei* a, gatei* b);
     public:
         int idx;
@@ -34,7 +37,7 @@ class plcmt_row{
         int pivot; // the tail position of placed ff idx; 
 
         // Member functions
-        plcmt_row(double sx, double sy, double sw, double sh, int sn);
+        plcmt_row(dieInfo* DIE, double sx, double sy, double sw, double sh, int sn);
         void sort_gate();
         bool add_gblock(double start, double end);
         void add_fblock(double start, double end);
@@ -62,13 +65,19 @@ class plcmt_row{
 
 class placement{
     private:
+        dieInfo* DIE;
+        lib* LIB;
+        inst* INST;
         int new_ff_cnt;
-        list<plcmt_row*> temp_rows;        
+        list<plcmt_row*> temp_rows; 
+        list<plcmt_row*> virtual_rows;    
+
+        // Member function   
         int  closest_IDX(double x, double y);
         static bool ff_cmp(ffi* a, ffi* b);
         static bool row_cmp(plcmt_row* a, plcmt_row* b);
         void place_formal(ffi* fi, plcmt_row* best_row, int best_pos_idx);
-        void mbff_dismantle(ffi* fi, list<ffi*>& dismantle_list, lib& LIB, dieInfo& DIE);
+        void mbff_dismantle(ffi* fi, list<ffi*>& dismantle_list);
 
         
 
@@ -76,11 +85,11 @@ class placement{
         vector<plcmt_row*> rows;
 
         // Member functions
-        placement();
+        placement(lib* LIB, inst* INST, dieInfo* DIE);
         void addRow(double sx, double sy, double sw, double sh, int sn);
         void initial();
-        void placeGateInst(inst& INST);
-        void placeFlipFlopInst(lib& LIB, inst& INST, dieInfo& DIE, list<ffi*>& UPFFS, list<ffi*>& PFFS);
+        void placeGateInst();
+        void placeFlipFlopInst(list<ffi*>& UPFFS, list<ffi*>& PFFS);
         
 
 
