@@ -10,6 +10,11 @@ class cls{
         list<ffi*> pos_slack_members;
         list<ffi*> neg_slack_members;
 
+        double fsr_xmax;
+        double fsr_xmin;
+        double fsr_ymax;
+        double fsr_ymin;
+
 };
 
 class banking{
@@ -48,6 +53,8 @@ class banking{
         static bool cmp_se(se* a, se* b);
         static bool cmp_ff2se(ff2se* a, ff2se* b);
         void integra(int target_size);
+
+        void cls_to_mbff();
 
               
 
