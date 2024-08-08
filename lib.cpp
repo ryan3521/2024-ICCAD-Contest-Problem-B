@@ -123,6 +123,38 @@ double ffcell::get_Qpin_delay(){return Qpin_delay;}
 double ffcell::get_gate_power(){return gate_power;}
 
 
+void ffcell::calculate_min_FSR(){
+    double xmin = numeric_limits<double>::max();
+    double xmax = numeric_limits<double>::min();
+    double ymin = numeric_limits<double>::max();
+    double ymax = numeric_limits<double>::min();
+
+    for(auto& pr: d_pins){
+        if(pr.x_plus > xmax) xmax = pr.x_plus;
+        if(pr.x_plus < xmin) xmin = pr.x_plus;
+        if(pr.y_plus > ymax) ymax = pr.y_plus;
+        if(pr.y_plus < ymin) ymin = pr.y_plus;
+    }
+    for(auto& pr: q_pins){
+        if(pr.x_plus > xmax) xmax = pr.x_plus;
+        if(pr.x_plus < xmin) xmin = pr.x_plus;
+        if(pr.y_plus > ymax) ymax = pr.y_plus;
+        if(pr.y_plus < ymin) ymin = pr.y_plus;
+    }
+
+    double up_y, bottom_y;
+    double right_x, left_x;
+    
+    up_y     = ymax - xmin;
+    bottom_y = ymin - xmax;
+    right_x  = ymax - xmax;
+    left_x   = ymin - xmin;
+
+    fsr_min_h = up_y - bottom_y;
+    fsr_min_w = right_x - left_x;
+    return;
+}
+
 
 // Class lib
 lib::lib(){

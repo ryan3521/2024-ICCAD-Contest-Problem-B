@@ -7,6 +7,7 @@
 #include <vector>
 #include <list>
 #include <utility>
+#include <limits>
 
 #include "die_info.h"
 
@@ -69,6 +70,8 @@ class ffcell : public cell{
         double Qpin_delay;
         double gate_power;
         double cost_per_bit;
+        double fsr_min_w;
+        double fsr_min_h;
 
 
         // member functions
@@ -77,6 +80,7 @@ class ffcell : public cell{
         void set_CLKpin(string, double, double);
         void set_Qpin_delay(double);
         void set_gate_power(double);
+        void calculate_min_FSR();
         int get_bit_num();
         int get_PinIDX(string);
         double get_Qpin_delay();

@@ -32,8 +32,9 @@ class banking{
             ff2se(ffi* f_): f{f_} {} 
 
             ffi* f;
-            list<se*>::iterator s_it;
-            list<se*>::iterator e_it;
+            list<ff2se*>::iterator xtrack_it;
+            list<ff2se*>::iterator ytrack_it;
+            list<se*>::iterator x_seq_e_it;
         };
 
         struct se{
@@ -45,6 +46,7 @@ class banking{
         };
 
         static bool cmp_se(se* a, se* b);
+        static bool cmp_ff2se(ff2se* a, ff2se* b);
         void integra(int target_size);
 
               
