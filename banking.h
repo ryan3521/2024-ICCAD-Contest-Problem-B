@@ -20,7 +20,7 @@ class cluster{
         int  size;
         bool is_top;
         cluster* to_cluster;
-        double cpb; // cost per bit
+        double cost_per_bit; 
         list<cluster*> members;
         ffcell* type;
         ffi* single_bit_ff;
@@ -38,14 +38,10 @@ class banking{
         list<pair<int ,double>> size_priority;
         list<ffi*> banking_ffs;
         list<ffi*> ncls_ffs;
+        list<cluster*> single_bit_clusters;
 
 
-        void initial_size_priority();
-        void cls_to_mbff();
-        
-
-
-              
+        void Initial_SingleBit_Cls(); 
 
     public:
         banking(inst* INST, lib* LIB, dieInfo* DIE, list<ffi*>* UPFFS);

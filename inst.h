@@ -151,10 +151,22 @@ class pin{ // pin prototype
             to_new_ff = NULL;
             isVisited = false;
         }
+
+        double CalTns(double new_coox, double new_cooy, bool is_D, ffcell* new_type, double coeff);
 };
 
 
 class inst{
+    private:
+        static bool preference_cmp(pair<int, double> a, pair<int, double> b);
+
+        struct pin_pair{
+            bool find;
+            int idx;
+            pin* dpin;
+            pin* qpin;
+            list<pair<int, double>> preference_list; // int: port index, double: slack
+        };
     public:
         int ff_num;
         unordered_map<string, bool> type_umap; // 0: ff, 1: gate
@@ -172,6 +184,7 @@ class inst{
         void PrintGate();
         void DebankAllFF(lib& LIB);
         void ConstructFSR(dieInfo& DIE);
+        double TnsTest(list<pin*>& dpins, list<pin*>& qpins, ffcell* type, double coeff);
 
 };
 

@@ -277,6 +277,87 @@ void inst::ConstructFSR(dieInfo& DIE){
     //cout << "Cannot merge cnt: " << neg_cnt << endl;
 }
 
+bool inst::preference_cmp(pair<int, double> a, pair<int, double> b){
+    return a.second < b.second;
+}
+
+double inst::TnsTest(list<pin*>& dpins, list<pin*>& qpins, ffcell* type, double coeff){
+    int bit_num = dpins.size();
+    double ori_pin_cenx = 0;
+    double ori_pin_ceny = 0;
+    double sumx = 0;
+    double sumy = 0;
+    list<pin_pair*> pin_pair_list;
+
+    ffi pseudo_ff("PseudoFF", 0, 0);
+    pseudo_ff.set_type(type);
+
+    // calculate new ff coor: begin
+    for(auto p: dpins){ sumx = sumx + p->coox; sumy = sumy + p->cooy; }    
+    for(auto p: qpins){ sumx = sumx + p->coox; sumy = sumy + p->cooy; } 
+
+    ori_pin_cenx = sumx / (double)(bit_num*2);   
+    ori_pin_ceny = sumy / (double)(bit_num*2);   
+
+    sumx = 0;
+    sumy = 0;
+    for(int i=0; i<bit_num; i++){
+        sumx = sumx + type->d_pins[i].x_plus;
+        sumy = sumy + type->d_pins[i].y_plus;
+        sumx = sumx + type->q_pins[i].x_plus;
+        sumy = sumy + type->q_pins[i].y_plus;
+    }
+    double temp_x_plus = sumx / (double)(bit_num*2);   
+    double temp_y_plus = sumy / (double)(bit_num*2);   
+    pseudo_ff.coox = ori_pin_cenx - temp_x_plus;   
+    pseudo_ff.cooy = ori_pin_ceny - temp_y_plus;  
+    // calculate new ff coor: end
+
+    // initial pin pair list: begin 
+    int pin_idx = 0;
+    auto d_itr = dpins.begin();
+    auto q_itr = qpins.begin();
+    while(d_itr!=dpins.end() && q_itr!=qpins.end()){
+        // initial pin pair: begin
+        pin_pair* ptr = new pin_pair;
+        ptr->find = false;
+        ptr->idx  = pin_idx;
+        ptr->dpin = *d_itr;
+        ptr->qpin = *q_itr;
+        // initial pin pair: end
+
+        pin_pair_list.push_back(ptr);
+
+        pin_idx++;
+        d_itr++;
+        q_itr++;
+    }
+    // initial pin pair list: end
+
+
+    // intitial preference list: begin
+    for(auto pp: pin_pair_list){
+        for(int idx=0; idx<bit_num; idx++){
+            double dpin_coox = pseudo_ff.coox+type->d_pins[idx].x_plus;
+            double dpin_cooy = pseudo_ff.cooy+type->d_pins[idx].y_plus;
+            double qpin_coox = pseudo_ff.coox+type->q_pins[idx].x_plus;
+            double qpin_cooy = pseudo_ff.cooy+type->q_pins[idx].y_plus;
+
+            double d_slack = pp->dpin->CalTns(dpin_coox, dpin_cooy, true,  type, coeff);
+            double q_slack = pp->qpin->CalTns(qpin_coox, qpin_cooy, false, type, coeff);
+            double total_slack = d_slack + q_slack;
+
+            pp->preference_list.push_back(pair<int, double>(idx, total_slack));
+        }
+        pp->preference_list.sort(preference_cmp);
+    }
+    // intitial preference list: end
+
+    // stable matching (Gale and shapley): begin
+    // stable matching (Gale and shapley): end
+
+}
+
 ffi::ffi(string name, double coox, double cooy){
     this->name = name;
     this->coox = coox;
@@ -604,3 +685,42 @@ void gatei::visit(double critical_slack){
 bool gatei::is_visited(){return v;}
 
 double gatei::get_critical_slack(){return critical_slack;}
+
+double pin::CalTns(double new_coox, double new_cooy, bool is_D, ffcell* new_type, double coeff){
+    double slack = 0;
+    if(is_D){
+        pin* sp = to_net->ipins.front();
+
+        if(sp->pin_type == 'f'){
+            double anchor_x = (coox + sp->coox)/2;
+            double anchor_y = (cooy + sp->cooy)/2;
+            double ori_hpwl = abs(coox - anchor_x) + abs(cooy - anchor_y);
+            double new_hpwl = abs(new_coox - anchor_x) + abs(new_cooy - anchor_y);
+            slack = dspd_slk - (new_hpwl - ori_hpwl)*coeff;
+        }
+        else{
+            double ori_hpwl = abs(coox - sp->coox) + abs(cooy - sp->cooy);
+            double new_hpwl = abs(new_coox - sp->coox) + abs(new_cooy - sp->cooy);
+            slack = dspd_slk - (new_hpwl - ori_hpwl)*coeff;
+        }
+    }
+    else{
+        for(auto tp: to_net->opins){ // tp: target pin
+            double temp_slack;
+            if(tp->pin_type == 'f'){
+                double anchor_x = (coox + tp->coox)/2;
+                double anchor_y = (cooy + tp->cooy)/2;
+                double ori_hpwl = abs(coox - anchor_x) + abs(cooy - anchor_y);
+                double new_hpwl = abs(new_coox - anchor_x) + abs(new_cooy - anchor_y);
+                temp_slack = dspd_slk - (new_hpwl - ori_hpwl)*coeff - (new_type->Qpin_delay - to_ff->type->Qpin_delay);
+            }
+            else{
+                double ori_hpwl = abs(coox - tp->coox) + abs(cooy - tp->cooy);
+                double new_hpwl = abs(new_coox - tp->coox) + abs(new_cooy - tp->cooy);
+                temp_slack = dspd_slk - (new_hpwl - ori_hpwl)*coeff - (new_type->Qpin_delay - to_ff->type->Qpin_delay);
+            }
+            if(temp_slack < 0) slack = slack + temp_slack;
+        }
+    }
+    return (slack > 0)? 1 : slack;
+}
