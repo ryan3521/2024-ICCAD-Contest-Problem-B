@@ -7,7 +7,7 @@
 #include "die_info.h"
 #include "netlist.h"
 #include "placement.h"
-#include "modifycls.h"
+#include "banking.h"
 #include "costeva.h"
 
 using namespace std;
@@ -49,20 +49,20 @@ int main(int argc, char** argv){
     INST.ConstructFSR(DIE);
 
 
-    // for(auto it: INST.ff_umap){
-    //     auto f = it.second;
-    //     orig_area = orig_area + f->type->area;
-    //     orig_power = orig_power + f->type->gate_power;
-    //     ori_bitnum = ori_bitnum + f->d_pins.size();
-    // }
+    for(auto it: INST.ff_umap){
+        auto f = it.second;
+        orig_area = orig_area + f->type->area;
+        orig_power = orig_power + f->type->gate_power;
+        ori_bitnum = ori_bitnum + f->d_pins.size();
+    }
 
     FFBANK.run();
 
-    // for(auto f: UPFFS){
-    //     opt_area = opt_area + f->type->area;
-    //     opt_power = opt_power + f->type->gate_power;
-    //     aft_bitnum = aft_bitnum + f->d_pins.size();
-    // }
+    for(auto f: UPFFS){
+        opt_area = opt_area + f->type->area;
+        opt_power = opt_power + f->type->gate_power;
+        aft_bitnum = aft_bitnum + f->d_pins.size();
+    }
 
 
     // PM.placeGateInst();
@@ -76,38 +76,38 @@ int main(int argc, char** argv){
     // }
 
 
-    // double end = clock();
+    double end = clock();
 
-    // if(ori_bitnum == aft_bitnum)
-    //     cout << endl << "success - bit num match -" << endl;
-    // else 
-    //     cout << endl << "error - bit num not match" << endl;
+    if(ori_bitnum == aft_bitnum)
+        cout << endl << "success - bit num match -" << endl;
+    else 
+        cout << endl << "error - bit num not match" << endl;
 
-    // ori_cost = DIE.Beta*orig_power + DIE.Gamma*orig_area;
-    // opt_cost = DIE.Beta*opt_power + DIE.Gamma*opt_area;
+    ori_cost = DIE.Beta*orig_power + DIE.Gamma*orig_area;
+    opt_cost = DIE.Beta*opt_power + DIE.Gamma*opt_area;
 
 
-    // cout << endl;
-    // cout << "Optimize Report >>> " << endl;
-    // cout << "===============================" << endl;
-    // cout << "Ori Power: " << orig_power << endl;
-    // cout << "Opt Power: " << opt_power << endl;
-    // cout << "Reduce: " << 100*(orig_power - opt_power)/orig_power << " %" << endl;
-    // cout << "-------------------------------" << endl;
-    // cout << "Ori Area: " << orig_area << endl;
-    // cout << "Opt Area: " << opt_area << endl;
-    // cout << "Reduce: " << 100*(orig_area - opt_area)/orig_area << " %" << endl;
-    // cout << "-------------------------------" << endl;
-    // cout << "Ori Cost: " << ori_cost << endl;
-    // cout << "Opt Cost: " << opt_cost << endl;
-    // cout << "Reduce: " << 100*(ori_cost - opt_cost)/ori_cost << " %" << endl;
-    // cout << "===============================" << endl;
+    cout << endl;
+    cout << "Optimize Report >>> " << endl;
+    cout << "===============================" << endl;
+    cout << "Ori Power: " << orig_power << endl;
+    cout << "Opt Power: " << opt_power << endl;
+    cout << "Reduce: " << 100*(orig_power - opt_power)/orig_power << " %" << endl;
+    cout << "-------------------------------" << endl;
+    cout << "Ori Area: " << orig_area << endl;
+    cout << "Opt Area: " << opt_area << endl;
+    cout << "Reduce: " << 100*(orig_area - opt_area)/orig_area << " %" << endl;
+    cout << "-------------------------------" << endl;
+    cout << "Ori Cost: " << ori_cost << endl;
+    cout << "Opt Cost: " << opt_cost << endl;
+    cout << "Reduce: " << 100*(ori_cost - opt_cost)/ori_cost << " %" << endl;
+    cout << "===============================" << endl;
     
-    // cout << "Total cost: " << COST.evaluate(&PFFS) << endl;
+    cout << "Total cost: " << COST.evaluate(&UPFFS) << endl;
 
-    // cout << endl << "Total execution time: " << (end - start) / 1000000.0  << " s" << '\n';
+    cout << endl << "Total execution time: " << (end - start) / 1000000.0  << " s" << '\n';
 
-
+    DrawFFs(DIE, LIB, INST, UPFFS);
     return 0;
 }
 

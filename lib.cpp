@@ -142,13 +142,27 @@ void ffcell::calculate_min_FSR(){
         if(pr.y_plus < ymin) ymin = pr.y_plus;
     }
 
+    double w = xmax - xmin;
+    double h = ymax - ymin;
+
+    xmax = xmax + w;
+    xmin = xmin - w;
+    ymax = ymax + h;
+    ymin = ymin - h;
+
     double up_y, bottom_y;
     double right_x, left_x;
+
+    // cout << "bit size: " << bit_num << endl;
+    // cout << "width:  " << size_x << endl;
+    // cout << "height: " << size_y << endl;
+    // cout << "pin width: " << xmax - xmin << endl;
+    // cout << "pin height: " << ymax - ymin << endl;
     
     up_y     = ymax - xmin;
     bottom_y = ymin - xmax;
-    right_x  = ymax - xmax;
-    left_x   = ymin - xmin;
+    right_x  = ymax + xmax;
+    left_x   = ymin + xmin;
 
     fsr_min_h = up_y - bottom_y;
     fsr_min_w = right_x - left_x;

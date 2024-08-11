@@ -75,8 +75,16 @@ double costeva::calTns(){
                 double ori_qpin_delay = sp->to_ff->type->get_Qpin_delay();
                 double new_qpin_delay = sp->to_new_ff->type->get_Qpin_delay();
 
-                // slack = p->slack - (new_hpwl - ori_hpwl)*(DIE->displacement_delay) - (new_qpin_delay - ori_qpin_delay);
-                
+                slack = p->slack - (new_hpwl - ori_hpwl)*(DIE->displacement_delay) - (new_qpin_delay - ori_qpin_delay);
+                // if(slack < 0){
+                //     cout << "neg slack: " << slack << endl;
+                //     cout << "given slack: " << p->slack << endl;
+                //     cout << "pin ori hpwl: " << ori_hpwl << endl;
+                //     cout << "pin new hpwl: " << new_hpwl << endl;
+                //     cout << "pin hpwl diff: " << new_hpwl - ori_hpwl << endl;
+                //     cout << "q pin delay diff: " << (new_qpin_delay - ori_qpin_delay) << endl;
+                //     return 0;
+                // }   
             }
             else if(p->to_net->ipins.front()->pin_type == 'd'){
                 auto sp = p->to_net->ipins.front(); // sp: source pin
@@ -116,12 +124,36 @@ double costeva::calTns(){
                 double ori_hpwl = abs(sp->coox - p->coox) + abs(sp->cooy - p->cooy);
                 double new_hpwl = abs(sp->coox - p->new_coox) + abs(sp->cooy - p->new_cooy);
                 double temp_ct  = (new_hpwl - ori_hpwl)*(DIE->displacement_delay);
-                // if(get_ct(sp->to_gate) == numeric_limits<double>::min()){
-                //     slack = p->slack - (new_hpwl - ori_hpwl)*(DIE->displacement_delay);
-                // }
-                // else{
-                //     slack = p->slack - (temp_ct + get_ct(sp->to_gate));
-                // }
+                double cen_ori_hpwl = abs(sp->coox - p->to_ff->cen_x) + abs(sp->cooy - p->to_ff->cen_y);
+                double cen_new_hpwl = abs(sp->coox - p->to_new_ff->cen_x) + abs(sp->cooy - p->to_new_ff->cen_y);
+                if(get_ct(sp->to_gate) == numeric_limits<double>::min()){
+                    slack = p->slack - (new_hpwl - ori_hpwl)*(DIE->displacement_delay);
+                    if(slack < 0){
+                        cout << endl << "***************" << endl;
+                        cout << "ff bit num: " << f->type->bit_num << endl;
+                        cout << "source pin coor: " << sp->coox << ", " << sp->cooy << endl;
+                        cout << "ori ff type: " << p->to_ff->type->name << endl;
+                        cout << "new ff type: " << p->to_new_ff->type->name << endl;
+                        cout << "ori ff coor: "  << p->to_ff->coox << ", " << p->to_ff->cooy << endl;
+                        cout << "new ff coor: "  << p->to_new_ff->coox << ", " << p->to_new_ff->cooy << endl;
+                        cout << "ori ff size: " << p->to_ff->type->size_x << ", " << p->to_ff->type->size_y << endl;
+                        cout << "new ff size: " << p->to_new_ff->type->size_x << ", " << p->to_new_ff->type->size_y << endl;
+                        cout << "neg slack: " << slack << endl;
+                        cout << "given slack: " << p->slack << endl;
+                        cout << "pin ori hpwl: " << ori_hpwl << endl;
+                        cout << "pin new hpwl: " << new_hpwl << endl;
+                        cout << "pin hpwl diff: " << new_hpwl - ori_hpwl << endl;
+                        cout << "cen ori hpwl: " << cen_ori_hpwl << endl;
+                        cout << "cen new hpwl: " << cen_new_hpwl << endl;
+                        cout << "cen hpwl diff: " << cen_new_hpwl - cen_ori_hpwl << endl;
+                        // cout << "q pin delay diff: " << (new_qpin_delay - ori_qpin_delay) << endl;
+                        cout << endl << "***************" << endl;
+                        return 0;
+                    } 
+                }
+                else{
+                    slack = p->slack - (temp_ct + get_ct(sp->to_gate));
+                }
                 
             }
             if(slack < 0){
