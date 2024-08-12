@@ -278,7 +278,7 @@ void inst::ConstructFSR(dieInfo& DIE){
 }
 
 bool inst::preference_cmp(pair<int, double> a, pair<int, double> b){
-    return a.second < b.second;
+    return a.second > b.second;
 }
 
 double inst::TnsTest(list<pin*>& dpins, list<pin*>& qpins, ffcell* type, double coeff){
@@ -320,7 +320,6 @@ double inst::TnsTest(list<pin*>& dpins, list<pin*>& qpins, ffcell* type, double 
     while(d_itr!=dpins.end() && q_itr!=qpins.end()){
         // initial pin pair: begin
         pin_pair* ptr = new pin_pair;
-        ptr->find = false;
         ptr->idx  = pin_idx;
         ptr->dpin = *d_itr;
         ptr->qpin = *q_itr;
@@ -350,12 +349,82 @@ double inst::TnsTest(list<pin*>& dpins, list<pin*>& qpins, ffcell* type, double 
             pp->preference_list.push_back(pair<int, double>(idx, total_slack));
         }
         pp->preference_list.sort(preference_cmp);
+        double pos_slack_cnt = 0;
+        for(auto pair_: pp->preference_list){
+            if(pair_.second > 0) pos_slack_cnt = pos_slack_cnt + 1;
+            else break;
+        }
+        for(auto pair_: pp->preference_list){
+            if(pair_.second > 0) pair_.second = pair_.second/pos_slack_cnt;
+            else break;
+        }
     }
     // intitial preference list: end
 
-    // stable matching (Gale and shapley): begin
-    // stable matching (Gale and shapley): end
+    // Stable matching (Gale and shapley): begin (In this stable matching, pin_pair is women, port is men.)
+    
+    // initial port_pairs (mans): begin
+    vector<port_pair> port_pairs;
+    port_pairs.resize(bit_num);
+    for(auto& pp: port_pairs){
+        pp.like_most_pin_pair = NULL;
+        pp.choices_list.clear();
+    }
+    // initial port_pairs (mans): end
 
+    // matching: begin
+    int remain_women_num = pin_pair_list.size();
+    while(remain_women_num!=0){
+        // women propose: begin
+        for(auto itr=pin_pair_list.begin(); itr!=pin_pair_list.end(); itr++){
+            auto& most_like_port = (*itr)->preference_list.front();
+            port_pairs[most_like_port.first].choices_list.push_back(pair<double, list<pin_pair*>::iterator>(most_like_port.second, itr));
+            (*itr)->preference_list.pop_front();
+        }
+        // women propose: end
+
+        // men accept or reject: begin
+        for(auto& man: port_pairs){
+            bool have_choice = false;
+            double max_slack = numeric_limits<double>::min();
+            list<pin_pair*>::iterator like_most_itr;
+            for(auto& ch: man.choices_list){
+                if(max_slack < ch.first){
+                    max_slack = ch.first;
+                    like_most_itr = ch.second;
+                    have_choice = true;
+                }
+            }
+            if(have_choice == false) continue;
+            if(man.like_most_pin_pair == NULL){
+                man.slack = max_slack;
+                man.like_most_pin_pair = *like_most_itr;
+                pin_pair_list.erase(like_most_itr);
+                remain_women_num--;
+            }
+            else{
+                if(man.slack < max_slack){
+                    pin_pair_list.push_back(man.like_most_pin_pair);
+
+                    man.slack = max_slack;
+                    man.like_most_pin_pair = *like_most_itr;
+                    pin_pair_list.erase(like_most_itr);
+                }
+            }
+            man.choices_list.clear();
+        }
+        // men accept or reject: end
+    }
+    // matching: end
+
+    // Stable matching (Gale and shapley): end
+
+    // calculate final best total slack: begin
+    double total_slack = 0;
+    for(auto& pp: port_pairs) total_slack = total_slack + pp.slack;
+    // calculate final best total slack: end
+
+    return total_slack;
 }
 
 ffi::ffi(string name, double coox, double cooy){

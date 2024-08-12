@@ -161,11 +161,16 @@ class inst{
         static bool preference_cmp(pair<int, double> a, pair<int, double> b);
 
         struct pin_pair{
-            bool find;
             int idx;
             pin* dpin;
             pin* qpin;
             list<pair<int, double>> preference_list; // int: port index, double: slack
+        };
+        struct port_pair{
+            double slack;
+            pin_pair* like_most_pin_pair;
+            list<pair<double, list<pin_pair*>::iterator>> choices_list;
+
         };
     public:
         int ff_num;

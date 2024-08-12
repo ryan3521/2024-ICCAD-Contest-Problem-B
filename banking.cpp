@@ -39,6 +39,7 @@ void banking::Initial_SingleBit_Cls(){
 
         for(auto ftype: LIB->fftable_cost[1]){
             double cost = 0;
+
         }
     }
 }
