@@ -19,12 +19,21 @@ class cluster{
         // if "size" != 1, size of clusters in member list will only be "1".
         int  size;
         bool is_top;
-        cluster* to_cluster;
+        cluster* to_top_cluster;
+        cluster* to_new_cluster;
         double cost_per_bit; 
         list<cluster*> members;
         ffcell* type;
         ffi* single_bit_ff;
-        
+        double old_coox;
+        double old_cooy;
+        double coox;
+        double cooy;
+
+        // Member function
+        bool UpdateCoor_CheckMove();
+        void AddMember(cluster* new_member);
+        void Clear();
 };
 
 
@@ -42,6 +51,7 @@ class banking{
 
 
         void Initial_SingleBit_Cls(); 
+        static bool sort_single_bit_cls(cluster* a, cluster* b);
 
     public:
         banking(inst* INST, lib* LIB, dieInfo* DIE, list<ffi*>* UPFFS);
