@@ -29,11 +29,18 @@ class cluster{
         double old_cooy;
         double coox;
         double cooy;
+        bool is_better_than_new;
+        bool mark_remove; // for top cluster
+        bool mark_recalculate; // for new cluster
+        list<pin*> optseq_D;
+        list<pin*> optseq_Q;
 
         // Member function
         bool UpdateCoor_CheckMove();
         void AddMember(cluster* new_member);
         void Clear();
+        void Calculate_BestCost_FFtype(lib* LIB, inst* INST, dieInfo* DIE);
+        bool TestQuality(); // for top cluster
 };
 
 

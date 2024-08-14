@@ -189,7 +189,7 @@ class inst{
         void PrintGate();
         void DebankAllFF(lib& LIB);
         void ConstructFSR(dieInfo& DIE);
-        double TnsTest(list<pin*>& dpins, list<pin*>& qpins, ffcell* type, double coeff);
+        double TnsTest(list<pin*>& dpins, list<pin*>& qpins, ffcell* type, double coeff, list<pin*>& optseq_D, list<pin*>& optseq_Q);
 
 };
 

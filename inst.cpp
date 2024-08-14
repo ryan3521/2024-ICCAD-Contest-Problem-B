@@ -281,13 +281,16 @@ bool inst::preference_cmp(pair<int, double> a, pair<int, double> b){
     return a.second > b.second;
 }
 
-double inst::TnsTest(list<pin*>& dpins, list<pin*>& qpins, ffcell* type, double coeff){
+double inst::TnsTest(list<pin*>& dpins, list<pin*>& qpins, ffcell* type, double coeff, list<pin*>& optseq_D, list<pin*>& optseq_Q){
     int bit_num = dpins.size();
     double ori_pin_cenx = 0;
     double ori_pin_ceny = 0;
     double sumx = 0;
     double sumy = 0;
     list<pin_pair*> pin_pair_list;
+
+    optseq_D.clear();
+    optseq_Q.clear();
 
     ffi pseudo_ff("PseudoFF", 0, 0);
     pseudo_ff.set_type(type);
@@ -421,7 +424,11 @@ double inst::TnsTest(list<pin*>& dpins, list<pin*>& qpins, ffcell* type, double 
 
     // calculate final best total slack: begin
     double total_slack = 0;
-    for(auto& pp: port_pairs) total_slack = total_slack + pp.slack;
+    for(auto& pp: port_pairs){
+        optseq_D.push_back(pp.like_most_pin_pair->dpin);
+        optseq_Q.push_back(pp.like_most_pin_pair->qpin);
+        total_slack = total_slack + pp.slack;
+    } 
     // calculate final best total slack: end
 
     return total_slack;
@@ -544,10 +551,12 @@ void ffi::new_coor(){
 
     for(int i=0; i<bit; i++){
         d_pins[i]->new_name = type->d_pins[i].name;
+        d_pins[i]->to_new_ff = this;
         d_pins[i]->new_coox = coox + type->d_pins[i].x_plus;
         d_pins[i]->new_cooy = cooy + type->d_pins[i].y_plus;
         
         q_pins[i]->new_name = type->q_pins[i].name;
+        q_pins[i]->to_new_ff = this;
         q_pins[i]->new_coox = coox + type->q_pins[i].x_plus;
         q_pins[i]->new_cooy = cooy + type->q_pins[i].y_plus;
     }
