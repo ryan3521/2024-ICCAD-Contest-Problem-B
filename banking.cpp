@@ -256,6 +256,7 @@ void banking::run(){
                 cluster* new_cls = *itr1;
                 // cout << "Cluster " << cls_cnt << ", size = " << new_cls->size << endl;
                 if(new_cls->size == 1){
+                    new_cls->members.front()->to_new_cluster = NULL;
                     itr1 = k_clusters.erase(itr1);
                     delete new_cls;
                     continue;
@@ -286,11 +287,20 @@ void banking::run(){
             }
             // Initial "is-better-than-new": end
 
+            int better_cnt = 0;
+            for(auto cls: top_list) {
+                if(cls->is_better_than_new) better_cnt ++;
+            }
+            // cout << "Better num: " << better_cnt << endl;
+            // cout << "top list : " << top_list.size() << endl;
+
+
             // Find out "Good" new cluster: begin
             cout << "finding out good new cluster" << endl;
             while(1){
                 list<cluster*>::iterator itr;
-                
+                // if(cluster_target_size==3) cout << "Bad cluster num: " << bad_old_cluster_list.size() << endl;
+                // if(cluster_target_size==3) cout << "Good new clusters num: " << k_clusters.size() << endl;
                 // Re-calculate cost-per-bit and fftype for new cluster which was marked "re-calculate" : begin
                 // if(clk_group_cnt == 1 && cluster_target_size==2)cout << "stage 1" << endl;
                 itr = k_clusters.begin();
@@ -334,12 +344,10 @@ void banking::run(){
                 // if(clk_group_cnt == 1 && cluster_target_size==2)cout << "stage 2" << endl;
                 bool check_again_new_clusters = false;
                 itr = bad_old_cluster_list.begin();
-                int c = 0;
                 while(itr!=bad_old_cluster_list.end()){
-                    c++;
+
                     const auto bad_top_cluster = *itr;
-                    if(clk_group_cnt == 1 && cluster_target_size==2)
-                        cout << c << endl;
+
 
                     // int print = false;
                     // if(clk_group_cnt == 1 && cluster_target_size==2 && c==108) print = true;
@@ -367,6 +375,32 @@ void banking::run(){
             // Remove bad cluster from top cluster list: begin
             // if(clk_group_cnt == 1 && cluster_target_size==2)
             //     cout << "removing bad cluster" << endl;
+            // cout << "Bad cluster num: " << bad_old_cluster_list.size() << endl;
+            // for(auto cls: bad_old_cluster_list) cout << cls->size << " -> ";
+            // cout << endl;
+            // for(auto cls: bad_old_cluster_list){
+            //     if(cls->size == 1){
+            //         cout << cls->single_bit_ff->name << " - > ";
+            //     }
+            //     else{
+            //         for(auto m: cls->members) {
+            //             cout << m->single_bit_ff->name << " - > ";
+            //         }
+            //     }
+            // }
+            // cout << endl;
+            // cout << "Good new clusters num: " << k_clusters.size() << endl;
+            // for(auto cls: k_clusters) cout << cls->size << " -> ";
+            // cout << endl;
+            // for(auto cls: k_clusters){
+            //     if(cls->size == 1){
+            //         cout << cls->single_bit_ff->name << " - > ";
+            //     }
+            //     else{
+            //         for(auto m: cls->members) cout << m->single_bit_ff->name << " - > ";
+            //     }
+            // }
+            // cout << endl;
             for(auto bad_cls: bad_old_cluster_list){
                 bad_cls->mark_remove = true;
             }
@@ -375,13 +409,22 @@ void banking::run(){
                 auto cls = *itr2;
                 if(cls->mark_remove == true){
                     if(cls->size == 1){
+                        cls->to_top_cluster = cls->to_new_cluster;
+                        cls->is_top = false;
                         itr2 = top_list.erase(itr2);
                         continue;
                     }
                     else{
                         for(auto m: cls->members){
-                            m->to_top_cluster = (m->to_new_cluster==NULL) ? m:m->to_new_cluster;
-                            if(m->to_top_cluster == m) k_clusters.push_back(m);
+                            if(m->to_new_cluster == NULL){
+                                m->is_top = true;
+                                m->to_top_cluster = m;
+                                k_clusters.push_back(m);
+                            }
+                            else{
+                                m->is_top = false;
+                                m->to_top_cluster = m->to_new_cluster;
+                            }
                         }
                         delete cls;
                         itr2 = top_list.erase(itr2);
@@ -393,15 +436,27 @@ void banking::run(){
             // Remove bad cluster from top cluster list: end
 
             // Add good new clusters into "top_list": begin
-            if(clk_group_cnt == 1 && cluster_target_size==2)
-                cout << "adding good cluster into top list" << endl;
             for(auto cls: k_clusters){
+                cls->to_new_cluster = NULL;
                 cls->is_top = true;
                 top_list.push_back(cls);
             }
             // Add good new clusters into "top_list": end
 
             // Determine new or old cluster stay: end
+
+            // Check top list ff number: begin
+            // int cnt_ = 0;
+            // for(auto cls: top_list){
+            //     cnt_ = cnt_ + cls->size;
+            // }
+            // if(cnt_ != ff_list->size()){
+            //     cout << "ERROR" << endl;
+            //     cout << "Top list num: " << cnt_ << endl;
+            //     cout << "Actual num: " << ff_list->size() << endl;
+            //     return;
+            // }
+            // Check top list ff number: end
         }
 
 
