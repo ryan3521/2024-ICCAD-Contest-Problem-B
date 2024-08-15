@@ -1,5 +1,21 @@
 #include "banking.h"
 
+cluster::cluster(){
+    size = 0;
+    is_top = false;
+    to_new_cluster = NULL;
+    to_top_cluster = NULL;
+    cost_per_bit = 0;
+    members.clear();
+    type = NULL;
+    single_bit_ff = NULL;
+    is_better_than_new = false;
+    mark_remove = false;
+    mark_recalculate = false;
+    optseq_D.clear();
+    optseq_Q.clear();
+}
+
 bool cluster::UpdateCoor_CheckMove(){
     double sum_x = 0;
     double sum_y = 0;
@@ -12,7 +28,7 @@ bool cluster::UpdateCoor_CheckMove(){
     coox = sum_x/(double)size;
     cooy = sum_y/(double)size;
 
-    return (coox!=old_coox || cooy!=old_cooy) ? true : false;
+    return (abs(coox-old_coox)/old_coox>0.9 || abs(cooy-old_cooy)/old_cooy>0.9) ? true : false;
 }
 
 void cluster::AddMember(cluster* new_member){
@@ -27,7 +43,7 @@ void cluster::Clear(){
     old_cooy = cooy;
 }
 
-void cluster::Calculate_BestCost_FFtype(lib* LIB, inst* INST, dieInfo* DIE){
+void cluster::Calculate_BestCost_FFtype(bool print, lib* LIB, inst* INST, dieInfo* DIE){
     ffcell* mincost_ftype = NULL;
     double  mincost = numeric_limits<double>::max(); // = cost per bit (included: tns, area, power)
     list<pin*> dpins;
@@ -48,7 +64,7 @@ void cluster::Calculate_BestCost_FFtype(lib* LIB, inst* INST, dieInfo* DIE){
         double cost = 0;
         double slack, ns;
 
-        slack = INST->TnsTest(dpins, qpins, ftype, DIE->displacement_delay, optseq_D, optseq_Q);
+        slack = INST->TnsTest(print, dpins, qpins, ftype, DIE->displacement_delay, optseq_D, optseq_Q);
         ns = (slack > 0) ? 0 : abs(slack);
         cost = (DIE->Alpha*ns + DIE->Beta*ftype->gate_power + DIE->Gamma*ftype->area)/(double)size;
     
@@ -61,10 +77,13 @@ void cluster::Calculate_BestCost_FFtype(lib* LIB, inst* INST, dieInfo* DIE){
     cost_per_bit = mincost;
     // find best ff type: end
 
+    // if(size == 1) cout << "size 1: " << cost_per_bit << endl;
+    // if(size == 4) cout << "size 4: " << cost_per_bit << endl;
     return;
 }
 
-bool cluster::TestQuality(){
+bool cluster::TestQuality(bool print){
+    if(print) cout << "testing quality: size = " << size << endl;
     if(to_top_cluster == this){ // this top cluster's member size == 1
         if(to_new_cluster == NULL) return true;
         if(cost_per_bit > to_new_cluster->cost_per_bit){
@@ -92,6 +111,7 @@ bool cluster::TestQuality(){
         }
         if(old_cost > new_cost){
             is_better_than_new = false;
+            if(print) cout << "testing quality finish: false" << endl;
             return false;
             
         }
@@ -104,6 +124,7 @@ bool cluster::TestQuality(){
                     m->to_new_cluster->mark_recalculate = true;
                 }
             }
+            if(print) cout << "testing quality finish: true" << endl;
             return true;
         }
     }   
@@ -127,8 +148,10 @@ void banking::run(){
     //    "and" also the original cluster member bit have over half of the member bits find new lower cost cluster, than destroy the orignal cluster,
     //    and retain the new cluster, otherwise, destroy the new cluster.
 
+    int clk_group_cnt = 0;
     int newff_cnt = 0;
     for(auto ff_list: INST->ffs_sing){
+        cout << endl << "Group " << clk_group_cnt << " FFs Processing ... (" << ff_list->size() << ")" << endl;
         // Initial: begin
         banking_ffs.clear();
         for(auto f: *ff_list) { banking_ffs.push_back(f); }
@@ -136,6 +159,8 @@ void banking::run(){
         single_bit_clusters.sort(sort_single_bit_cls);
         list<cluster*> kmeans_data_points;
         list<cluster*> top_list;
+        kmeans_data_points.clear();
+        top_list.clear();
         for(auto& cls: single_bit_clusters) {
             kmeans_data_points.push_back(cls);
             top_list.push_back(cls);
@@ -143,13 +168,18 @@ void banking::run(){
         // Initial: end
 
         for(int cluster_target_size=LIB->max_ff_size; cluster_target_size>1; cluster_target_size--){
+            cout << endl << "K-means clustering, target size = " << cluster_target_size << endl;
+            
             // K-means initial: begin
+            if(cluster_target_size == 2) cout << "K-means initial" << endl;
             list<cluster*> k_clusters;
+            k_clusters.clear();
             int cnt = 0;
             cluster* new_cls;
             for(auto& cls: single_bit_clusters){
                 if(cnt == 0){
                     new_cls = new cluster;
+                    new_cls->size = 0;
                     new_cls->coox = cls->coox;
                     new_cls->cooy = cls->cooy;
                     k_clusters.push_back(new_cls);
@@ -160,11 +190,18 @@ void banking::run(){
             // K-means initial: end
 
             // K-means cluster: begin
+            cout << "do k-means cluster:" << endl;
+            cout << "K = " << k_clusters.size() << endl;
+            cout << "data = " << kmeans_data_points.size() << endl;
+            int ITR_LIMIT = 20;
+            int itr_cnt = 0;
             while(1){
+                // if(cluster_target_size == 2 && clk_group_cnt==5) cout << "itr = " << itr_cnt << endl;
                 for(auto& data: kmeans_data_points){
                     double   best_cost = numeric_limits<double>::max();
                     cluster* best_cls = NULL;
                     // Find closest cluster: begin
+                    bool full = true;
                     for(auto& k: k_clusters){
                         if(k->size == cluster_target_size) continue;
                         double cost;
@@ -174,22 +211,31 @@ void banking::run(){
                             best_cost = cost;
                             best_cls = k;
                         }
+                        full = false;
                     }
+                    if(best_cls == NULL) cout << "error: full = " << full << endl;
                     best_cls->AddMember(data);
                     // Find closest cluster: end
                 }
 
                 bool no_move = true;
                 // Update Coor: begin
+                // if(cluster_target_size == 2) cout << "updatine coor" << endl;
+                int move_cnt = 0;
                 for(auto& k: k_clusters){
                     if(k->UpdateCoor_CheckMove() == true){
                         no_move = false;
+                        move_cnt++;
                     }
                 }
+                // if(cluster_target_size == 2){
+                //     cout << "move num: " << move_cnt << "/" << k_clusters.size() << endl;
+                // } 
+                // cout << itr_cnt << endl;
                 // Update Coor: end
 
                 // Check break: begin
-                if(no_move == true){
+                if(no_move == true || itr_cnt > ITR_LIMIT){
                     break;
                 }
                 else{
@@ -198,16 +244,19 @@ void banking::run(){
                     }
                 }
                 // Check break: end
+                itr_cnt++;
             }
             // K-means cluster: end
 
             // Calculate cost per bit for new cluster: begin
-            list<cluster*>::iterator itr = k_clusters.begin();
-            while(itr != k_clusters.end()){
-                cluster* new_cls = *itr;
-               
+            cout << "Calculating cost-per-bit for new cluster" << endl;
+            list<cluster*>::iterator itr1 = k_clusters.begin();
+            int cls_cnt = 0;
+            while(itr1 != k_clusters.end()){
+                cluster* new_cls = *itr1;
+                // cout << "Cluster " << cls_cnt << ", size = " << new_cls->size << endl;
                 if(new_cls->size == 1){
-                    itr = k_clusters.erase(itr);
+                    itr1 = k_clusters.erase(itr1);
                     delete new_cls;
                     continue;
                 }
@@ -215,34 +264,41 @@ void banking::run(){
                 new_cls->mark_recalculate = false;
 
                 for(auto& m: new_cls->members) m->to_new_cluster = new_cls;
+                bool print = (cls_cnt == -1) ? true:false;
 
-                new_cls->Calculate_BestCost_FFtype(LIB, INST, DIE);
+                new_cls->Calculate_BestCost_FFtype(print, LIB, INST, DIE);
 
-                itr++;
+                itr1++;
+                cls_cnt++;
             }
             // Calculate cost per bit for new cluster: end
 
             // Determine new or old cluster stay: begin
             // Initial "is-better-than-new": begin
+            cout << "initial bad top cluster" << endl;
             list<cluster*> bad_old_cluster_list;
+            bad_old_cluster_list.clear();
             for(auto& cls: top_list){
                 cls->mark_remove = false;
-                if(cls->TestQuality() == false){
+                if(cls->TestQuality(0) == false){
                     bad_old_cluster_list.push_back(cls);
                 }
             }
             // Initial "is-better-than-new": end
 
             // Find out "Good" new cluster: begin
+            cout << "finding out good new cluster" << endl;
             while(1){
                 list<cluster*>::iterator itr;
                 
                 // Re-calculate cost-per-bit and fftype for new cluster which was marked "re-calculate" : begin
+                // if(clk_group_cnt == 1 && cluster_target_size==2)cout << "stage 1" << endl;
                 itr = k_clusters.begin();
                 while(itr!=k_clusters.end()){
                     const auto new_cls = *itr;
 
                     if(new_cls->mark_recalculate == true){ // form new top cluster
+                        // cout << "mark recalculate true" << endl;
                         new_cls->mark_recalculate = false;
                         list<cluster*>::iterator member_itr = new_cls->members.begin();
                         while(member_itr!=new_cls->members.end()){
@@ -252,8 +308,9 @@ void banking::run(){
                                 member_itr = new_cls->members.erase(member_itr);
                                 new_cls->size--;
                             }
+                            else{ member_itr++; }
                         }
-                        if(new_cls->size == 0){
+                        if(new_cls->size == 0){ 
                             delete new_cls;
                             itr = k_clusters.erase(itr);
                             continue;
@@ -264,28 +321,40 @@ void banking::run(){
                             itr = k_clusters.erase(itr);
                             continue;
                         }
-                        else{
-                            new_cls->Calculate_BestCost_FFtype(LIB, INST, DIE);
+                        else{ 
+                            new_cls->Calculate_BestCost_FFtype(0, LIB, INST, DIE);
                         }
                     }
+                    // else{cout << "mark recalculate false" << endl;}
                     itr++;
                 }
                 // Re-calculate cost-per-bit and fftype for new cluster which was marked "re-calculate" : end
 
                 // Re-estimate "is-better-than-new" in bad clusters: begin
+                // if(clk_group_cnt == 1 && cluster_target_size==2)cout << "stage 2" << endl;
                 bool check_again_new_clusters = false;
                 itr = bad_old_cluster_list.begin();
+                int c = 0;
                 while(itr!=bad_old_cluster_list.end()){
+                    c++;
                     const auto bad_top_cluster = *itr;
-                    if(bad_top_cluster->TestQuality() == true){
+                    if(clk_group_cnt == 1 && cluster_target_size==2)
+                        cout << c << endl;
+
+                    // int print = false;
+                    // if(clk_group_cnt == 1 && cluster_target_size==2 && c==108) print = true;
+                    if(bad_top_cluster->TestQuality(0) == true){
                         itr = bad_old_cluster_list.erase(itr);
                         check_again_new_clusters = true;
                         continue;
                     }
                     itr++;
                 }
+                // if(clk_group_cnt == 1 && cluster_target_size==2)cout << "stage 2 finish" << endl;
                 // Re-estimate "is-better-than-new" in bad clusters: end
 
+                // if(clk_group_cnt == 1 && cluster_target_size==2)
+                //     cout << "check_again_new_clusters = " << check_again_new_clusters << endl;
                 if(check_again_new_clusters == false){
                     break;
                 }
@@ -296,32 +365,36 @@ void banking::run(){
             //       the new clusters remain in "k_clusters" list are good new cluster.
             
             // Remove bad cluster from top cluster list: begin
+            // if(clk_group_cnt == 1 && cluster_target_size==2)
+            //     cout << "removing bad cluster" << endl;
             for(auto bad_cls: bad_old_cluster_list){
                 bad_cls->mark_remove = true;
             }
-            list<cluster*>::iterator itr = top_list.begin();
-            while(itr!=top_list.end()){
-                auto cls = *itr;
+            list<cluster*>::iterator itr2 = top_list.begin();
+            while(itr2!=top_list.end()){
+                auto cls = *itr2;
                 if(cls->mark_remove == true){
                     if(cls->size == 1){
-                        itr = top_list.erase(itr);
+                        itr2 = top_list.erase(itr2);
                         continue;
                     }
                     else{
                         for(auto m: cls->members){
                             m->to_top_cluster = (m->to_new_cluster==NULL) ? m:m->to_new_cluster;
                             if(m->to_top_cluster == m) k_clusters.push_back(m);
-                            delete cls;
-                            itr = top_list.erase(itr);
-                            continue;
                         }
+                        delete cls;
+                        itr2 = top_list.erase(itr2);
+                        continue;
                     }
                 }
-                itr++;
+                itr2++;
             }
             // Remove bad cluster from top cluster list: end
 
             // Add good new clusters into "top_list": begin
+            if(clk_group_cnt == 1 && cluster_target_size==2)
+                cout << "adding good cluster into top list" << endl;
             for(auto cls: k_clusters){
                 cls->is_top = true;
                 top_list.push_back(cls);
@@ -358,12 +431,15 @@ void banking::run(){
             newff_cnt++;
         }
         // Map clusters int "top_list" to mbff and put into "UPFFS": end
+        clk_group_cnt++;
     }
 
     return;
 }
 
 void banking::Initial_SingleBit_Cls(){
+    cout << "Initializing Single Bit Cluster" << endl;
+    single_bit_clusters.clear();
     for(auto f: banking_ffs){
         cluster* cls = new cluster;
         cls->size = 1;
@@ -383,13 +459,13 @@ void banking::Initial_SingleBit_Cls(){
 
         ffcell* mincost_ftype = NULL;
         double  mincost = numeric_limits<double>::max(); // = cost per bit (included: tns, area, power)
-
+        // cout << "finding best fftype for ff: " << f->name << endl; 
         for(auto ftype: LIB->fftable_cost[1]){
             double cost = 0;
             double slack, ns;
             list<pin*> optseq_D;
             list<pin*> optseq_Q;
-            slack = INST->TnsTest(dpins, qpins, ftype, DIE->displacement_delay, optseq_D, optseq_Q);
+            slack = INST->TnsTest(0, dpins, qpins, ftype, DIE->displacement_delay, optseq_D, optseq_Q);
             ns = (slack > 0) ? 0 : abs(slack);
             cost = DIE->Alpha*ns + DIE->Beta*ftype->gate_power + DIE->Gamma*ftype->area;
         
@@ -401,10 +477,32 @@ void banking::Initial_SingleBit_Cls(){
 
         cls->type = mincost_ftype;
         cls->single_bit_ff = f;
+        cls->cost_per_bit = mincost;
     }
     return;
 }
 
 bool banking::sort_single_bit_cls(cluster* a, cluster* b){
     return a->single_bit_ff->cen_x < b->single_bit_ff->cen_x;
+}
+
+void banking::PrintResult(){
+    int bit_cnt = 0;
+    int sb_cnt = 0;
+    int arr[5] = {0, 0, 0, 0, 0};
+    for(auto& f: *UPFFS){
+        bit_cnt = bit_cnt + f->d_pins.size();
+        if(f->d_pins.size() == 1) sb_cnt ++;
+        arr[f->d_pins.size()]++;
+    }
+    cout << endl;
+    cout << "Cluster Result >>>" << endl;
+    cout << "*************************************" << endl;
+    cout << "Total bit num: " << bit_cnt << endl;
+    cout << "Cluster num : " << bit_cnt - sb_cnt << endl;
+    cout << "Non cluster num: " << sb_cnt << endl;
+    cout << "-------------------------------------" << endl;
+    for(int i=1; i<5; i++) cout << "Type " << i << ": " << arr[i] << endl;
+    cout << "*************************************" << endl;
+    cout << endl;
 }

@@ -281,7 +281,7 @@ bool inst::preference_cmp(pair<int, double> a, pair<int, double> b){
     return a.second > b.second;
 }
 
-double inst::TnsTest(list<pin*>& dpins, list<pin*>& qpins, ffcell* type, double coeff, list<pin*>& optseq_D, list<pin*>& optseq_Q){
+double inst::TnsTest(bool print, list<pin*>& dpins, list<pin*>& qpins, ffcell* type, double coeff, list<pin*>& optseq_D, list<pin*>& optseq_Q){
     int bit_num = dpins.size();
     double ori_pin_cenx = 0;
     double ori_pin_ceny = 0;
@@ -296,6 +296,7 @@ double inst::TnsTest(list<pin*>& dpins, list<pin*>& qpins, ffcell* type, double 
     pseudo_ff.set_type(type);
 
     // calculate new ff coor: begin
+    if(print) cout << "calculate new ff coor" << endl;
     for(auto p: dpins){ sumx = sumx + p->coox; sumy = sumy + p->cooy; }    
     for(auto p: qpins){ sumx = sumx + p->coox; sumy = sumy + p->cooy; } 
 
@@ -376,9 +377,11 @@ double inst::TnsTest(list<pin*>& dpins, list<pin*>& qpins, ffcell* type, double 
     // initial port_pairs (mans): end
 
     // matching: begin
+    if(print) cout << "matching" << endl;
     int remain_women_num = pin_pair_list.size();
-    while(remain_women_num!=0){
+    while(remain_women_num>0){
         // women propose: begin
+        if(print) cout << "proposing, women num = " << remain_women_num << endl;
         for(auto itr=pin_pair_list.begin(); itr!=pin_pair_list.end(); itr++){
             auto& most_like_port = (*itr)->preference_list.front();
             port_pairs[most_like_port.first].choices_list.push_back(pair<double, list<pin_pair*>::iterator>(most_like_port.second, itr));
@@ -387,10 +390,12 @@ double inst::TnsTest(list<pin*>& dpins, list<pin*>& qpins, ffcell* type, double 
         // women propose: end
 
         // men accept or reject: begin
+        if(print) cout << "accpet or reject" << endl;
         for(auto& man: port_pairs){
             bool have_choice = false;
-            double max_slack = numeric_limits<double>::min();
+            double max_slack = numeric_limits<double>::lowest();
             list<pin_pair*>::iterator like_most_itr;
+
             for(auto& ch: man.choices_list){
                 if(max_slack < ch.first){
                     max_slack = ch.first;
@@ -398,6 +403,7 @@ double inst::TnsTest(list<pin*>& dpins, list<pin*>& qpins, ffcell* type, double 
                     have_choice = true;
                 }
             }
+            if(print) cout << "have choice: " << have_choice << endl;
             if(have_choice == false) continue;
             if(man.like_most_pin_pair == NULL){
                 man.slack = max_slack;
@@ -408,7 +414,6 @@ double inst::TnsTest(list<pin*>& dpins, list<pin*>& qpins, ffcell* type, double 
             else{
                 if(man.slack < max_slack){
                     pin_pair_list.push_back(man.like_most_pin_pair);
-
                     man.slack = max_slack;
                     man.like_most_pin_pair = *like_most_itr;
                     pin_pair_list.erase(like_most_itr);
@@ -713,7 +718,7 @@ gatei::gatei(string name, double coox, double cooy){
     v = false;
     critical_slack = numeric_limits<double>::max();
     min_cs = numeric_limits<double>::max();
-    consume_time = numeric_limits<double>::min();
+    consume_time = numeric_limits<double>::lowest();
     is_tracking = false;
 }
 

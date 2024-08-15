@@ -126,7 +126,7 @@ double costeva::calTns(){
                 double temp_ct  = (new_hpwl - ori_hpwl)*(DIE->displacement_delay);
                 double cen_ori_hpwl = abs(sp->coox - p->to_ff->cen_x) + abs(sp->cooy - p->to_ff->cen_y);
                 double cen_new_hpwl = abs(sp->coox - p->to_new_ff->cen_x) + abs(sp->cooy - p->to_new_ff->cen_y);
-                if(get_ct(sp->to_gate) == numeric_limits<double>::min()){
+                if(get_ct(sp->to_gate) == numeric_limits<double>::lowest()){
                     slack = p->slack - (new_hpwl - ori_hpwl)*(DIE->displacement_delay);
                     if(slack < 0){
                         cout << endl << "***************" << endl;
@@ -176,10 +176,10 @@ double costeva::get_ct(gatei* g){
     }
     
     if(g->is_tracking == true){
-        return numeric_limits<double>::min();
+        return numeric_limits<double>::lowest();
     }
     g->is_tracking = true;
-    double max_ct = numeric_limits<double>::min(); // ct: consume time
+    double max_ct = numeric_limits<double>::lowest(); // ct: consume time
 
     for(auto p: g->ipins){
         if(p->to_net == NULL) continue;

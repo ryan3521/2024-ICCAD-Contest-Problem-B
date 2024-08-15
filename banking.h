@@ -36,11 +36,12 @@ class cluster{
         list<pin*> optseq_Q;
 
         // Member function
+        cluster();
         bool UpdateCoor_CheckMove();
         void AddMember(cluster* new_member);
         void Clear();
-        void Calculate_BestCost_FFtype(lib* LIB, inst* INST, dieInfo* DIE);
-        bool TestQuality(); // for top cluster
+        void Calculate_BestCost_FFtype(bool print, lib* LIB, inst* INST, dieInfo* DIE);
+        bool TestQuality(bool print); // for top cluster
 };
 
 
@@ -63,7 +64,7 @@ class banking{
     public:
         banking(inst* INST, lib* LIB, dieInfo* DIE, list<ffi*>* UPFFS);
         void run();
-
+        void PrintResult();
 };
 
 

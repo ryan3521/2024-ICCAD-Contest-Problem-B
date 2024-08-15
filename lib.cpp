@@ -125,9 +125,9 @@ double ffcell::get_gate_power(){return gate_power;}
 
 void ffcell::calculate_min_FSR(){
     double xmin = numeric_limits<double>::max();
-    double xmax = numeric_limits<double>::min();
+    double xmax = numeric_limits<double>::lowest();
     double ymin = numeric_limits<double>::max();
-    double ymax = numeric_limits<double>::min();
+    double ymax = numeric_limits<double>::lowest();
 
     for(auto& pr: d_pins){
         if(pr.x_plus > xmax) xmax = pr.x_plus;

@@ -57,6 +57,7 @@ int main(int argc, char** argv){
     }
 
     FFBANK.run();
+    FFBANK.PrintResult();
 
     for(auto f: UPFFS){
         opt_area = opt_area + f->type->area;
@@ -78,10 +79,10 @@ int main(int argc, char** argv){
 
     double end = clock();
 
-    if(ori_bitnum == aft_bitnum)
-        cout << endl << "success - bit num match -" << endl;
-    else 
-        cout << endl << "error - bit num not match" << endl;
+    // if(ori_bitnum == aft_bitnum)
+    //     cout << endl << "success - bit num match -" << endl;
+    // else 
+    //     cout << endl << "error - bit num not match" << endl;
 
     ori_cost = DIE.Beta*orig_power + DIE.Gamma*orig_area;
     opt_cost = DIE.Beta*opt_power + DIE.Gamma*opt_area;
