@@ -58,9 +58,9 @@ double costeva::calTns(){
         g->is_tracking = false;
     }
 
-    for(auto& f: *ffs){
-        f->update_pin_loc();
-    }
+    // for(auto& f: *ffs){
+    //     f->update_pin_loc();
+    // }
 
     double tns = 0;
     for(auto& f: *ffs){
@@ -95,28 +95,28 @@ double costeva::calTns(){
 
                 slack = p->slack - (new_hpwl - ori_hpwl)*(DIE->displacement_delay);
 
-                if(slack < 0 && f->type->bit_num != 1){
-                    cout << endl << "***************" << endl;
-                    cout << "neg slack: " << slack << endl;
-                    cout << "ori ff name: " << p->to_ff->name << endl;
-                    cout << "given slack: " << p->slack << endl;
-                    cout << "source pin: " << sp->coox << ", " << sp->cooy << endl;
-                    cout << "target ff ori cen: " << p->to_ff->cen_x << ", " << p->to_ff->cen_y << endl;
-                    cout << "target ff new cen: " << f->cen_x << ", " << f->cen_y << endl;
-                    cout << "target pin ori: " << p->coox << ", " << p->cooy << endl;
-                    cout << "target pin new: " << p->new_coox << ", " << p->new_cooy << endl;
-                    cout << "pin ori hpwl: " << ori_hpwl << endl;
-                    cout << "pin new hpwl: " << new_hpwl << endl;
-                    cout << "pin hpwl diff: " << new_hpwl - ori_hpwl << endl;
-                    cout << "cen ori hpwl: " << cen_ori_hpwl << endl;
-                    cout << "cen new hpwl: " << cen_new_hpwl << endl;
-                    cout << "cen hpwl diff: " << cen_new_hpwl - cen_ori_hpwl << endl;
+                // if(slack < 0 && f->type->bit_num != 1){
+                //     cout << endl << "***************" << endl;
+                //     cout << "neg slack: " << slack << endl;
+                //     cout << "ori ff name: " << p->to_ff->name << endl;
+                //     cout << "given slack: " << p->slack << endl;
+                //     cout << "source pin: " << sp->coox << ", " << sp->cooy << endl;
+                //     cout << "target ff ori cen: " << p->to_ff->cen_x << ", " << p->to_ff->cen_y << endl;
+                //     cout << "target ff new cen: " << f->cen_x << ", " << f->cen_y << endl;
+                //     cout << "target pin ori: " << p->coox << ", " << p->cooy << endl;
+                //     cout << "target pin new: " << p->new_coox << ", " << p->new_cooy << endl;
+                //     cout << "pin ori hpwl: " << ori_hpwl << endl;
+                //     cout << "pin new hpwl: " << new_hpwl << endl;
+                //     cout << "pin hpwl diff: " << new_hpwl - ori_hpwl << endl;
+                //     cout << "cen ori hpwl: " << cen_ori_hpwl << endl;
+                //     cout << "cen new hpwl: " << cen_new_hpwl << endl;
+                //     cout << "cen hpwl diff: " << cen_new_hpwl - cen_ori_hpwl << endl;
 
-                    cout << "fsr cen x: " << f->cen_x + f->cen_y << endl; 
-                    cout << "fsr cen y: " << f->cen_y - f->cen_x << endl; 
-                    cout << endl << "***************" << endl;
-                    return 0;
-                }
+                //     cout << "fsr cen x: " << f->cen_x + f->cen_y << endl; 
+                //     cout << "fsr cen y: " << f->cen_y - f->cen_x << endl; 
+                //     cout << endl << "***************" << endl;
+                //     return 0;
+                // }
                 
             }
             else if(p->to_net->ipins.front()->pin_type == 'g'){
@@ -128,28 +128,28 @@ double costeva::calTns(){
                 double cen_new_hpwl = abs(sp->coox - p->to_new_ff->cen_x) + abs(sp->cooy - p->to_new_ff->cen_y);
                 if(get_ct(sp->to_gate) == numeric_limits<double>::lowest()){
                     slack = p->slack - (new_hpwl - ori_hpwl)*(DIE->displacement_delay);
-                    if(slack < 0){
-                        cout << endl << "***************" << endl;
-                        cout << "ff bit num: " << f->type->bit_num << endl;
-                        cout << "source pin coor: " << sp->coox << ", " << sp->cooy << endl;
-                        cout << "ori ff type: " << p->to_ff->type->name << endl;
-                        cout << "new ff type: " << p->to_new_ff->type->name << endl;
-                        cout << "ori ff coor: "  << p->to_ff->coox << ", " << p->to_ff->cooy << endl;
-                        cout << "new ff coor: "  << p->to_new_ff->coox << ", " << p->to_new_ff->cooy << endl;
-                        cout << "ori ff size: " << p->to_ff->type->size_x << ", " << p->to_ff->type->size_y << endl;
-                        cout << "new ff size: " << p->to_new_ff->type->size_x << ", " << p->to_new_ff->type->size_y << endl;
-                        cout << "neg slack: " << slack << endl;
-                        cout << "given slack: " << p->slack << endl;
-                        cout << "pin ori hpwl: " << ori_hpwl << endl;
-                        cout << "pin new hpwl: " << new_hpwl << endl;
-                        cout << "pin hpwl diff: " << new_hpwl - ori_hpwl << endl;
-                        cout << "cen ori hpwl: " << cen_ori_hpwl << endl;
-                        cout << "cen new hpwl: " << cen_new_hpwl << endl;
-                        cout << "cen hpwl diff: " << cen_new_hpwl - cen_ori_hpwl << endl;
+                    // if(slack < 0){
+                        // cout << endl << "***************" << endl;
+                        // cout << "ff bit num: " << f->type->bit_num << endl;
+                        // cout << "source pin coor: " << sp->coox << ", " << sp->cooy << endl;
+                        // cout << "ori ff type: " << p->to_ff->type->name << endl;
+                        // cout << "new ff type: " << p->to_new_ff->type->name << endl;
+                        // cout << "ori ff coor: "  << p->to_ff->coox << ", " << p->to_ff->cooy << endl;
+                        // cout << "new ff coor: "  << p->to_new_ff->coox << ", " << p->to_new_ff->cooy << endl;
+                        // cout << "ori ff size: " << p->to_ff->type->size_x << ", " << p->to_ff->type->size_y << endl;
+                        // cout << "new ff size: " << p->to_new_ff->type->size_x << ", " << p->to_new_ff->type->size_y << endl;
+                        // cout << "neg slack: " << slack << endl;
+                        // cout << "given slack: " << p->slack << endl;
+                        // cout << "pin ori hpwl: " << ori_hpwl << endl;
+                        // cout << "pin new hpwl: " << new_hpwl << endl;
+                        // cout << "pin hpwl diff: " << new_hpwl - ori_hpwl << endl;
+                        // cout << "cen ori hpwl: " << cen_ori_hpwl << endl;
+                        // cout << "cen new hpwl: " << cen_new_hpwl << endl;
+                        // cout << "cen hpwl diff: " << cen_new_hpwl - cen_ori_hpwl << endl;
                         // cout << "q pin delay diff: " << (new_qpin_delay - ori_qpin_delay) << endl;
-                        cout << endl << "***************" << endl;
-                        return 0;
-                    } 
+                        // cout << endl << "***************" << endl;
+                        // return 0;
+                    // } 
                 }
                 else{
                     slack = p->slack - (temp_ct + get_ct(sp->to_gate));
@@ -157,13 +157,8 @@ double costeva::calTns(){
                 
             }
             if(slack < 0){
-                //cout << "slack " << slack << endl;
                 tns = tns - slack;
             }  
-            else {
-                
-                // cout << "slack " << slack << endl;
-            }
         }
     }
 
@@ -197,7 +192,7 @@ double costeva::get_ct(gatei* g){
             double new_qpin_delay = sp->to_new_ff->type->get_Qpin_delay();
 
 
-            temp_ct = (new_qpin_delay - ori_qpin_delay) - (new_hpwl - ori_hpwl)*(DIE->displacement_delay);
+            temp_ct = (new_qpin_delay - ori_qpin_delay) + (new_hpwl - ori_hpwl)*(DIE->displacement_delay);
             if(temp_ct > max_ct) max_ct = temp_ct;
         }
         else if(p->to_net->ipins.front()->pin_type == 'd'){
@@ -214,14 +209,13 @@ double costeva::calOriTns(){
     double tns = 0;
 
     for(auto f: *ffs){
-        //for(auto p: f->d_pins){
         for(int i=0; i<f->d_pins.size(); i++){
             cnt++;
-            if(f->d_pins[i]->slack < 0) tns = tns - f->d_pins[i]->slack;
+            if(f->d_pins[i]->slack < 0) tns = tns + f->d_pins[i]->slack;
         }
     }
 
-    // cout << "D pin count: " << cnt << endl;
+
     return tns;
 }
 

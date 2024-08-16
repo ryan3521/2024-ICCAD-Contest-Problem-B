@@ -348,7 +348,12 @@ double inst::TnsTest(bool print, list<pin*>& dpins, list<pin*>& qpins, ffcell* t
 
             double d_slack = pp->dpin->CalTns(dpin_coox, dpin_cooy, true,  type, coeff);
             double q_slack = pp->qpin->CalTns(qpin_coox, qpin_cooy, false, type, coeff);
-            double total_slack = d_slack + q_slack;
+
+            double total_slack;
+            if(d_slack < 0 && q_slack < 0) total_slack = d_slack + q_slack;
+            else if(d_slack < 0) total_slack = d_slack;
+            else if(q_slack < 0) total_slack = q_slack;
+            else total_slack = d_slack + q_slack;
 
             pp->preference_list.push_back(pair<int, double>(idx, total_slack));
         }
@@ -797,13 +802,21 @@ double pin::CalTns(double new_coox, double new_cooy, bool is_D, ffcell* new_type
                 double new_hpwl = abs(new_coox - anchor_x) + abs(new_cooy - anchor_y);
                 temp_slack = dspd_slk - (new_hpwl - ori_hpwl)*coeff - (new_type->Qpin_delay - to_ff->type->Qpin_delay);
             }
-            else{
+            else if(tp->pin_type == 'g'){
                 double ori_hpwl = abs(coox - tp->coox) + abs(cooy - tp->cooy);
                 double new_hpwl = abs(new_coox - tp->coox) + abs(new_cooy - tp->cooy);
-                temp_slack = dspd_slk - (new_hpwl - ori_hpwl)*coeff - (new_type->Qpin_delay - to_ff->type->Qpin_delay);
+                if(tp->to_gate->get_critical_slack() == numeric_limits<double>::max()){
+                    temp_slack = 0;
+                }
+                else{
+                    temp_slack = tp->to_gate->get_critical_slack() - (new_hpwl - ori_hpwl)*coeff - (new_type->Qpin_delay - to_ff->type->Qpin_delay);
+                }
+            }
+            else if(tp->pin_type == 'd'){
+                temp_slack = 0;
             }
             if(temp_slack < 0) slack = slack + temp_slack;
         }
     }
-    return (slack > 0)? 1 : slack;
+    return (slack >= 0)? 1 : slack;
 }

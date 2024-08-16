@@ -49,6 +49,85 @@ int main(int argc, char** argv){
     INST.ConstructFSR(DIE);
 
 
+    // Test TNS: begin
+    double ori_total = 0;
+    for(auto it: INST.ff_umap){
+        ffi* f = it.second;
+        list<pin*> dpins;
+        list<pin*> qpins;
+        list<pin*> optseq_D;
+        list<pin*> optseq_Q;
+        ffcell* type = f->type;
+        double coeff = DIE.displacement_delay;
+        double test_result;
+        double ori_slack = 0;
+        double ori_dslack = f->d_pins.front()->dspd_slk;
+        double ori_qslack = 0;
+
+        // for(auto p: f->q_pins.front()->to_net->opins){
+        //     double temp_slack;
+        //     if(p->pin_type == 'f'){
+        //         temp_slack = f->q_pins.front()->dspd_slk;
+        //     }
+        //     else if(p->pin_type == 'g'){
+        //         temp_slack = p->to_gate->get_critical_slack();
+        //     }
+        //     else if(p->pin_type == 'd'){
+        //         temp_slack = 0; 
+        //     }
+        //     if(temp_slack < 0) ori_qslack = ori_qslack + temp_slack;
+        // }
+
+        // if(ori_qslack<0 && ori_dslack<0) ori_slack = ori_dslack + ori_qslack;
+        // else if(ori_dslack < 0) ori_slack = ori_dslack;
+        // else if(ori_qslack < 0) ori_slack = ori_qslack;
+        // else ori_slack = ori_dslack + ori_qslack;
+
+        
+
+        if(ori_dslack < 0) ori_total = ori_total + ori_dslack;
+
+
+        dpins.push_back(f->d_pins.front());
+        qpins.push_back(f->q_pins.front());
+        test_result = INST.TnsTest(0, dpins, qpins, type, coeff, optseq_D, optseq_Q);
+
+        // if((test_result - ori_slack) > 0.000001){
+        //     cout << endl;
+        //     cout << "Ori = " << ori_slack << ", Test result: " << test_result << endl; 
+        //     cout << "****************************************" << endl;
+        //     cout << "Original Slack: " << endl;
+        //     cout << "Slack: " << f->d_pins.front()->slack << endl;
+        //     cout << "DSPD d pin: " << f->d_pins.front()->dspd_slk << endl;
+        //     cout << "DSPD q pin: ";
+        //     for(auto p: f->q_pins.front()->to_net->opins){
+        //         if(p->pin_type == 'f'){
+        //             cout << "f:" << f->q_pins.front()->dspd_slk << " -> ";
+        //         }
+        //         else if(p->pin_type == 'g'){
+        //             cout << "g:" << p->to_gate->get_critical_slack() << " -> ";
+        //         }
+        //         else if(p->pin_type == 'd'){
+        //             cout << "d:0 -> "; 
+        //         }
+        //     }
+        //     cout <<  "end" << endl;
+        //     cout << "****************************************" << endl;
+        //     cout << endl;
+        //     return 0;
+        // }
+    }
+    cout << "Origianl totoal slack: " << ori_total << endl;
+
+    // Test TNS: end
+
+
+
+
+
+
+
+
     for(auto it: INST.ff_umap){
         auto f = it.second;
         orig_area = orig_area + f->type->area;
@@ -108,7 +187,7 @@ int main(int argc, char** argv){
 
     cout << endl << "Total execution time: " << (end - start) / 1000000.0  << " s" << '\n';
 
-    DrawFFs(DIE, LIB, INST, UPFFS);
+    // DrawFFs(DIE, LIB, INST, UPFFS);
     return 0;
 }
 
