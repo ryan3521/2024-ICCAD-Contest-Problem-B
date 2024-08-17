@@ -50,19 +50,19 @@ int main(int argc, char** argv){
 
 
     // Test TNS: begin
-    double ori_total = 0;
-    for(auto it: INST.ff_umap){
-        ffi* f = it.second;
-        list<pin*> dpins;
-        list<pin*> qpins;
-        list<pin*> optseq_D;
-        list<pin*> optseq_Q;
-        ffcell* type = f->type;
-        double coeff = DIE.displacement_delay;
-        double test_result;
-        double ori_slack = 0;
-        double ori_dslack = f->d_pins.front()->dspd_slk;
-        double ori_qslack = 0;
+    // double ori_total = 0;
+    // for(auto it: INST.ff_umap){
+    //     ffi* f = it.second;
+    //     list<pin*> dpins;
+    //     list<pin*> qpins;
+    //     list<pin*> optseq_D;
+    //     list<pin*> optseq_Q;
+    //     ffcell* type = f->type;
+    //     double coeff = DIE.displacement_delay;
+    //     double test_result;
+    //     double ori_slack = 0;
+    //     double ori_dslack = f->d_pins.front()->dspd_slk;
+    //     double ori_qslack = 0;
 
         // for(auto p: f->q_pins.front()->to_net->opins){
         //     double temp_slack;
@@ -85,12 +85,12 @@ int main(int argc, char** argv){
 
         
 
-        if(ori_dslack < 0) ori_total = ori_total + ori_dslack;
+        // if(ori_dslack < 0) ori_total = ori_total + ori_dslack;
 
 
-        dpins.push_back(f->d_pins.front());
-        qpins.push_back(f->q_pins.front());
-        test_result = INST.TnsTest(0, dpins, qpins, type, coeff, optseq_D, optseq_Q);
+        // dpins.push_back(f->d_pins.front());
+        // qpins.push_back(f->q_pins.front());
+        // test_result = INST.TnsTest(0, dpins, qpins, type, coeff, optseq_D, optseq_Q);
 
         // if((test_result - ori_slack) > 0.000001){
         //     cout << endl;
@@ -116,8 +116,8 @@ int main(int argc, char** argv){
         //     cout << endl;
         //     return 0;
         // }
-    }
-    cout << "Origianl totoal slack: " << ori_total << endl;
+    // }
+    // cout << "Origianl totoal slack: " << ori_total << endl;
 
     // Test TNS: end
 
@@ -138,30 +138,55 @@ int main(int argc, char** argv){
     FFBANK.run();
     FFBANK.PrintResult();
 
-    for(auto f: UPFFS){
+    // for(auto f: UPFFS){
+    //     opt_area = opt_area + f->type->area;
+    //     opt_power = opt_power + f->type->gate_power;
+    //     aft_bitnum = aft_bitnum + f->d_pins.size();
+    // }
+
+    // for(auto f: UPFFS){
+    //     list<pin*> dpins;
+    //     list<pin*> qpins;
+    //     list<pin*> optseq_D;
+    //     list<pin*> optseq_Q;
+    //     ffcell* type;
+    //     double coeff = DIE.displacement_delay;
+
+    //     if(/*f->type->bit_num == 1 && f->d_pins.front()->to_ff->type != f->type &&*/ f->name == "NEWFF18020"){
+    //         dpins.push_back(f->d_pins.front());
+    //         qpins.push_back(f->q_pins.front());
+
+    //         cout << "---------------------------" << endl;
+    //         cout << f->name << endl;
+    //         cout << "original type: " << endl;
+    //         type = f->d_pins.front()->to_ff->type;
+    //         INST.TnsTest(1, dpins, qpins, type, coeff, optseq_D, optseq_Q);
+    //         cout << "new type: " << endl;
+    //         type = f->type;
+    //         INST.TnsTest(1, dpins, qpins, type, coeff, optseq_D, optseq_Q);
+
+    //         cout << "---------------------------" << endl;
+    //     }
+    // }
+
+
+    PM.placeGateInst();
+    PM.placeFlipFlopInst( UPFFS, PFFS);
+    Output(argv[2], PFFS, INST);
+
+    for(auto f: PFFS){
         opt_area = opt_area + f->type->area;
         opt_power = opt_power + f->type->gate_power;
         aft_bitnum = aft_bitnum + f->d_pins.size();
     }
 
 
-    // PM.placeGateInst();
-    // PM.placeFlipFlopInst( UPFFS, PFFS);
-    // Output(argv[2], PFFS, INST);
-
-    // for(auto f: PFFS){
-    //     opt_area = opt_area + f->type->area;
-    //     opt_power = opt_power + f->type->gate_power;
-    //     aft_bitnum = aft_bitnum + f->d_pins.size();
-    // }
-
-
     double end = clock();
 
-    // if(ori_bitnum == aft_bitnum)
-    //     cout << endl << "success - bit num match -" << endl;
-    // else 
-    //     cout << endl << "error - bit num not match" << endl;
+    if(ori_bitnum == aft_bitnum)
+        cout << endl << "success - bit num match -" << endl;
+    else 
+        cout << endl << "error - bit num not match" << endl;
 
     ori_cost = DIE.Beta*orig_power + DIE.Gamma*orig_area;
     opt_cost = DIE.Beta*opt_power + DIE.Gamma*opt_area;
@@ -183,7 +208,7 @@ int main(int argc, char** argv){
     cout << "Reduce: " << 100*(ori_cost - opt_cost)/ori_cost << " %" << endl;
     cout << "===============================" << endl;
     
-    cout << "Total cost: " << COST.evaluate(&UPFFS) << endl;
+    cout << "Total cost: " << COST.evaluate(&PFFS) << endl;
 
     cout << endl << "Total execution time: " << (end - start) / 1000000.0  << " s" << '\n';
 

@@ -151,7 +151,7 @@ void banking::run(){
     int clk_group_cnt = 0;
     int newff_cnt = 0;
     for(auto ff_list: INST->ffs_sing){
-        cout << endl << "Group " << clk_group_cnt << " FFs Processing ... (" << ff_list->size() << ")" << endl;
+        // cout << endl << "Group " << clk_group_cnt << " FFs Processing ... (" << ff_list->size() << ")" << endl;
         // Initial: begin
         banking_ffs.clear();
         for(auto f: *ff_list) { banking_ffs.push_back(f); }
@@ -168,10 +168,10 @@ void banking::run(){
         // Initial: end
 
         for(int cluster_target_size=LIB->max_ff_size; cluster_target_size>1; cluster_target_size--){
-            cout << endl << "K-means clustering, target size = " << cluster_target_size << endl;
+            // cout << endl << "K-means clustering, target size = " << cluster_target_size << endl;
             
             // K-means initial: begin
-            if(cluster_target_size == 2) cout << "K-means initial" << endl;
+            // if(cluster_target_size == 2) cout << "K-means initial" << endl;
             list<cluster*> k_clusters;
             k_clusters.clear();
             int cnt = 0;
@@ -190,9 +190,9 @@ void banking::run(){
             // K-means initial: end
 
             // K-means cluster: begin
-            cout << "do k-means cluster:" << endl;
-            cout << "K = " << k_clusters.size() << endl;
-            cout << "data = " << kmeans_data_points.size() << endl;
+            // cout << "do k-means cluster:" << endl;
+            // cout << "K = " << k_clusters.size() << endl;
+            // cout << "data = " << kmeans_data_points.size() << endl;
             int ITR_LIMIT = 20;
             int itr_cnt = 0;
             while(1){
@@ -249,7 +249,7 @@ void banking::run(){
             // K-means cluster: end
 
             // Calculate cost per bit for new cluster: begin
-            cout << "Calculating cost-per-bit for new cluster" << endl;
+            // cout << "Calculating cost-per-bit for new cluster" << endl;
             list<cluster*>::iterator itr1 = k_clusters.begin();
             int cls_cnt = 0;
             while(itr1 != k_clusters.end()){
@@ -276,7 +276,7 @@ void banking::run(){
 
             // Determine new or old cluster stay: begin
             // Initial "is-better-than-new": begin
-            cout << "initial bad top cluster" << endl;
+            // cout << "initial bad top cluster" << endl;
             list<cluster*> bad_old_cluster_list;
             bad_old_cluster_list.clear();
             for(auto& cls: top_list){
@@ -296,7 +296,7 @@ void banking::run(){
 
 
             // Find out "Good" new cluster: begin
-            cout << "finding out good new cluster" << endl;
+            // cout << "finding out good new cluster" << endl;
             while(1){
                 list<cluster*>::iterator itr;
                 // if(cluster_target_size==3) cout << "Bad cluster num: " << bad_old_cluster_list.size() << endl;
@@ -493,7 +493,7 @@ void banking::run(){
 }
 
 void banking::Initial_SingleBit_Cls(){
-    cout << "Initializing Single Bit Cluster" << endl;
+    // cout << "Initializing Single Bit Cluster" << endl;
     single_bit_clusters.clear();
     for(auto f: banking_ffs){
         cluster* cls = new cluster;

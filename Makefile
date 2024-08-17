@@ -4,7 +4,9 @@ OBJS = lib.o inst.o netlist.o placement.o read_input.o output.o banking.o costev
 BINS = main
 TC1  = sampleCase
 TC2  = testcase1_0614.txt
-INFILE = ./Testcase/$(TC2)
+TC3  = testcase1_0812.txt
+TC4  = testcase2_0812.txt
+INFILE = ./Testcase/$(TC4)
 OUTFILE = output.txt
 
 all: $(BINS)

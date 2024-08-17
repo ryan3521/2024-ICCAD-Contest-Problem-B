@@ -296,7 +296,7 @@ double inst::TnsTest(bool print, list<pin*>& dpins, list<pin*>& qpins, ffcell* t
     pseudo_ff.set_type(type);
 
     // calculate new ff coor: begin
-    if(print) cout << "calculate new ff coor" << endl;
+    // if(print) cout << "calculate new ff coor" << endl;
     for(auto p: dpins){ sumx = sumx + p->coox; sumy = sumy + p->cooy; }    
     for(auto p: qpins){ sumx = sumx + p->coox; sumy = sumy + p->cooy; } 
 
@@ -349,12 +349,16 @@ double inst::TnsTest(bool print, list<pin*>& dpins, list<pin*>& qpins, ffcell* t
             double d_slack = pp->dpin->CalTns(dpin_coox, dpin_cooy, true,  type, coeff);
             double q_slack = pp->qpin->CalTns(qpin_coox, qpin_cooy, false, type, coeff);
 
+
             double total_slack;
             if(d_slack < 0 && q_slack < 0) total_slack = d_slack + q_slack;
             else if(d_slack < 0) total_slack = d_slack;
             else if(q_slack < 0) total_slack = q_slack;
             else total_slack = d_slack + q_slack;
 
+            if(print && total_slack<0){
+                cout << "D pin: " << d_slack << ", Q pin: " << q_slack << endl;
+            }
             pp->preference_list.push_back(pair<int, double>(idx, total_slack));
         }
         pp->preference_list.sort(preference_cmp);
@@ -382,11 +386,11 @@ double inst::TnsTest(bool print, list<pin*>& dpins, list<pin*>& qpins, ffcell* t
     // initial port_pairs (mans): end
 
     // matching: begin
-    if(print) cout << "matching" << endl;
+    // if(print) cout << "matching" << endl;
     int remain_women_num = pin_pair_list.size();
     while(remain_women_num>0){
         // women propose: begin
-        if(print) cout << "proposing, women num = " << remain_women_num << endl;
+        // if(print) cout << "proposing, women num = " << remain_women_num << endl;
         for(auto itr=pin_pair_list.begin(); itr!=pin_pair_list.end(); itr++){
             auto& most_like_port = (*itr)->preference_list.front();
             port_pairs[most_like_port.first].choices_list.push_back(pair<double, list<pin_pair*>::iterator>(most_like_port.second, itr));
@@ -395,7 +399,7 @@ double inst::TnsTest(bool print, list<pin*>& dpins, list<pin*>& qpins, ffcell* t
         // women propose: end
 
         // men accept or reject: begin
-        if(print) cout << "accpet or reject" << endl;
+        // if(print) cout << "accpet or reject" << endl;
         for(auto& man: port_pairs){
             bool have_choice = false;
             double max_slack = numeric_limits<double>::lowest();
@@ -408,7 +412,7 @@ double inst::TnsTest(bool print, list<pin*>& dpins, list<pin*>& qpins, ffcell* t
                     have_choice = true;
                 }
             }
-            if(print) cout << "have choice: " << have_choice << endl;
+            // if(print) cout << "have choice: " << have_choice << endl;
             if(have_choice == false) continue;
             if(man.like_most_pin_pair == NULL){
                 man.slack = max_slack;
@@ -437,7 +441,9 @@ double inst::TnsTest(bool print, list<pin*>& dpins, list<pin*>& qpins, ffcell* t
     for(auto& pp: port_pairs){
         optseq_D.push_back(pp.like_most_pin_pair->dpin);
         optseq_Q.push_back(pp.like_most_pin_pair->qpin);
-        total_slack = total_slack + pp.slack;
+        if(pp.slack < 0){
+            total_slack = total_slack + pp.slack;
+        }
     } 
     // calculate final best total slack: end
 
@@ -801,6 +807,7 @@ double pin::CalTns(double new_coox, double new_cooy, bool is_D, ffcell* new_type
                 double ori_hpwl = abs(coox - anchor_x) + abs(cooy - anchor_y);
                 double new_hpwl = abs(new_coox - anchor_x) + abs(new_cooy - anchor_y);
                 temp_slack = dspd_slk - (new_hpwl - ori_hpwl)*coeff - (new_type->Qpin_delay - to_ff->type->Qpin_delay);
+                if(temp_slack >= dspd_slk) temp_slack = 0;
             }
             else if(tp->pin_type == 'g'){
                 double ori_hpwl = abs(coox - tp->coox) + abs(cooy - tp->cooy);
@@ -810,6 +817,9 @@ double pin::CalTns(double new_coox, double new_cooy, bool is_D, ffcell* new_type
                 }
                 else{
                     temp_slack = tp->to_gate->get_critical_slack() - (new_hpwl - ori_hpwl)*coeff - (new_type->Qpin_delay - to_ff->type->Qpin_delay);
+                    if(temp_slack >= tp->to_gate->get_critical_slack()){
+                        temp_slack = 0;
+                    }
                 }
             }
             else if(tp->pin_type == 'd'){

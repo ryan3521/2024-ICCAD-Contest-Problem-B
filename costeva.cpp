@@ -19,6 +19,7 @@ double costeva::evaluate(list<ffi*>* ff_list){
     double Area    = calArea();
     double Density = calDensity();
 
+    cout << "Ori Aprox TNS: " << aproxOriTns() << endl;
     cout << "Aprox TNS: " << aproxTns() << endl;
     cout << "Ori TNS : " << oriTns << endl;
     cout << "TNS     : " << TNS << endl;
@@ -232,14 +233,22 @@ double costeva::aproxTns(){
 
     for(auto f: *ffs){
         for(auto p: f->q_pins){
+            double q_slack = 0;
             for(auto tp: p->to_net->opins){
                 if(tp->pin_type == 'g'){
                     ori_hpwl = abs(tp->coox - p->coox) + abs(tp->cooy - p->cooy);
                     new_hpwl = abs(tp->coox - p->new_coox) + abs(tp->cooy - p->new_cooy);
                     temp_slack = tp->to_gate->get_critical_slack() - (new_hpwl - ori_hpwl)*(DIE->displacement_delay);
+                    if(temp_slack < 0) q_slack = q_slack + temp_slack;
                     if(temp_slack < 0) tns = tns - temp_slack;
                 }
             }
+            // if(q_slack < 0 && f->type!=f->q_pins.front()->to_ff->type) {
+            //     cout << f->name << endl;
+            //     //cout << "ori q slack: " << p->dspd_slk << endl;
+            //     cout << "new q slack: " << q_slack << endl;
+            //     return 0;
+            // }
         }
         for(auto p: f->d_pins){
             auto sp = p->to_net->ipins.front();
@@ -261,8 +270,48 @@ double costeva::aproxTns(){
                 temp_slack = p->slack - (new_hpwl - ori_hpwl)*(DIE->displacement_delay);
                 if(temp_slack < 0) tns = tns - temp_slack;
             }
+            // if(temp_slack < p->dspd_slk && temp_slack < 0) {
+            //     cout << f->name << endl;
+            //     cout << "ori d slack: " << p->dspd_slk << endl;
+            //     cout << "new d slack: " << temp_slack << endl;
+            //     return 0;
+            // }
         }
     }
+    return tns;
+}
+
+double costeva::aproxOriTns(){
+    double tns = 0;
+    double temp_slack;
+    int qcnt = 0;
+    int dcnt = 0;
+    for(auto f: *ffs){
+        for(auto p: f->q_pins){
+            double q_slack = 0;
+            if(p->dspd_slk < 0) {
+                tns = tns - p->dspd_slk;
+                qcnt++;
+            }
+            // for(auto tp: p->to_net->opins){
+            //     if(tp->pin_type == 'g'){
+            //         temp_slack = tp->to_gate->get_critical_slack();
+            //         if(temp_slack < 0) tns = tns - temp_slack;
+            //     }
+            //     else if(tp->pin_type == 'f'){
+            //         if(p->dspd_slk < 0) tns = tns - p->dspd_slk;
+            //     }
+            // }
+        }
+        for(auto p: f->d_pins){
+            if(p->dspd_slk < 0) {
+                // tns = tns - p->dspd_slk;
+                dcnt++;
+            }
+        }
+    }
+    cout << "neg d cnt = " << dcnt << endl;
+    cout << "neg q cnt = " << qcnt << endl;
     return tns;
 }
 
