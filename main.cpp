@@ -43,9 +43,17 @@ int main(int argc, char** argv){
     srand(time(NULL));
     
     ReadInput(argv[1], LIB, INST, DIE, NL, PM);
+
+    cout << "Construct FF table" << endl;
     LIB.construct_fftable(DIE);
+
+    cout << "Calculating slack" << endl;
     INST.SlackDispense(DIE);
+
+    cout << "Debanking all ffs" << endl;
     INST.DebankAllFF(LIB);
+
+    cout << "Constructing Feasible Region" << endl;
     INST.ConstructFSR(DIE);
 
 
@@ -122,19 +130,13 @@ int main(int argc, char** argv){
     // Test TNS: end
 
 
-
-
-
-
-
-
     for(auto it: INST.ff_umap){
         auto f = it.second;
         orig_area = orig_area + f->type->area;
         orig_power = orig_power + f->type->gate_power;
         ori_bitnum = ori_bitnum + f->d_pins.size();
     }
-
+    cout << "FF Banking" << endl;
     FFBANK.run();
     FFBANK.PrintResult();
 
@@ -185,8 +187,11 @@ int main(int argc, char** argv){
 
     if(ori_bitnum == aft_bitnum)
         cout << endl << "success - bit num match -" << endl;
-    else 
+    else {
         cout << endl << "error - bit num not match" << endl;
+        cout << "ori bit num: " << ori_bitnum << endl;
+        cout << "aft bit num: " << aft_bitnum << endl;
+    }
 
     ori_cost = DIE.Beta*orig_power + DIE.Gamma*orig_area;
     opt_cost = DIE.Beta*opt_power + DIE.Gamma*opt_area;

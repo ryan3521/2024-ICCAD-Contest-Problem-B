@@ -101,9 +101,12 @@ double get_critical_slack(net* net_ptr){
             else{
                 double gate_cslack = numeric_limits<double>::max();
                 pin_ptr->to_gate->is_tracking = true;
-                for(int i=0; i<pin_ptr->to_gate->opins.size(); i++){
-                    temp_slack = get_critical_slack(pin_ptr->to_gate->opins[i]->to_net);
-                    if(temp_slack < gate_cslack) gate_cslack = temp_slack;
+                // for(int i=0; i<pin_ptr->to_gate->opins.size(); i++){
+                for(auto op: pin_ptr->to_gate->opins){
+                    if(op->to_net != NULL){
+                        temp_slack = get_critical_slack(op->to_net);
+                        if(temp_slack < gate_cslack) gate_cslack = temp_slack;
+                    } 
                 }
                 pin_ptr->to_gate->visit(gate_cslack);
                 temp_slack = gate_cslack;
@@ -180,7 +183,9 @@ void inst::SlackDispense(dieInfo& DIE){
         ffptr = it->second;
 
         for(int i=0; i<ffptr->q_pins.size(); i++){
+            // cout << "get critical slack : begin" << endl; 
             ffptr->q_pins[i]->dspd_slk = get_critical_slack(ffptr->q_pins[i]->to_net);
+            // cout << "get critical slack : end" << endl; 
             if(ffptr->q_pins[i]->dspd_slk == numeric_limits<double>::max()){
                 ffptr->q_pins[i]->dspd_slk = ffptr->d_pins[i]->slack;
             }
@@ -190,6 +195,7 @@ void inst::SlackDispense(dieInfo& DIE){
             }
         }  
 
+        // cout << ffptr->name << ": d pin" << endl;
         for(int i=0; i<ffptr->d_pins.size(); i++){
             if(ffptr->d_pins[i]->dspd_slk < min_pos_slack/* && ffptr->d_pins[i]->dspd_slk > 0*/){
                 no_pos_slack = false;

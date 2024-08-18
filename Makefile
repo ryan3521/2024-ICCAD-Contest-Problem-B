@@ -6,7 +6,7 @@ TC1  = sampleCase
 TC2  = testcase1_0614.txt
 TC3  = testcase1_0812.txt
 TC4  = testcase2_0812.txt
-INFILE = ./Testcase/$(TC4)
+INFILE = ./Testcase/$(TC3)
 OUTFILE = output.txt
 
 all: $(BINS)
