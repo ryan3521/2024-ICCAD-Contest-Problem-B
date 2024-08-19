@@ -16,6 +16,10 @@ cluster::cluster(){
     optseq_Q.clear();
 }
 
+bool cluster::cmp(cluster* a, cluster* b){
+    return a->displace_distance > b->displace_distance;
+}
+
 bool cluster::UpdateCoor_CheckMove(){
     double sum_x = 0;
     double sum_y = 0;
@@ -32,8 +36,8 @@ bool cluster::UpdateCoor_CheckMove(){
 }
 
 void cluster::AddMember(cluster* new_member){
-    size++;
     members.push_back(new_member);
+    size++;
 }
 
 void cluster::Clear(){
@@ -151,7 +155,7 @@ void banking::run(){
     int clk_group_cnt = 0;
     int newff_cnt = 0;
     for(auto ff_list: INST->ffs_sing){
-        // cout << endl << "Group " << clk_group_cnt << " FFs Processing ... (" << ff_list->size() << ")" << endl;
+        cout << endl << "Group " << clk_group_cnt << " FFs Processing ... (" << ff_list->size() << ")" << endl;
         // Initial: begin
         banking_ffs.clear();
         for(auto f: *ff_list) { banking_ffs.push_back(f); }
@@ -189,14 +193,14 @@ void banking::run(){
             }
             // K-means initial: end
 
-            // K-means cluster: begin
+            // K-means cluster stage 1: begin
             // cout << "do k-means cluster:" << endl;
             // cout << "K = " << k_clusters.size() << endl;
             // cout << "data = " << kmeans_data_points.size() << endl;
-            int ITR_LIMIT = 20;
+            int ITR_LIMIT = 7;
             int itr_cnt = 0;
             while(1){
-                // if(cluster_target_size == 2 && clk_group_cnt==5) cout << "itr = " << itr_cnt << endl;
+                cout << "itr = " << itr_cnt << endl;
                 for(auto& data: kmeans_data_points){
                     double   best_cost = numeric_limits<double>::max();
                     cluster* best_cls = NULL;
@@ -206,7 +210,7 @@ void banking::run(){
                         if(k->size == cluster_target_size) continue;
                         double cost;
                         cost = abs(k->coox - data->coox) + abs(k->cooy - data->cooy); // HPWL
-                        //cost = (k->coox - data->coox)*(k->coox - data->coox) + (k->cooy - data->cooy)*(k->cooy - data->cooy); // Euclidean Distance 
+                        // cost = (k->coox - data->coox)*(k->coox - data->coox) + (k->cooy - data->cooy)*(k->cooy - data->cooy); // Euclidean Distance 
                         if(cost < best_cost){
                             best_cost = cost;
                             best_cls = k;
@@ -246,7 +250,32 @@ void banking::run(){
                 // Check break: end
                 itr_cnt++;
             }
-            // K-means cluster: end
+            // K-means cluster stage 1: end
+
+            // K-means cluster stage 2: begin
+            for(int i=0; i<2; i++){
+                for(auto& data: kmeans_data_points){
+                    double   best_cost = numeric_limits<double>::max();
+                    cluster* best_cls = NULL;
+                    // Find closest cluster: begin
+                    bool full = true;
+                    for(auto& k: k_clusters){
+                        if(k->size == cluster_target_size) continue;
+                        double cost;
+                        cost = abs(k->coox - data->coox) + abs(k->cooy - data->cooy); // HPWL
+                        // cost = (k->coox - data->coox)*(k->coox - data->coox) + (k->cooy - data->cooy)*(k->cooy - data->cooy); // Euclidean Distance 
+                        if(cost < best_cost){
+                            best_cost = cost;
+                            best_cls = k;
+                        }
+                        full = false;
+                    }
+                    if(best_cls == NULL) cout << "error: full = " << full << endl;
+                    best_cls->AddMember(data);
+                    // Find closest cluster: end
+                }
+            }
+            // K-means cluster stage 2: end
 
             // Calculate cost per bit for new cluster: begin
             // cout << "Calculating cost-per-bit for new cluster" << endl;

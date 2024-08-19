@@ -6,6 +6,8 @@
 
 
 class cluster{
+    private:
+        static bool cmp(cluster* a, cluster* b);
     public:
         // Rule 1:
         // if      "is_top" == true,  "to_cluster" == NULL;
@@ -22,7 +24,7 @@ class cluster{
         cluster* to_top_cluster;
         cluster* to_new_cluster;
         double cost_per_bit; 
-        list<cluster*> members;
+        list<cluster*> members; // sort by displace_distance decending order
         ffcell* type;
         ffi* single_bit_ff;
         double old_coox;
@@ -34,6 +36,7 @@ class cluster{
         bool mark_recalculate; // for new cluster
         list<pin*> optseq_D;
         list<pin*> optseq_Q;
+        double displace_distance;
 
         // Member function
         cluster();

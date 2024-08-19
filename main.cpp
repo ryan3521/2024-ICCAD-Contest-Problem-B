@@ -132,6 +132,7 @@ int main(int argc, char** argv){
 
     for(auto it: INST.ff_umap){
         auto f = it.second;
+
         orig_area = orig_area + f->type->area;
         orig_power = orig_power + f->type->gate_power;
         ori_bitnum = ori_bitnum + f->d_pins.size();

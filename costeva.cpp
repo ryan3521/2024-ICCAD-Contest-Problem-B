@@ -52,7 +52,8 @@ double costeva::calPower(){
 }
 
 double costeva::calTns(){
-
+    double wns = 0;
+    int neg_ff_cnt = 0;
     for(auto& it: INST->gate_umap){
         auto g = it.second;
         g->v = false;
@@ -76,16 +77,7 @@ double costeva::calTns(){
                 double ori_qpin_delay = sp->to_ff->type->get_Qpin_delay();
                 double new_qpin_delay = sp->to_new_ff->type->get_Qpin_delay();
 
-                slack = p->slack - (new_hpwl - ori_hpwl)*(DIE->displacement_delay) - (new_qpin_delay - ori_qpin_delay);
-                // if(slack < 0){
-                //     cout << "neg slack: " << slack << endl;
-                //     cout << "given slack: " << p->slack << endl;
-                //     cout << "pin ori hpwl: " << ori_hpwl << endl;
-                //     cout << "pin new hpwl: " << new_hpwl << endl;
-                //     cout << "pin hpwl diff: " << new_hpwl - ori_hpwl << endl;
-                //     cout << "q pin delay diff: " << (new_qpin_delay - ori_qpin_delay) << endl;
-                //     return 0;
-                // }   
+                slack = p->slack - (new_hpwl - ori_hpwl)*(DIE->displacement_delay) - (new_qpin_delay - ori_qpin_delay); 
             }
             else if(p->to_net->ipins.front()->pin_type == 'd'){
                 auto sp = p->to_net->ipins.front(); // sp: source pin
@@ -95,29 +87,6 @@ double costeva::calTns(){
                 double cen_new_hpwl = abs(sp->coox - p->to_new_ff->cen_x) + abs(sp->cooy - p->to_new_ff->cen_y);
 
                 slack = p->slack - (new_hpwl - ori_hpwl)*(DIE->displacement_delay);
-
-                // if(slack < 0 && f->type->bit_num != 1){
-                //     cout << endl << "***************" << endl;
-                //     cout << "neg slack: " << slack << endl;
-                //     cout << "ori ff name: " << p->to_ff->name << endl;
-                //     cout << "given slack: " << p->slack << endl;
-                //     cout << "source pin: " << sp->coox << ", " << sp->cooy << endl;
-                //     cout << "target ff ori cen: " << p->to_ff->cen_x << ", " << p->to_ff->cen_y << endl;
-                //     cout << "target ff new cen: " << f->cen_x << ", " << f->cen_y << endl;
-                //     cout << "target pin ori: " << p->coox << ", " << p->cooy << endl;
-                //     cout << "target pin new: " << p->new_coox << ", " << p->new_cooy << endl;
-                //     cout << "pin ori hpwl: " << ori_hpwl << endl;
-                //     cout << "pin new hpwl: " << new_hpwl << endl;
-                //     cout << "pin hpwl diff: " << new_hpwl - ori_hpwl << endl;
-                //     cout << "cen ori hpwl: " << cen_ori_hpwl << endl;
-                //     cout << "cen new hpwl: " << cen_new_hpwl << endl;
-                //     cout << "cen hpwl diff: " << cen_new_hpwl - cen_ori_hpwl << endl;
-
-                //     cout << "fsr cen x: " << f->cen_x + f->cen_y << endl; 
-                //     cout << "fsr cen y: " << f->cen_y - f->cen_x << endl; 
-                //     cout << endl << "***************" << endl;
-                //     return 0;
-                // }
                 
             }
             else if(p->to_net->ipins.front()->pin_type == 'g'){
@@ -129,28 +98,7 @@ double costeva::calTns(){
                 double cen_new_hpwl = abs(sp->coox - p->to_new_ff->cen_x) + abs(sp->cooy - p->to_new_ff->cen_y);
                 if(get_ct(sp->to_gate) == numeric_limits<double>::lowest()){
                     slack = p->slack - (new_hpwl - ori_hpwl)*(DIE->displacement_delay);
-                    // if(slack < 0){
-                        // cout << endl << "***************" << endl;
-                        // cout << "ff bit num: " << f->type->bit_num << endl;
-                        // cout << "source pin coor: " << sp->coox << ", " << sp->cooy << endl;
-                        // cout << "ori ff type: " << p->to_ff->type->name << endl;
-                        // cout << "new ff type: " << p->to_new_ff->type->name << endl;
-                        // cout << "ori ff coor: "  << p->to_ff->coox << ", " << p->to_ff->cooy << endl;
-                        // cout << "new ff coor: "  << p->to_new_ff->coox << ", " << p->to_new_ff->cooy << endl;
-                        // cout << "ori ff size: " << p->to_ff->type->size_x << ", " << p->to_ff->type->size_y << endl;
-                        // cout << "new ff size: " << p->to_new_ff->type->size_x << ", " << p->to_new_ff->type->size_y << endl;
-                        // cout << "neg slack: " << slack << endl;
-                        // cout << "given slack: " << p->slack << endl;
-                        // cout << "pin ori hpwl: " << ori_hpwl << endl;
-                        // cout << "pin new hpwl: " << new_hpwl << endl;
-                        // cout << "pin hpwl diff: " << new_hpwl - ori_hpwl << endl;
-                        // cout << "cen ori hpwl: " << cen_ori_hpwl << endl;
-                        // cout << "cen new hpwl: " << cen_new_hpwl << endl;
-                        // cout << "cen hpwl diff: " << cen_new_hpwl - cen_ori_hpwl << endl;
-                        // cout << "q pin delay diff: " << (new_qpin_delay - ori_qpin_delay) << endl;
-                        // cout << endl << "***************" << endl;
-                        // return 0;
-                    // } 
+
                 }
                 else{
                     slack = p->slack - (temp_ct + get_ct(sp->to_gate));
@@ -158,11 +106,14 @@ double costeva::calTns(){
                 
             }
             if(slack < 0){
+                neg_ff_cnt++;
                 tns = tns - slack;
+                if(slack < wns) wns = slack;
             }  
         }
     }
-
+    cout << "WNS = " << wns << endl;
+    cout << "neg ff cnt: " << neg_ff_cnt << endl;
     return tns;
 }
 
@@ -232,24 +183,18 @@ double costeva::aproxTns(){
     double new_hpwl;
 
     for(auto f: *ffs){
-        for(auto p: f->q_pins){
-            double q_slack = 0;
-            for(auto tp: p->to_net->opins){
-                if(tp->pin_type == 'g'){
-                    ori_hpwl = abs(tp->coox - p->coox) + abs(tp->cooy - p->cooy);
-                    new_hpwl = abs(tp->coox - p->new_coox) + abs(tp->cooy - p->new_cooy);
-                    temp_slack = tp->to_gate->get_critical_slack() - (new_hpwl - ori_hpwl)*(DIE->displacement_delay);
-                    if(temp_slack < 0) q_slack = q_slack + temp_slack;
-                    if(temp_slack < 0) tns = tns - temp_slack;
-                }
-            }
-            // if(q_slack < 0 && f->type!=f->q_pins.front()->to_ff->type) {
-            //     cout << f->name << endl;
-            //     //cout << "ori q slack: " << p->dspd_slk << endl;
-            //     cout << "new q slack: " << q_slack << endl;
-            //     return 0;
-            // }
-        }
+        // for(auto p: f->q_pins){
+        //     double q_slack = 0;
+        //     for(auto tp: p->to_net->opins){
+        //         if(tp->pin_type == 'g'){
+        //             ori_hpwl = abs(tp->coox - p->coox) + abs(tp->cooy - p->cooy);
+        //             new_hpwl = abs(tp->coox - p->new_coox) + abs(tp->cooy - p->new_cooy);
+        //             temp_slack = tp->to_gate->get_critical_slack() - (new_hpwl - ori_hpwl)*(DIE->displacement_delay);
+        //             if(temp_slack < 0) q_slack = q_slack + temp_slack;
+        //             if(temp_slack < 0) tns = tns - temp_slack;
+        //         }
+        //     }
+        // }
         for(auto p: f->d_pins){
             auto sp = p->to_net->ipins.front();
             if(sp->pin_type == 'g'){
@@ -270,12 +215,6 @@ double costeva::aproxTns(){
                 temp_slack = p->slack - (new_hpwl - ori_hpwl)*(DIE->displacement_delay);
                 if(temp_slack < 0) tns = tns - temp_slack;
             }
-            // if(temp_slack < p->dspd_slk && temp_slack < 0) {
-            //     cout << f->name << endl;
-            //     cout << "ori d slack: " << p->dspd_slk << endl;
-            //     cout << "new d slack: " << temp_slack << endl;
-            //     return 0;
-            // }
         }
     }
     return tns;
