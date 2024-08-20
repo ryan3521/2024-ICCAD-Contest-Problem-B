@@ -42,15 +42,15 @@ int main(int argc, char** argv){
 
 
 
-    // PM.placeGateInst();
-    // PM.placeFlipFlopInst( UPFFS, PFFS);
-    // Output(argv[2], PFFS, INST);
+    PM.placeGateInst();
+    PM.placeFlipFlopInst(UPFFS, PFFS);
+    Output(argv[2], PFFS, INST);
 
     double end = clock();
 
     COST.PrintParameter();
     COST.InitialCost();
-    COST.ResultCost(&UPFFS);
+    COST.ResultCost(&PFFS);
 
     cout << endl << "Total execution time: " << (end - start) / 1000000.0  << " s" << '\n';
 
