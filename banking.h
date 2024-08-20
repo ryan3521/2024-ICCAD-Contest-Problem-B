@@ -45,6 +45,7 @@ class cluster{
         void Clear();
         void Calculate_BestCost_FFtype(bool print, lib* LIB, inst* INST, dieInfo* DIE);
         bool TestQuality(bool print); // for top cluster
+        void SortMembers();
 };
 
 

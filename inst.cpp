@@ -831,6 +831,7 @@ double pin::CalTns(double new_coox, double new_cooy, bool is_D, ffcell* new_type
             else if(tp->pin_type == 'd'){
                 temp_slack = 0;
             }
+
             if(temp_slack < 0) slack = slack + temp_slack;
         }
     }

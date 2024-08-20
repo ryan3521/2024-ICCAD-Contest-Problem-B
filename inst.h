@@ -105,6 +105,7 @@ class gatei{
         void visit(double critical_slack);
         bool is_visited();
         double get_critical_slack();
+        
 
 };
 
