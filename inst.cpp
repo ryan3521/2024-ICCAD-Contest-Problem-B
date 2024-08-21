@@ -262,7 +262,7 @@ void inst::DebankAllFF(lib& LIB){
                 new_fi->d_pins.push_back(ori_ff->d_pins[i]);
                 new_fi->q_pins.push_back(ori_ff->q_pins[i]);
     
-                new_fi->new_coor();
+                new_fi->update_coor();
                 new_fi->clk_pin = new pin;
 
                 sing_list->push_back(new_fi);
@@ -270,17 +270,6 @@ void inst::DebankAllFF(lib& LIB){
             }
         }
     }
-}
-
-void inst::ConstructFSR(dieInfo& DIE){
-    int neg_cnt = 0;
-    for(auto& fflist: ffs_sing){
-        for(auto& f: *fflist){
-            f->calFSR(DIE);
-            if(f->fsr.can_move == 0) neg_cnt++;
-        }
-    }
-    //cout << "Cannot merge cnt: " << neg_cnt << endl;
 }
 
 bool inst::preference_cmp(pair<int, double> a, pair<int, double> b){
@@ -545,20 +534,32 @@ void ffi::update_pin_loc(){
     }
 }
 
-void ffi::new_coor(){
+void ffi::update_coor(){
     int bit = d_pins.size(); // this bit is the effective bit number, not the same as the "type->bit_num";
     double mx = 0;
     double my = 0;
     double rx = 0; // relative centroid
     double ry = 0; // relative centroid
 
-    for(int i=0; i<bit; i++){
-        mx = mx + d_pins[i]->coox + q_pins[i]->coox;
-        my = my + d_pins[i]->cooy + q_pins[i]->cooy;
+    // for(int i=0; i<bit; i++){
+    //     mx = mx + d_pins[i]->coox + q_pins[i]->coox;
+    //     my = my + d_pins[i]->cooy + q_pins[i]->cooy;
+    // }
+    double num = 0;
+    for(auto p: d_pins){
+        mx = mx + p->coox;
+        my = my + p->cooy;
+        num = num + 1;
     }
-    mx = mx/(double)(2*bit);
+    for(auto p: q_pins){
+        mx = mx + p->coox;
+        my = my + p->cooy;
+        num = num + 1;
+    }
+
+    mx = mx/num;
     cen_x = mx;
-    my = my/(double)(2*bit);
+    my = my/num;
     cen_y = my;
 
     for(int i=0; i<bit; i++){
@@ -599,133 +600,35 @@ bool ffi::is_too_far(double x, double y, double displacement_delay){
         double allow = (p->dspd_slk/displacement_delay)>0 ? (p->dspd_slk/displacement_delay) : 0;
         if(hpwl > allow) neg_cnt++;
     }
-    //if(neg_cnt > bit_num) return true;
+
     if(neg_cnt > bit_num/2) return true;
     else return false;
 }
 
-bool ffi::allow_displace(double target_x, double target_y, double displacement_delay){
-    double allow_hpwl;
-    double dis_hpwl;
-    
-    // verify D pin
+double ffi::get_timing_cost(double x, double y, double displacement_delay){
+    double cost = 0;
+    double slack;
+    double rel_x = x - coox;
+    double rel_y = y - cooy;
+
+
+
     for(auto& p: d_pins){
-        dis_hpwl   = ceil(p->to_net->ipins.front()->coox - target_x) + ceil(p->to_net->ipins.front()->cooy - target_y);
-        allow_hpwl = ceil(p->coox - p->to_net->ipins.front()->coox) 
-                   + ceil(p->cooy - p->to_net->ipins.front()->cooy); 
-
-        allow_hpwl = allow_hpwl + p->dspd_slk/displacement_delay;
-
-        if(allow_hpwl < dis_hpwl){
-            return false;
-        }
+        double pin_x = p->new_coox + rel_x;
+        double pin_y = p->new_cooy + rel_y;
+        slack = p->CalTns(pin_x, pin_y, true, type, displacement_delay);
+        if(slack < 0) cost = cost - slack;
     }
 
-    // verify Q pin
-    for(auto& p: q_pins){
-        for(auto& to_p: p->to_net->opins){
-            if(to_p->pin_type == 'd'){
-                continue;
-            }
-            else if(to_p->pin_type == 'g'){
-                dis_hpwl   = ceil(to_p->coox - target_x) + ceil(to_p->cooy - target_y);
-                allow_hpwl = ceil(p->coox - to_p->coox) + ceil(p->cooy - to_p->cooy); 
-                allow_hpwl = allow_hpwl + to_p->to_gate->get_critical_slack()/displacement_delay;
+    // for(auto& p: q_pins){
+    //     double pin_x = p->new_coox + rel_x;
+    //     double pin_y = p->new_cooy + rel_y;
+    //     slack = p->CalTns(pin_x, pin_y, false, type, displacement_delay);
+    //     if(slack < 0) cost = cost - slack;
+    // }
 
-                if(allow_hpwl < dis_hpwl){
-                    return false;
-                }
-            }
-            else if(to_p->pin_type == 'f'){
-                dis_hpwl   = ceil(to_p->coox - target_x) + ceil(to_p->cooy - target_y);
-                allow_hpwl = ceil(p->coox - to_p->coox) + ceil(p->cooy - to_p->cooy); 
-                allow_hpwl = allow_hpwl + to_p->dspd_slk/displacement_delay;
-                if(allow_hpwl < dis_hpwl){
-                    return false;
-                }
-            }
-        }
-    }
-    return true;
+    return cost;
 }
-
-void ffi::calFSR(dieInfo& DIE){
-    pin* dpin = d_pins[0];
-    pin* qpin = q_pins[0];
-
-    for(auto& to_pin: dpin->to_net->ipins){
-        double radius;
-
-        // calcualate radius (movable HPWL)
-        radius = abs(to_pin->coox - cen_x) + abs(to_pin->cooy - cen_y) + dpin->dspd_slk/DIE.displacement_delay;
-        // rotate -45 degree
-        // x' = x + y
-        // y' = y - x
-        
-        fsr.xmax = (to_pin->coox + radius) + (to_pin->cooy); 
-        fsr.xmin = (to_pin->coox) + (to_pin->cooy - radius);
-        fsr.ymax = (to_pin->cooy + radius) - (to_pin->coox);
-        fsr.ymin = (to_pin->cooy - radius) - (to_pin->coox);
-
-   
-    }
-    for(auto& to_pin: qpin->to_net->opins){
-        double radius;
-        double xmax;
-        double xmin;
-        double ymax;
-        double ymin;
-
-        // calcualate radius (movable HPWL)
-        if(to_pin->pin_type == 'g'){
-            radius = abs(to_pin->coox - cen_x) + abs(to_pin->cooy - cen_y) + to_pin->to_gate->get_critical_slack()/DIE.displacement_delay;
-            if(to_pin->to_gate->get_critical_slack() == numeric_limits<double>::max()) {
-                radius = (DIE.die_height > DIE.die_width) ? DIE.die_height : DIE.die_width;
-            }
-        }
-        else if(to_pin->pin_type == 'd'){
-            radius = (DIE.die_height > DIE.die_width) ? DIE.die_height : DIE.die_width;
-        }
-        else if(to_pin->pin_type == 'f'){
-            radius = abs(to_pin->coox - cen_x) + abs(to_pin->cooy - cen_y) + to_pin->dspd_slk/DIE.displacement_delay;
-        }
-
-        // rotate -45 degree
-        // x' = x + y
-        // y' = y - x
-        // cout << radius << endl;   
-        xmax = (to_pin->coox + radius) + (to_pin->cooy); 
-        xmin = (to_pin->coox) + (to_pin->cooy - radius);
-        ymax = (to_pin->cooy + radius) - (to_pin->coox);
-        ymin = (to_pin->cooy - radius) - (to_pin->coox);
-
-        // update FSR
-        if(xmin > fsr.xmin) fsr.xmin = xmin;
-        if(xmax < fsr.xmax) fsr.xmax = xmax;
-        if(ymin > fsr.ymin) fsr.ymin = ymin;
-        if(ymax < fsr.ymax) fsr.ymax = ymax;
-    }
-
-    if(fsr.xmin >= fsr.xmax || fsr.ymin >= fsr.ymax){
-        
-        fsr.can_move = false;
-        fsr.xmax = cen_x + cen_y;
-        fsr.xmin = fsr.xmax;
-        fsr.ymax = cen_y - cen_x;
-        fsr.ymin = fsr.ymax;
-    } 
-    else{
-        fsr.can_move = true;
-        fsr.cen_x = (fsr.xmax + fsr.xmin)/2;
-        fsr.cen_y = (fsr.ymax + fsr.ymin)/2;
-    }
-}
-
-void reg::update_cen(){
-    cen_x = (dpin->coox + qpin->coox)/2;
-    cen_y = (dpin->cooy + qpin->cooy)/2;
-}
-
 
 
 gatei::gatei(string name, double coox, double cooy){
@@ -786,7 +689,8 @@ bool gatei::is_visited(){return v;}
 
 double gatei::get_critical_slack(){return critical_slack;}
 
-double pin::CalTns(double new_coox, double new_cooy, bool is_D, ffcell* new_type, double coeff){
+double pin::CalTns(double test_coox, double tes_cooy, bool is_D, ffcell* new_type, double coeff){
+
     double slack = 0;
     if(is_D){
         pin* sp = to_net->ipins.front();
@@ -795,12 +699,12 @@ double pin::CalTns(double new_coox, double new_cooy, bool is_D, ffcell* new_type
             double anchor_x = (coox + sp->coox)/2;
             double anchor_y = (cooy + sp->cooy)/2;
             double ori_hpwl = abs(coox - anchor_x) + abs(cooy - anchor_y);
-            double new_hpwl = abs(new_coox - anchor_x) + abs(new_cooy - anchor_y);
+            double new_hpwl = abs(test_coox - anchor_x) + abs(tes_cooy - anchor_y);
             slack = dspd_slk - (new_hpwl - ori_hpwl)*coeff;
         }
         else{
             double ori_hpwl = abs(coox - sp->coox) + abs(cooy - sp->cooy);
-            double new_hpwl = abs(new_coox - sp->coox) + abs(new_cooy - sp->cooy);
+            double new_hpwl = abs(test_coox - sp->coox) + abs(tes_cooy - sp->cooy);
             slack = dspd_slk - (new_hpwl - ori_hpwl)*coeff;
         }
     }
@@ -811,13 +715,13 @@ double pin::CalTns(double new_coox, double new_cooy, bool is_D, ffcell* new_type
                 double anchor_x = (coox + tp->coox)/2;
                 double anchor_y = (cooy + tp->cooy)/2;
                 double ori_hpwl = abs(coox - anchor_x) + abs(cooy - anchor_y);
-                double new_hpwl = abs(new_coox - anchor_x) + abs(new_cooy - anchor_y);
+                double new_hpwl = abs(test_coox - anchor_x) + abs(tes_cooy - anchor_y);
                 temp_slack = dspd_slk - (new_hpwl - ori_hpwl)*coeff - (new_type->Qpin_delay - to_ff->type->Qpin_delay);
                 if(temp_slack >= dspd_slk) temp_slack = 0;
             }
             else if(tp->pin_type == 'g'){
                 double ori_hpwl = abs(coox - tp->coox) + abs(cooy - tp->cooy);
-                double new_hpwl = abs(new_coox - tp->coox) + abs(new_cooy - tp->cooy);
+                double new_hpwl = abs(test_coox - tp->coox) + abs(tes_cooy - tp->cooy);
                 if(tp->to_gate->get_critical_slack() == numeric_limits<double>::max()){
                     temp_slack = 0;
                 }

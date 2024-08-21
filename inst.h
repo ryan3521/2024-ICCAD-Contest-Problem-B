@@ -14,19 +14,6 @@
 
 using namespace std;
 
-struct FSR{
-    bool can_move;
-    // ractangle parameters
-    double xmax;
-    double xmin;
-    double ymax;
-    double ymin;
-    double cen_x;
-    double cen_y;
-
-    // diamond parameters
-};
-
 class pin;
 class ffi{
     public:
@@ -39,8 +26,6 @@ class ffi{
         vector<pin*> d_pins;
         vector<pin*> q_pins;
         pin* clk_pin;
-        bool mark; // ??
-        FSR fsr;
 
         double allow_dis; // (HPWL) AVG slack * displacement coefficient
 
@@ -57,26 +42,14 @@ class ffi{
         
         // Function "new_coor()" will calculate the coox, cooy according to the d_pins and q_pins "old coordinate"
         // After find out the new coox, cooy; It will also calculate the new coox and cooy for each pin (D and Q)
-        void new_coor();
+        void update_coor();
         void update_pin_loc();
 
         // Given coordinate x and y, base on this coordinate calculate if the negative slack pin numbers are more then a half
         // if the neg pin numbers are over the half, then return true, else false
         bool is_too_far(double x, double y, double displacement_delay);
-        bool allow_displace(double x, double y, double displacement_delay);
-        void calFSR(dieInfo& DIE);
 
-};
-
-class reg{ // This class represent each bit of register in the design
-    public:
-        pin* dpin;
-        pin* qpin;
-        double cen_x;
-        double cen_y;
-
-        // member function
-        void update_cen();
+        double get_timing_cost(double x, double y, double displacement_delay);
 };
 
 class gatei{

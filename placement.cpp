@@ -364,6 +364,7 @@ bool plcmt_row::seg_mincost(ffi* fi, int ds, int de, int dw, int& best_pos_idx, 
         for(int i=ds; (i+dw-1)<=de; i++){
             if(this->check_available(s, e, fi->type->size_y) == true){
                 cost = abs(fi->coox - s) + abs(fi->cooy - start_y);
+                // cost = fi->get_timing_cost(s, start_y, DIE->displacement_delay);
                 if(cost < mincost) {
                     mincost = cost;
                     best_pos_idx = i;
@@ -383,6 +384,7 @@ bool plcmt_row::seg_mincost(ffi* fi, int ds, int de, int dw, int& best_pos_idx, 
         for(int i=de-dw+1; i>=ds; i--){
             if(this->check_available(s, e, fi->type->size_y) == true){
                 cost = abs(fi->coox - s) + abs(fi->cooy - start_y);
+                // cost = fi->get_timing_cost(s, start_y, DIE->displacement_delay);
                 if(cost < mincost) {
                     mincost = cost;
                     best_pos_idx = i;
@@ -576,7 +578,8 @@ double plcmt_row::place_trial(list<plcmt_row*>& tested_list, ffi* fi, bool& avai
         }
 
     }
-    //cout<< "mincost: "<< mincost<< endl;
+    // if(available )
+    //     cout<< "mincost: "<< mincost<< endl;
     return mincost;
 }
 
@@ -1229,8 +1232,10 @@ void placement::placeFlipFlopInst(list<ffi*>& UPFFS, list<ffi*>& PFFS){
             // }
             // cout << ff_cnt << " placed" << endl;
 
-            // cout << "mincost: " << mincost << endl;
+            // cout << "X displace: " << mincost << endl;
             place_formal(fi, best_row, best_pos_idx);
+
+            // cout << fi->name << ", " << fi->d_pins.size() << ", " << fi->type->size_x << ", " << fi->type->size_y << endl;
             PFFS.push_back(fi);
             ff_cnt++;
             te = clock();
@@ -1257,9 +1262,10 @@ void placement::placeFlipFlopInst(list<ffi*>& UPFFS, list<ffi*>& PFFS){
 void placement::place_formal(ffi* fi, plcmt_row* best_row, int best_pos_idx){
     double start = best_row->start_x + best_pos_idx*best_row->site_w;
     double end = start + fi->type->size_x;
+   
     fi->coox = start;
     fi->cooy = best_row->start_y;
-
+    fi->update_pin_loc();
     best_row->add_ff(start, end, fi->type->size_y);
     return;
 }
@@ -1321,7 +1327,7 @@ void placement::mbff_dismantle(ffi* fi, list<ffi*>& dismantle_list){
                 pin_cnt++;
                 remain_size--;
             }      
-            new_fi->new_coor();
+            new_fi->update_coor();
             new_fi->clk_pin = new pin;
             new_fi->clk_pin->name      = fi->clk_pin->name;
             new_fi->clk_pin->to_net    = fi->clk_pin->to_net;
@@ -1352,7 +1358,7 @@ void placement::mbff_dismantle(ffi* fi, list<ffi*>& dismantle_list){
                 pin_cnt++;
                 remain_size--;
             }      
-            new_fi->new_coor();
+            new_fi->update_coor();
             new_fi->clk_pin = new pin;
             new_fi->clk_pin->name      = fi->clk_pin->name;
             new_fi->clk_pin->to_net    = fi->clk_pin->to_net;
@@ -1370,7 +1376,7 @@ void placement::mbff_dismantle(ffi* fi, list<ffi*>& dismantle_list){
         fi->type = small_type;
         fi->name = inst_name;
 
-        fi->new_coor();
+        fi->update_coor();
         new_ff_cnt++;
     }
     dismantle_list.sort(ff_cmp);

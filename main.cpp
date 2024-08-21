@@ -44,7 +44,7 @@ int main(int argc, char** argv){
 
     PM.placeGateInst();
     PM.placeFlipFlopInst(UPFFS, PFFS);
-    Output(argv[2], PFFS, INST);
+    // Output(argv[2], PFFS, INST);
 
     double end = clock();
 
@@ -54,7 +54,7 @@ int main(int argc, char** argv){
 
     cout << endl << "Total execution time: " << (end - start) / 1000000.0  << " s" << '\n';
 
-    // DrawFFs(DIE, LIB, INST, UPFFS);
+    DrawFFs(DIE, LIB, INST, UPFFS, PFFS);
     return 0;
 }
 

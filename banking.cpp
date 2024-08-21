@@ -228,7 +228,6 @@ void banking::run(){
 
                 bool no_move = true;
                 // Update Coor: begin
-                // if(cluster_target_size == 2) cout << "updatine coor" << endl;
                 int move_cnt = 0;
                 for(auto& k: k_clusters){
                     if(k->UpdateCoor_CheckMove() == true){
@@ -236,17 +235,13 @@ void banking::run(){
                         move_cnt++;
                     }
                 }
-                // if(cluster_target_size == 2){
-                //     cout << "move num: " << move_cnt << "/" << k_clusters.size() << endl;
-                // } 
-                // cout << itr_cnt << endl;
                 // Update Coor: end
 
                 // Check break: begin
                 if(no_move == true || itr_cnt > ITR_LIMIT){
-                    // for(auto k: k_clusters){
-                    //     k->Clear();
-                    // }
+                    for(auto k: k_clusters){
+                        k->Clear();
+                    }
                     break;
                 }
                 else{
@@ -260,36 +255,36 @@ void banking::run(){
             // K-means cluster stage 1: end
 
             // K-means cluster stage 2: begin
-            // for(auto& data: kmeans_data_points){
-            //     double   best_cost = numeric_limits<double>::max();
-            //     cluster* best_cls = NULL;
-            //     // Find closest cluster: begin
-            //     bool full = true;
-            //     for(auto& k: k_clusters){
-            //         // if(k->size == cluster_target_size) continue;
-            //         double cost;
-            //         // cost = abs(k->coox - data->coox) + abs(k->cooy - data->cooy); // HPWL
-            //         cost = (k->coox - data->coox)*(k->coox - data->coox) + (k->cooy - data->cooy)*(k->cooy - data->cooy); // Euclidean Distance 
-            //         if(cost < best_cost){
-            //             best_cost = cost;
-            //             best_cls = k;
-            //         }
-            //     }
-            //     data->displace_distance = best_cost;
-            //     best_cls->AddMember(data);
-            //     // Find closest cluster: end
-            // }
-            // for(auto k: k_clusters){
-            //     if(k->size > cluster_target_size){
-            //         k->SortMembers();
-            //         while(k->size > cluster_target_size){
-            //             k->members.front()->to_new_cluster = NULL;
-            //             k->members.pop_front();
-            //             k->size--;
-            //         }
-            //     }
-            //     k->UpdateCoor_CheckMove();
-            // }
+            for(auto& data: kmeans_data_points){
+                double   best_cost = numeric_limits<double>::max();
+                cluster* best_cls = NULL;
+                // Find closest cluster: begin
+                bool full = true;
+                for(auto& k: k_clusters){
+                    // if(k->size == cluster_target_size) continue;
+                    double cost;
+                    // cost = abs(k->coox - data->coox) + abs(k->cooy - data->cooy); // HPWL
+                    cost = (k->coox - data->coox)*(k->coox - data->coox) + (k->cooy - data->cooy)*(k->cooy - data->cooy); // Euclidean Distance 
+                    if(cost < best_cost){
+                        best_cost = cost;
+                        best_cls = k;
+                    }
+                }
+                data->displace_distance = best_cost;
+                best_cls->AddMember(data);
+                // Find closest cluster: end
+            }
+            for(auto k: k_clusters){
+                if(k->size > cluster_target_size){
+                    k->SortMembers();
+                    while(k->size > cluster_target_size){
+                        k->members.front()->to_new_cluster = NULL;
+                        k->members.pop_front();
+                        k->size--;
+                    }
+                }
+                k->UpdateCoor_CheckMove();
+            }
             // K-means cluster stage 2: end
 
             // Calculate cost per bit for new cluster: begin
@@ -518,7 +513,7 @@ void banking::run(){
             if(cls->size == 1){
                 cls->single_bit_ff->name = inst_name;
                 cls->single_bit_ff->type = cls->type;
-                cls->single_bit_ff->new_coor();
+                cls->single_bit_ff->update_coor();
                 UPFFS->push_back(cls->single_bit_ff);
             }  
             else{
@@ -529,7 +524,7 @@ void banking::run(){
                 for(auto p: cls->optseq_D) mbff->d_pins.push_back(p);
                 for(auto p: cls->optseq_Q) mbff->q_pins.push_back(p);
                 mbff->clk_pin = new pin;
-                mbff->new_coor();
+                mbff->update_coor();
                 UPFFS->push_back(mbff);
             }
             newff_cnt++;
