@@ -15,6 +15,26 @@
 using namespace std;
 
 class pin;
+class ffi;
+
+class se{
+    public:
+        bool type;
+        double coor;
+        ffi* to_ff;
+        se(bool type, double coor, ffi* to_ff);
+};
+
+class block{
+    public:
+        double xmin;
+        double xmax;
+        double ymin;
+        double ymax;
+
+};
+
+
 class ffi{
     public:
         string name;
@@ -35,6 +55,9 @@ class ffi{
         int index_to_placement_row;
         int index_to_site;
 
+        block pseudo_block;
+        list<se*>::iterator e_it;
+
         // member function
         ffi(string, double, double);
         void set_type(ffcell* );
@@ -54,6 +77,8 @@ class ffi{
         bool is_too_far(double x, double y, double displacement_delay);
 
         double get_timing_cost(double x, double y, double displacement_delay);
+        void Set_PseudoBlock_Size(double expand_rate);
+
 };
 
 class gatei{

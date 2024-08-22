@@ -15,14 +15,22 @@ void banking::Initial_Placement(){
     PM->GatePlacement();
 
     CopyOriginalFFs();
-    cout << "FF placing ..." << endl;
+    cout << "Original FF placing ..." << endl;
     OriginalFFs_Placment();
 
 }
 
 void banking::Run_Placement_Banking(){
     
-
+    for(auto ff_list: ff_groups){
+        banking_ffs.clear();
+        for(auto f: *ff_list) {banking_ffs.push_back(f);}
+        for(target_size=2; target_size<=LIB->max_ff_size; target_size++){
+            SetPseudoBlock();
+            ConstructXSequence();
+        }
+        
+    }
 
 
     return;
@@ -102,6 +110,43 @@ void banking::OriginalFFs_Placment(){
     }
 
     cout << "BufferList: " << buffer_list.size() << endl;
+}
+
+void banking::SetPseudoBlock(){
+    double base_expand_rate = 10;
+    double expand_rate;
+    for(auto f: banking_ffs){
+        expand_rate = (target_size - f->d_pins.size()) > 0 ? base_expand_rate*(target_size - f->d_pins.size()) : 0;
+        f->Set_PseudoBlock_Size(expand_rate);
+    }
+}
+
+bool cmp_se(se* a, se* b){
+    if(a->coor == b->coor){
+        int atype = a->type ? 1 : 0;
+        int btype = b->type ? 1 : 0;
+        return btype > atype;
+    }
+    return a->coor < b->coor;
+}
+
+void banking::ConstructXSequence(){
+    se* s_ptr = NULL;
+    se* e_ptr = NULL;
+    xseq.clear();
+    for(auto f: banking_ffs){
+        s_ptr = new se(0, f->pseudo_block.xmin, f);
+        e_ptr = new se(1, f->pseudo_block.xmax, f);
+        xseq.push_back(s_ptr);
+        xseq.push_back(e_ptr);
+    }
+    xseq.sort(cmp_se);
+    for(auto it=xseq.begin(); it!=xseq.end(); it++){
+        auto se_ptr = *it;
+        if(se_ptr->type == 1){
+            se_ptr->to_ff->e_it = it;
+        }
+    }
 }
 
             

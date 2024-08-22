@@ -7,7 +7,7 @@
 
 class cluster{
     private:
-        static bool cmp(cluster* a, cluster* b);
+
     public:
         // Rule 1:
         // if      "is_top" == true,  "to_cluster" == NULL;
@@ -19,33 +19,23 @@ class cluster{
 
         // Rule 3:
         // if "size" != 1, size of clusters in member list will only be "1".
-        int  size;
-        bool is_top;
-        cluster* to_top_cluster;
-        cluster* to_new_cluster;
+        int size;
         double cost_per_bit; 
-        list<cluster*> members; // sort by displace_distance decending order
+        ffi* essential_ff;
+        list<ffi*> related_ffs; 
+        list<ffi*> members; 
         ffcell* type;
-        ffi* single_bit_ff;
-        double old_coox;
-        double old_cooy;
-        double coox;
-        double cooy;
-        bool is_better_than_new;
-        bool mark_remove; // for top cluster
-        bool mark_recalculate; // for new cluster
+
         list<pin*> optseq_D;
         list<pin*> optseq_Q;
-        double displace_distance;
 
         // Member function
         cluster();
-        bool UpdateCoor_CheckMove();
-        void AddMember(cluster* new_member);
+        void AddMember(ffi* new_member);
         void Clear();
-        void Calculate_BestCost_FFtype(bool print, lib* LIB, inst* INST, dieInfo* DIE);
-        bool TestQuality(bool print); // for top cluster
-        void SortMembers();
+        // void Calculate_BestCost_FFtype(bool print, lib* LIB, inst* INST, dieInfo* DIE);
+        // bool TestQuality(bool print); // for top cluster
+
 };
 
 #endif

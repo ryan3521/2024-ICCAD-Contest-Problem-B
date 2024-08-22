@@ -585,6 +585,15 @@ void ffi::update_coor(){
     return;
 }
 
+void ffi::Set_PseudoBlock_Size(double expand_rate){
+    double size = (type->size_x > type->size_y) ? type->size_y : type->size_x;
+    double expand_size = size*(expand_rate/100);
+    pseudo_block.xmin = coox - expand_size;
+    pseudo_block.xmax = coox + type->size_x + expand_size;
+    pseudo_block.ymin = cooy - expand_size;
+    pseudo_block.ymax = cooy + type->size_y + expand_size;
+}
+
 bool ffi::is_too_far(double x, double y, double displacement_delay){
     double rel_x = x - coox;
     double rel_y = y - cooy;
@@ -739,4 +748,10 @@ double pin::CalTns(double test_coox, double tes_cooy, bool is_D, ffcell* new_typ
         }
     }
     return (slack >= 0)? 1 : slack;
+}
+
+se::se(bool type, double coor, ffi* to_ff){
+    this->type = type;
+    this->coor = coor;
+    this->to_ff = to_ff;
 }
