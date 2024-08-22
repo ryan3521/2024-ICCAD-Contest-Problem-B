@@ -40,7 +40,7 @@ class plcmt_row{
  
         bool add_gblock(double start, double end);
         void add_fblock(double start, double end);
-        bool add_gate(double start, double end, double height);
+
         void add_ff(double start, double end, double height);
         bool check_available(double start, double end, double height);
         bool height_available(double height);

@@ -27,9 +27,10 @@ class ffi{
         vector<pin*> q_pins;
         pin* clk_pin;
 
-        double allow_dis; // (HPWL) AVG slack * displacement coefficient
+        double allow_dis; 
 
-
+        list<ffi*>* to_list;
+        list<ffi*>::iterator it_pointer;
 
         // member function
         ffi(string, double, double);

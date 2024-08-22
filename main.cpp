@@ -6,9 +6,9 @@
 #include "inst.h"
 #include "die_info.h"
 #include "netlist.h"
-#include "placement.h"
 #include "banking.h"
 #include "costeva.h"
+#include "placement.h"
 
 using namespace std;
 
@@ -23,11 +23,8 @@ int main(int argc, char** argv){
     netlist NL;
     placement PM(&LIB, &INST, &DIE);
     costeva COST(&DIE, &LIB, &INST, argv[1]);
-    list<ffi*> NCLS; // Store the non cluster ffs after doing K-means Cluster
-    list<ffi*> MBFFS; // Store the new MBFFs after doing K-means Cluster
-    list<ffi*> UPFFS; // Store all ffs which need to be placed (== NCLS + MBFFS)
     list<ffi*> PFFS; // Store all ffs which are placed
-    banking FFBANK(&INST, &LIB, &DIE, &UPFFS);
+    banking FFBANK(&PM, &INST, &LIB, &DIE, &PFFS);
 
     srand(time(NULL));
     
@@ -54,7 +51,7 @@ int main(int argc, char** argv){
 
     cout << endl << "Total execution time: " << (end - start) / 1000000.0  << " s" << '\n';
 
-    DrawFFs(DIE, LIB, INST, UPFFS, PFFS);
+    // DrawFFs(DIE, LIB, INST, UPFFS, PFFS);
     return 0;
 }
 
