@@ -38,10 +38,11 @@ class plcmt_row{
         // Member functions
         plcmt_row(dieInfo* DIE, double sx, double sy, double sw, double sh, int sn);
  
-        bool add_gblock(double start, double end);
+        void add_gblock(gatei* g,double start, double end);
         void add_fblock(double start, double end);
-
         void add_ff(double start, double end, double height);
+        void delete_ff(double start, double end, double height);
+        void delete_fblock(double start, double end);
         bool check_available(double start, double end, double height);
         bool height_available(double height);
         bool x_overlapped(double x1, double x2, bool& fit); // x2 must >= x1
@@ -50,7 +51,7 @@ class plcmt_row{
         bool y_inrange(double y1, double y2);
         double closest_x(double x);
 
-
+        void print_spacelist();
 
 
         // given space [ds, de], if this space can fined space to place, return true and the x coor displace cost
@@ -86,10 +87,10 @@ class placement{
         placement(lib* LIB, inst* INST, dieInfo* DIE);
         void addRow(double sx, double sy, double sw, double sh, int sn);
         void initial();
-        void placeGateInst(double x, double y, double w, double h);
+        void placeGateInst(gatei* g, double x, double y, double w, double h);
         void GatePlacement();
         bool placeFlipFlop(ffi* f, bool set_constrain, double displace_constrain);
-        
+        void DeleteFlipFlop(ffi* f);
 
 
 };

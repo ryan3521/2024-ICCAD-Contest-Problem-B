@@ -32,7 +32,8 @@ class ffi{
 
         list<ffi*>* to_list;
         list<ffi*>::iterator it_pointer;
-        int index_to_placement_row_;
+        int index_to_placement_row;
+        int index_to_site;
 
         // member function
         ffi(string, double, double);

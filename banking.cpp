@@ -11,8 +11,12 @@ banking::banking(placement* PM, inst* INST, lib* LIB, dieInfo* DIE, list<ffi*>* 
 }
 
 void banking::Initial_Placement(){
+    cout << "Gate placing ..." << endl;
     PM->GatePlacement();
+
     CopyOriginalFFs();
+    cout << "FF placing ..." << endl;
+    OriginalFFs_Placment();
 
 }
 
@@ -25,7 +29,7 @@ void banking::Run_Placement_Banking(){
 }
 
 void banking::run(){
-
+    Initial_Placement();
 
     return;
 }
@@ -72,7 +76,7 @@ bool banking::cmp_ff_x(ffi* a, ffi* b){
 void banking::OriginalFFs_Placment(){
     bool SET_CONSTRAIN = true;
     bool DONT_SET_CONSTRAIN = false;
-    double DISPLACE_CONSTRAIN = 50;
+    double DISPLACE_CONSTRAIN = 20;
 
     list<ffi*> buffer_list;
     list<ffi*> multi_bit_stack;
@@ -96,6 +100,8 @@ void banking::OriginalFFs_Placment(){
             buffer_list.push_back(f);
         }
     }
+
+    cout << "BufferList: " << buffer_list.size() << endl;
 }
 
             

@@ -41,9 +41,9 @@ int main(int argc, char** argv){
 
     double end = clock();
 
-    COST.PrintParameter();
-    COST.InitialCost();
-    COST.ResultCost(&PFFS);
+    // COST.PrintParameter();
+    // COST.InitialCost();
+    // COST.ResultCost(&PFFS);
 
     cout << endl << "Total execution time: " << (end - start) / 1000000.0  << " s" << '\n';
 
