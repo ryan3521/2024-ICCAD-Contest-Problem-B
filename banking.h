@@ -10,6 +10,9 @@
 
 class banking{
     private:
+        bool SUCCESS;
+        bool FAIL;
+// ----------------------------------------
         placement* PM;
         inst* INST;
         lib*  LIB;
@@ -17,11 +20,15 @@ class banking{
         list<ffi*>* PFFS;
 // ----------------------------------------
         list<list<ffi*>*> ff_groups;
+        list<ffi*> placing_ffs;
         list<ffi*> banking_ffs;
 
 // ----------------------------------------
+        static bool cmp_ff_x(ffi* a, ffi* b);
+// ----------------------------------------
         void CopyOriginalFFs();
         void Initial_Placement();
+        void OriginalFFs_Placment();
         void Run_Placement_Banking();
 
     public:

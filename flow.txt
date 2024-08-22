@@ -11,11 +11,11 @@
 3. For the ffs which are inside the Buffer List. We deal with it after finish Step 2.
    They need to find the remain space to fill in.
    note 1: For the ffs in Buffer List, debank it into sigle bit ff. 
-           First, find space to place under 50% displacement constrain (Try all one bit ff type to fit in).
+           First, find space to place under 100% displacement constrain (Try all one bit ff type to fit in).
            If still can not find space to place, then lift the constrain and find the minimum displacement space to place.
 
 4. Debank the multi-bit ffs in Stack one by one. Place the single bit ff. 
-   note 1: The single bit ff placing constrain is 50% or inside original muti-bit ff's size range.
+   note 1: The single bit ff placing constrain is 100% or inside original muti-bit ff's size range.
            If can not meet the constrain, rebank back to multi-bit ff and place it back.
 
  

@@ -197,8 +197,10 @@ bool plcmt_row::seg_mincost(ffi* fi, int ds, int de, int dw, int& best_pos_idx, 
         e = s + fi->type->size_x;
         for(int i=ds; (i+dw-1)<=de; i++){
             if(this->check_available(s, e, fi->type->size_y) == true){
+                if(abs(fi->coox - s) > fi->x_allow_dis) continue;
+                
                 cost = abs(fi->coox - s) + abs(fi->cooy - start_y);
-                // cost = fi->get_timing_cost(s, start_y, DIE->displacement_delay);
+
                 if(cost < mincost) {
                     mincost = cost;
                     best_pos_idx = i;
@@ -217,8 +219,10 @@ bool plcmt_row::seg_mincost(ffi* fi, int ds, int de, int dw, int& best_pos_idx, 
         e = s + fi->type->size_x;
         for(int i=de-dw+1; i>=ds; i--){
             if(this->check_available(s, e, fi->type->size_y) == true){
+                if(abs(fi->coox - s) > fi->x_allow_dis) continue;
+
                 cost = abs(fi->coox - s) + abs(fi->cooy - start_y);
-                // cost = fi->get_timing_cost(s, start_y, DIE->displacement_delay);
+
                 if(cost < mincost) {
                     mincost = cost;
                     best_pos_idx = i;
@@ -235,7 +239,7 @@ bool plcmt_row::seg_mincost(ffi* fi, int ds, int de, int dw, int& best_pos_idx, 
     return find_new;
 }
 
-double plcmt_row::place_trial(list<plcmt_row*>& tested_list, ffi* fi, bool& available, int& best_pos_idx, double global_mincost){ // ax is available x coordinate
+double plcmt_row::place_trial(ffi* fi, bool& available, int& best_pos_idx, double global_mincost){ // ax is available x coordinate
     available = false;
     double mincost = numeric_limits<double>::max(); // local mincost
     double h = fi->type->size_y;
@@ -246,168 +250,51 @@ double plcmt_row::place_trial(list<plcmt_row*>& tested_list, ffi* fi, bool& avai
     // dx is the discrete index which is closest to the sx 
     int dx = (round((sx-start_x)/site_w) < 0) ? 0 : (round((sx-start_x)/site_w) >= site_num) ? (site_num-1) : round((sx-start_x)/site_w); 
 
-    
-    if(is_tested){
-        return mincost;
-    }
-    else{
-        is_tested = true;
-        tested_list.push_back(this);
-    }
 
 
+    // preliminary examination: begin
     if(this->height_available(h) == false) return mincost;
-    if(this->x_inrange(sx, sx+w) == true){
-        if(abs(start_y - sy) >= global_mincost) return mincost;
-    }
-    else if(sx < start_x){
-        if(abs(sx - start_x) + abs(start_y - sy) >= global_mincost) return mincost;
-    }
-    else{
-        if(abs(start_x + site_num*site_w - w - sx) + abs(start_y - sy) >= global_mincost) return mincost;
-    }
-
-
-    if(dx > pivot){
-        int front = pivot;
-        
-        for(auto it = block_list.begin(); it!=block_list.end(); it++){
-            if((it->first - front - 1) >= dw){ // if this space section may be available
-                if(front+1 > dx){
-                    if(available == true){
-                        if(abs(best_pos_idx - dx) < abs(front+1 - dx)) break;
-                    }
-                    if(this->seg_mincost(fi, front+1, it->first-1, dw, best_pos_idx, mincost, 0) == true){ 
-                        available = true;
-                        break;
-                    }
-                }
-                else if(dx>front && dx<it->first){ // if the mincost location is inside this space segment
-                    //cout << "in range!" << endl;
-                    int de = (dx + dw - 1)<=(it->first-1) ? (dx + dw - 1):(it->first-1);
-                    //cout << front+1 << " " << de << endl;
-                    if(this->seg_mincost(fi, front+1, de, dw, best_pos_idx, mincost, 1) == true){
-                        available = true;
-                    }
-                    //cout << dx << " " << it->first-1 << endl;
-                    if(this->seg_mincost(fi, dx, it->first-1, dw, best_pos_idx, mincost, 0) == true){
-                        available = true;
-                        break;
-                    }
-                    //cout << "available: " << available<< endl;
-                }
-                else{
-                    if(this->seg_mincost(fi, front+1, it->first-1, dw, best_pos_idx, mincost, 1) == true){
-                        available = true;
-                    }
-                }
-            }
-            front = it->second;
+    if(this->x_inrange(sx, sx+w) == false){
+        if(sx < start_x){
+            if(abs(sx - start_x) >= fi->x_allow_dis) return mincost;
+            if(abs(sx - start_x) + abs(start_y - sy) >= global_mincost) return mincost;
         }
+        else{
+            if(abs(start_x + site_num*site_w - w - sx) + abs(start_y - sy) >= global_mincost) return mincost;
+        }
+    }
+    // preliminary examination: end
 
-        if((site_num - front - 1) >= dw){ // if this space section may be available
-            if(front+1 > dx){
+
+    for(auto rIt = space_list.rbegin(); rIt!=space_list.rend(); rIt++){
+        if((rIt->second - rIt->first + 1) >= dw){
+            if(rIt->second < dx){
+                if(abs((fi->coox+fi->type->size_x) - (start_x+(rIt->second+1)*site_w)) > fi->x_allow_dis) continue;
                 if(available == true){
-                    if(abs(best_pos_idx - dx) >= abs(front+1 - dx)){
-                        if(this->seg_mincost(fi, front+1, site_num-1, dw, best_pos_idx, mincost, 0) == true){ 
-                            available = true;
-                        }
-                    }
+                    if(abs(best_pos_idx - dx) < abs(rIt->second-dw+1 - dx)) break;
                 }
-                else{
-                    if(this->seg_mincost(fi, front+1, site_num-1, dw, best_pos_idx, mincost, 0) == true){ 
-                        available = true;
-                    }
-                }
-            }
-            else if(dx>front && dx<site_num){ // if the mincost location is inside this space segment
-                //cout << "in range!" << endl;
-                int de = (dx + dw - 1)<=(site_num-1) ? (dx + dw - 1):(site_num-1);
-                //cout << front+1 << " " << de << endl;
-                if(this->seg_mincost(fi, front+1, de, dw, best_pos_idx, mincost, 1) == true){
-                    available = true;
-                }
-                //cout << dx << " " << site_num-1 << endl;
-                if(this->seg_mincost(fi, dx, site_num-1, dw, best_pos_idx, mincost, 0) == true){
-                    available = true;
-                }
-                //cout << "available: " << available<< endl;
-            }
-            else{
-                if(this->seg_mincost(fi, front+1, site_num-1, dw, best_pos_idx, mincost, 1) == true){
-                    available = true;
-                }
-            }
-        }
-
-        for(auto rIt = space_list.rbegin(); rIt!=space_list.rend(); rIt++){
-            if(available == true){
-                if(abs(best_pos_idx - dx) < abs(rIt->second-dw+1 - dx)) break;
-            }
-            if(this->seg_mincost(fi, rIt->first, rIt->second, dw, best_pos_idx, mincost, 1) == true){ 
-                available = true;
-                break;
-            }
-        }
-    }
-    else{
-        for(auto rIt = space_list.rbegin(); rIt!=space_list.rend(); rIt++){
-            if((rIt->second - rIt->first + 1) >= dw){
-                if(rIt->second < dx){
-                    if(available == true){
-                        if(abs(best_pos_idx - dx) < abs(rIt->second-dw+1 - dx)) break;
-                    }
-                    if(this->seg_mincost(fi, rIt->first, rIt->second, dw, best_pos_idx, mincost, 1) == true){ 
-                        available = true;
-                        break;
-                    }
-                }
-                else if(dx>=rIt->first && dx<=rIt->second){
-                    int de = (dx + dw - 1)<=(rIt->second) ? (dx + dw - 1):(rIt->second);
-                    if(this->seg_mincost(fi, rIt->first, de, dw, best_pos_idx, mincost, 1) == true){
-                        available = true;
-                    }
-                    if(this->seg_mincost(fi, dx, rIt->second, dw, best_pos_idx, mincost, 0) == true){
-                        available = true;
-                        break;
-                    }
-                }
-                else{
-                    if(this->seg_mincost(fi, rIt->first, rIt->second, dw, best_pos_idx, mincost, 0) == true){
-                        available = true;
-                    }
-                }
-            }
-        }
-
-        int front = pivot;       
-        for(auto it = block_list.begin(); it!=block_list.end(); it++){
-            if((it->first - front - 1) >= dw){ // if this space section may be available
-                if(available == true){
-                    if(abs(best_pos_idx - dx) < abs(front+1 - dx)) break;
-                }
-                if(this->seg_mincost(fi, front+1, it->first-1, dw, best_pos_idx, mincost, 0) == true){ 
+                if(this->seg_mincost(fi, rIt->first, rIt->second, dw, best_pos_idx, mincost, 1) == true){ 
                     available = true;
                     break;
                 }
             }
-            front = it->second;
-        }
-        if((site_num - front - 1) >= dw){ // if this space section may be available
-            if(available == true){
-                if(abs(best_pos_idx - dx) >= abs(front+1 - dx)){
-                    if(this->seg_mincost(fi, front+1, site_num-1, dw, best_pos_idx, mincost, 0) == true){ 
-                        available = true;
-                    }              
+            else if(dx>=rIt->first && dx<=rIt->second){
+                int de = (dx + dw - 1)<=(rIt->second) ? (dx + dw - 1):(rIt->second);
+                if(this->seg_mincost(fi, rIt->first, de, dw, best_pos_idx, mincost, 1) == true){
+                    available = true;
+                }
+                if(this->seg_mincost(fi, dx, rIt->second, dw, best_pos_idx, mincost, 0) == true){
+                    available = true;
+                    break;
                 }
             }
             else{
-                if(this->seg_mincost(fi, front+1, site_num-1, dw, best_pos_idx, mincost, 0) == true){ 
+                if(fi->coox - (start_x+rIt->first*site_w) > fi->x_allow_dis) continue;
+                if(this->seg_mincost(fi, rIt->first, rIt->second, dw, best_pos_idx, mincost, 0) == true){
                     available = true;
                 }
             }
         }
-
     }
 
     return mincost;
@@ -704,356 +591,6 @@ bool placement::ff_cmp(ffi* a, ffi* b){
     return a->coox < b->coox;
 }
 
-
-
-void placement::placeFlipFlopInst(list<ffi*>& UPFFS, list<ffi*>& PFFS){
-    bool PRINT_INFO = true;
-    int idx;
-    int pos_idx;
-    int best_pos_idx;
-    plcmt_row* best_row;
-    bool find;      // is true when this ff have space to place
-    bool available; // is true when certain placement row have space to place
-    double cost;
-    double mincost;
-    ffi* fi;
-    list<ffi*> dismantle_list;
-    list<plcmt_row*> tested_list;
-    list<plcmt_row*> search_stack;
-    int ff_cnt = 0;
- 
-    double total_time = 0;
-    double stage0_time = 0;
-    double stage1_time = 0;
-    double stage2_time = 0;
-    double stage3_time = 0;
-    double time_start, time_end;
-    double ts, te;
-    if(PRINT_INFO) cout << endl << "FFs Placement Legalization >>>" << endl;
-
-    dismantle_list.clear();
-    UPFFS.sort(ff_cmp);
-    time_start = clock();
-    int UPFFS_NUM = UPFFS.size();
-    int DISM_NUM = dismantle_list.size();
-
-    while(UPFFS_NUM>0 || dismantle_list.size()>0){
-        // cout << ff_cnt << ":" << endl;
-        ts = clock();
-        mincost = numeric_limits<double>::max();
-        find = false; 
-        // cout << "\033[2J\033[1;1H";
-        // Step 1. Pick one ff from unplaced ff list or dismantle ff list to place
-        if(UPFFS_NUM>0 && dismantle_list.size()>0){
-            if(UPFFS.front()->coox < dismantle_list.front()->coox){
-                fi = UPFFS.front();
-                UPFFS.pop_front();
-                UPFFS_NUM--;
-            }
-            else{
-                fi = dismantle_list.front();
-                dismantle_list.pop_front();
-                //DISM_NUM--;
-            }
-        }
-        else if(UPFFS_NUM>0){
-            fi = UPFFS.front();
-            UPFFS.pop_front();
-            UPFFS_NUM--;
-
-        }
-        else{
-            fi = dismantle_list.front();
-            dismantle_list.pop_front();
-            //DISM_NUM--;
-        }
-
-        te = clock();
-        stage0_time = stage0_time + (te - ts);
-        ts = clock();
-
-        // Step 2. Calculate the closest placement row for this ff
-        idx = closest_IDX(fi->coox, fi->cooy);
-
-
-        // Step 3. Find the minimal cost around the adjacent area.
-        //         In this step, we need to find up and down base on the closest_IDX.
-        //         For each search in this two direction, I divide it into two stage:
-        //         Stage 1: The search region will be bounded inside the area where is connected to the row with "closest index".
-        //         Stage 2: The search region will be the placement rows which index is larger (or small (if in the "Find down direction")) than the "closest index"          
-        //         
-        //         The search in each stage will have the following limitations:
-        //         L1. If the state of "find" is true, and if the searching row's "y_diff" (= start_y - fi->cooy) is larger than mincost, than finish search in this stage.
-        //         L2. If the state of "find" is false, in 
-        //             Stage 1: stop searching this in this stage if all the upper (or lower) connected rows are beyond the range (is_too_far)
-        //             Stage 2: stop searching if the y_diff "is too far", considering x_diff is zero
-        //         L3. If the state of "find" is false, and this ff is single bit. The L2 is ineffective, search until "find" is true. 
-        tested_list.clear();
-
-        // *************************** Stage 1 ***************************
-
-        
-        search_stack.clear();
-        search_stack.push_back(rows[idx]);
-        rows[idx]->is_visited = true;
-
-        while(search_stack.size() > 0){
-            // cout << "PLACE TEST" << endl;
-            cost = search_stack.front()->place_trial(tested_list, fi, available, pos_idx, mincost);
-            if(available){
-                find = true;
-                if(cost < mincost){
-                    mincost = cost;
-                    best_pos_idx = pos_idx;
-                    best_row = search_stack.front(); 
-                }
-            }
-            for(auto& p: search_stack.front()->up_rows){
-                if(p->is_visited == false){
-                    if(find==true){
-                        if(abs(p->start_y - fi->cooy) >= mincost){
-                            // cout << "row " << p->idx << " larger than mincost " << endl;
-                            break;
-                        }
-                        if(fi->is_too_far(p->closest_x(fi->coox), p->start_y, DIE->displacement_delay) == false){
-                            search_stack.push_back(p);
-                            p->is_visited = true;
-                        }
-                        else{
-                            // cout << "row " << p->idx << " is too far " << endl;
-                        }
-                    }
-                    else{
-                        if(fi->type->bit_num > 1){
-                            if(fi->is_too_far(p->closest_x(fi->coox), p->start_y, DIE->displacement_delay) == false){
-                                search_stack.push_back(p);
-                                p->is_visited = true;
-                            }
-                        }
-                        else{
-                            search_stack.push_back(p);
-                            p->is_visited = true;
-                        }
-                    }
-                }
-            }
-            for(auto& p: search_stack.front()->down_rows){
-                if(p->is_visited == false){
-                    if(find==true){
-                        if(abs(p->start_y - fi->cooy) >= mincost){
-                            // cout << "row " << p->idx << " larger than mincost " << endl;
-                            break;
-                        }
-                        if(fi->is_too_far(p->closest_x(fi->coox), p->start_y, DIE->displacement_delay) == false){
-                            search_stack.push_back(p);
-                            p->is_visited = true;
-                        }
-                        else{
-                            // cout << "row " << p->idx << " is too far " << endl;
-                        }
-                    }
-                    else{
-                        if(fi->type->bit_num > 1){
-                            if(fi->is_too_far(p->closest_x(fi->coox), p->start_y, DIE->displacement_delay) == false){
-                                search_stack.push_back(p);
-                                p->is_visited = true;
-                            }
-                        }
-                        else{
-                            search_stack.push_back(p);
-                            p->is_visited = true;
-                        }
-                    }
-                }
-            }
-            search_stack.pop_front();
-        }
-
-        for(auto& p: search_stack) { p->is_visited = false; }
-        te = clock();
-        stage1_time = stage1_time + (te - ts);
-        // *************************** Stage 2 ***************************
-        ts = clock();
-        int up_i = idx + 1;
-        int down_i = idx - 1;
-        bool search_up = true;
-        bool search_down = true;
-        plcmt_row* target_pr;
-        while(search_up || search_down){
-            if(up_i >= rows.size()){
-                search_up = false;
-            }
-
-            if(down_i < 0){
-                search_down = false;
-            }
-
-
-            // check up_i
-            if(search_up){
-                target_pr = rows[up_i];
-            
-                if(find){
-                    if(abs(target_pr->start_y - fi->cooy) >= mincost){
-                        search_up = false;
-                    }
-                    else{
-                        if(target_pr->is_tested == false){
-                            if(fi->is_too_far(target_pr->closest_x(fi->coox), target_pr->start_y, DIE->displacement_delay) == false){
-                                cost = target_pr->place_trial(tested_list, fi, available, pos_idx, mincost);
-                                if(available){
-                                    find = true;
-                                    if(cost < mincost){
-                                        mincost = cost;
-                                        best_pos_idx = pos_idx;
-                                        best_row = target_pr; 
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                else{
-                    if(fi->type->bit_num == 1){
-                        if(target_pr->is_tested == false){
-                            cost = target_pr->place_trial(tested_list, fi, available, pos_idx, mincost);
-                            if(available){
-                                find = true;
-                                if(cost < mincost){
-                                    mincost = cost;
-                                    best_pos_idx = pos_idx;
-                                    best_row = target_pr; 
-                                }
-                            }
-                        }
-                    }
-                    else{
-                        if(target_pr->is_tested == false){
-                            if(fi->is_too_far(fi->coox, target_pr->start_y, DIE->displacement_delay) == true){
-                                search_up = false;
-                            }
-                            else{
-                                if(fi->is_too_far(target_pr->closest_x(fi->coox), target_pr->start_y, DIE->displacement_delay) == false){
-                                    cost = target_pr->place_trial(tested_list, fi, available, pos_idx, mincost);
-                                    if(available){
-                                        find = true;
-                                        if(cost < mincost){
-                                            mincost = cost;
-                                            best_pos_idx = pos_idx;
-                                            best_row = target_pr; 
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                up_i++;
-            }
-
-            // check down_i
-            if(search_down){
-                target_pr = rows[down_i];
-            
-                if(find){
-                    if(abs(target_pr->start_y - fi->cooy) >= mincost){
-                        search_down = false;
-                    }
-                    else{
-                        if(target_pr->is_tested == false){
-                            if(fi->is_too_far(target_pr->closest_x(fi->coox), target_pr->start_y, DIE->displacement_delay) == false){
-                                cost = target_pr->place_trial(tested_list, fi, available, pos_idx, mincost);
-                                if(available){
-                                    find = true;
-                                    if(cost < mincost){
-                                        mincost = cost;
-                                        best_pos_idx = pos_idx;
-                                        best_row = target_pr; 
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                else{
-                    if(fi->type->bit_num == 1){
-                        if(target_pr->is_tested == false){
-                            cost = target_pr->place_trial(tested_list, fi, available, pos_idx, mincost);
-                            if(available){
-                                find = true;
-                                if(cost < mincost){
-                                    mincost = cost;
-                                    best_pos_idx = pos_idx;
-                                    best_row = target_pr; 
-                                }
-                            }
-                        }
-                    }
-                    else{
-                        if(target_pr->is_tested == false){
-                            if(fi->is_too_far(fi->coox, target_pr->start_y, DIE->displacement_delay) == true){
-                                search_down = false;
-                            }
-                            else{
-                                if(fi->is_too_far(target_pr->closest_x(fi->coox), target_pr->start_y, DIE->displacement_delay) == false){
-                                    cost = target_pr->place_trial(tested_list, fi, available, pos_idx, mincost);
-                                    if(available){
-                                        find = true;
-                                        if(cost < mincost){
-                                            mincost = cost;
-                                            best_pos_idx = pos_idx;
-                                            best_row = target_pr; 
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                down_i--;
-            }
-        }
-
-        for(auto& p: tested_list){ 
-            p->is_visited = false;
-            p->is_tested  = false; 
-        }
-        te = clock();
-        stage2_time = stage2_time + (te - ts);
-        // Step 4. After seaching both side and each with two stages, if the "find" is true, place the ff at the mincost row.
-        //         If the result "find" is false:
-        //              1. If this ff size is not single bit, dismantle this ff.
-        //              2. If this ff size if single bit, than placement legalization fail.
-        ts = clock();
-        if(find == false){
-            if(fi->type->bit_num == 1 && PRINT_INFO == true){
-
-                rows[idx]->print_blocklist();
-                return;
-            }
-            else{
-                // dismantle fi
-                // cout << ff_cnt << " dismantle" << endl;
-
-            }
-        }
-        else{
-            place_formal(fi, best_row, best_pos_idx);
-
-
-            PFFS.push_back(fi);
-            ff_cnt++;
-            te = clock();
-            stage3_time = stage3_time + (te - ts);
-        }
-    }
-    time_end = clock();
-    total_time = time_end - time_start;
-
-
-    return;
-}
-
 void placement::place_formal(ffi* fi, plcmt_row* best_row, int best_pos_idx){
     double start = best_row->start_x + best_pos_idx*best_row->site_w;
     double end = start + fi->type->size_x;
@@ -1063,4 +600,76 @@ void placement::place_formal(ffi* fi, plcmt_row* best_row, int best_pos_idx){
     fi->update_pin_loc();
     best_row->add_ff(start, end, fi->type->size_y);
     return;
+}
+
+bool placement::placeFlipFlop(ffi* f, bool set_constrain, double displace_constrain){
+    int idx;
+    int closest_idx;
+    bool available;
+    int best_pos_idx;
+    double global_mincost = numeric_limits<double>::max();
+    double row_mincost;
+    plcmt_row* best_row;
+    int best_site_idx;
+    int best_row_idx;
+    bool place_success = false;
+
+
+    closest_idx = closest_IDX(f->coox, f->cooy);
+    
+    if(set_constrain){
+        f->x_allow_dis = (f->type->size_x)*(displace_constrain/100);
+        f->y_allow_dis = (f->type->size_y)*(displace_constrain/100);
+    }
+    else{
+        f->x_allow_dis = numeric_limits<double>::max();
+        f->y_allow_dis = numeric_limits<double>::max();
+    }
+
+    // find up
+    idx = closest_idx;
+    while(idx < rows.size()){
+        if(rows[idx]->start_y - f->cooy > f->y_allow_dis) break;
+        else if(f->cooy - rows[idx]->start_y > f->y_allow_dis) { idx++; continue;}
+
+        row_mincost = rows[idx]->place_trial(f, available, best_pos_idx, global_mincost);
+        if(available && global_mincost>row_mincost){
+            global_mincost = row_mincost;
+            best_site_idx = best_pos_idx;
+            best_row = rows[idx];
+            best_row_idx = idx;
+            place_success = true;
+            if(set_constrain == false){
+                f->x_allow_dis = global_mincost;
+                f->y_allow_dis = global_mincost;
+            }
+        }
+        idx++;
+    }
+
+    // find down
+    idx = closest_idx - 1;
+    while(idx >= 0){
+        if(f->cooy - rows[idx]->start_y > f->y_allow_dis) break;
+        else if(rows[idx]->start_y - f->cooy > f->y_allow_dis) { idx--; continue;}
+
+        row_mincost = rows[idx]->place_trial(f, available, best_pos_idx, global_mincost);
+        if(available && global_mincost>row_mincost){
+            global_mincost = row_mincost;
+            best_site_idx = best_pos_idx;
+            best_row = rows[idx];
+            best_row_idx = idx;
+            place_success = true;
+            if(set_constrain == false){
+                f->x_allow_dis = global_mincost;
+                f->y_allow_dis = global_mincost;
+            }
+        }
+        idx--;
+    }
+
+    place_formal(f, best_row, best_site_idx);
+    f->index_to_placement_row = best_row_idx;
+
+    return place_success;
 }

@@ -6,6 +6,8 @@ banking::banking(placement* PM, inst* INST, lib* LIB, dieInfo* DIE, list<ffi*>* 
     this->LIB  = LIB;
     this->DIE  = DIE;
     this->PFFS = PFFS;
+    SUCCESS = true;
+    FAIL    = true;
 }
 
 void banking::Initial_Placement(){
@@ -59,6 +61,39 @@ void banking::CopyOriginalFFs(){
         for(auto it=flist->begin(); it!=flist->end(); it++){
             ffi* f = *it;
             f->it_pointer = it;
+        }
+    }
+}
+
+bool banking::cmp_ff_x(ffi* a, ffi* b){
+    return a->coox < b->coox;
+}
+
+void banking::OriginalFFs_Placment(){
+    bool SET_CONSTRAIN = true;
+    bool DONT_SET_CONSTRAIN = false;
+    double DISPLACE_CONSTRAIN = 50;
+
+    list<ffi*> buffer_list;
+    list<ffi*> multi_bit_stack;
+
+    for(auto flist: ff_groups){
+        for(auto it=flist->begin(); it!=flist->end(); it++){
+            ffi* f = *it;
+            placing_ffs.push_back(f);
+        }
+    }
+
+    placing_ffs.sort(cmp_ff_x);
+
+    for(auto f: placing_ffs){
+        if(PM->placeFlipFlop(f, SET_CONSTRAIN, DISPLACE_CONSTRAIN) == SUCCESS){
+            if(f->type->bit_num > 1){
+                multi_bit_stack.push_back(f);
+            }
+        }
+        else{
+            buffer_list.push_back(f);
         }
     }
 }

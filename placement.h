@@ -58,7 +58,7 @@ class plcmt_row{
         // if dir == 0 start finding from ds to de (start to end)
         // if dir == 1 start finding from de to ds (end to start)
         bool seg_mincost(ffi* fi, int ds, int de, int dw, int& best_pos_idx, double& mincost, bool dir);
-        double place_trial(list<plcmt_row*>& tested_list, ffi* fi, bool& available, int& best_pos_idx, double global_mincost);
+        double place_trial(ffi* fi, bool& available, int& best_pos_idx, double global_mincost);
         
 };
 
@@ -87,8 +87,8 @@ class placement{
         void addRow(double sx, double sy, double sw, double sh, int sn);
         void initial();
         void placeGateInst(double x, double y, double w, double h);
-        void placeFlipFlopInst(list<ffi*>& UPFFS, list<ffi*>& PFFS);
         void GatePlacement();
+        bool placeFlipFlop(ffi* f, bool set_constrain, double displace_constrain);
         
 
 

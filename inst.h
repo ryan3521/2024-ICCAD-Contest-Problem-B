@@ -27,10 +27,12 @@ class ffi{
         vector<pin*> q_pins;
         pin* clk_pin;
 
-        double allow_dis; 
+        double x_allow_dis; 
+        double y_allow_dis; 
 
         list<ffi*>* to_list;
         list<ffi*>::iterator it_pointer;
+        int index_to_placement_row_;
 
         // member function
         ffi(string, double, double);

@@ -35,12 +35,8 @@ int main(int argc, char** argv){
     INST.DebankAllFF(LIB);
 
     FFBANK.run();
-    FFBANK.PrintResult();
 
 
-
-    PM.placeGateInst();
-    PM.placeFlipFlopInst(UPFFS, PFFS);
     // Output(argv[2], PFFS, INST);
 
     double end = clock();

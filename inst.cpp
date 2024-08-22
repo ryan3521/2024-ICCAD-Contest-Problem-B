@@ -202,9 +202,6 @@ void inst::SlackDispense(dieInfo& DIE){
                 min_pos_slack = ffptr->d_pins[i]->dspd_slk;
             }
         } 
-
-        //ffptr->allow_dis = (no_pos_slack==true) ? 0 : min_pos_slack/(DIE.displacement_delay);
-        ffptr->allow_dis = min_pos_slack/(DIE.displacement_delay);
     }
 
     // return redundant slack back to d pins
@@ -451,6 +448,8 @@ ffi::ffi(string name, double coox, double cooy){
     this->cooy = cooy;
     d_pins.clear();
     q_pins.clear();
+    to_list = NULL;
+    index_to_placement_row = -1;
 }
 
 void ffi::set_type(ffcell* type){
