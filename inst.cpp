@@ -755,7 +755,7 @@ double pin::CalTns(double test_coox, double tes_cooy, bool is_D, ffcell* new_typ
     return (slack >= 0)? 1 : slack;
 }
 
-se::se(bool type, double coor, ffi* to_ff){
+se::se(int type, double coor, ffi* to_ff){
     this->type = type;
     this->coor = coor;
     this->to_ff = to_ff;

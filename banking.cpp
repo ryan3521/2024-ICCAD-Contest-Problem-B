@@ -24,17 +24,23 @@ void banking::Initial_Placement(){
 void banking::Run_Placement_Banking(){
     InitialFFsCost();
     for(auto ff_list: ff_groups){
-        for(target_size=2; target_size<=LIB->max_ff_size; target_size++){
+        for(target_size=2; target_size<=4; target_size++){
+            banking_ffs.clear();
             for(auto f: *ff_list) {
-                banking_ffs.clear();
                 banking_ffs.push_back(f);
             }
             SetPseudoBlock();
             ConstructXSequence();
+
+            int cnt = 0 ;
             while(FindNewCluster()){
+               
                 FindBestCombtoPlace();
+                
+                cnt ++;
             }
-        }  
+        } 
+//        break; 
     }
 
     return;
@@ -86,7 +92,9 @@ void banking::CopyOriginalFFs(){
             newff_cnt++;
         }
         ff_groups.push_back(ff_list);
+
     }
+
 
     for(auto flist: ff_groups){
         for(auto it=flist->begin(); it!=flist->end(); it++){
@@ -140,7 +148,7 @@ void banking::InitialFFsCost(){
 }
 
 void banking::SetPseudoBlock(){
-    double base_expand_rate = 10;
+    double base_expand_rate = 13;
     double expand_rate;
     for(auto f: banking_ffs){
         expand_rate = (target_size - f->d_pins.size()) > 0 ? base_expand_rate*(target_size - f->d_pins.size()) : 0;
@@ -150,9 +158,7 @@ void banking::SetPseudoBlock(){
 
 bool banking::cmp_se(se* a, se* b){
     if(a->coor == b->coor){
-        int atype = a->type ? 1 : 0;
-        int btype = b->type ? 1 : 0;
-        return btype > atype;
+        return a->type > b->type;
     }
     return a->coor < b->coor;
 }
@@ -173,6 +179,13 @@ void banking::ConstructXSequence(){
         if(se_ptr->type == 1){
             se_ptr->to_ff->e_it = it;
         }
+        else if(se_ptr->type == 0){
+            continue;
+        }
+        else{
+            cout << "error" << endl;
+            return;
+        }
     }
 }
 
@@ -187,26 +200,33 @@ void banking::ConstructYSequence(){
         yseq.push_back(e_ptr);
     }
     yseq.sort(cmp_se);
+
 }
 
 
 bool banking::FindNewCluster(){
-    if(xseq.begin() == xseq.end()) return false;
+    if(xseq.empty()) {
+        return false;
+    }
 
-    while(xseq.begin()!=xseq.end()){
+    while(xseq.empty() == false){
+
         if(xseq.front()->type == 0){ // type  == "start"
             tracking_list.push_front(xseq.front()->to_ff);
             tracking_list.front()->x_track_list_it = tracking_list.begin();
             delete xseq.front();
             xseq.pop_front();
         }
-        else{ // type  == "end"
+        else if((xseq.front()->type == 1)){ // type  == "end"
             essential_ff = xseq.front()->to_ff;
-            tracking_list.push_front(essential_ff);
-            tracking_list.front()->x_track_list_it = tracking_list.begin();
+
             delete xseq.front();
             xseq.pop_front();
             break;
+        }
+        else{
+            cout << "error" << endl;
+            return false;
         }
     }
 
@@ -219,14 +239,16 @@ bool banking::FindNewCluster(){
 void banking::FindRelatedFF(){
     list<ffi*> y_tracking_list;
 
-    while(yseq.begin() != yseq.end()){
+    while(yseq.empty() == false){
         if(yseq.front()->type == 0){
             y_tracking_list.push_front(yseq.front()->to_ff);
             y_tracking_list.front()->y_track_list_it = y_tracking_list.begin();
+
             delete yseq.front();
             yseq.pop_front();
         }
         else if(yseq.front()->to_ff == essential_ff){
+
             y_tracking_list.erase(yseq.front()->to_ff->y_track_list_it);
             cls->essential_ff = essential_ff;
             cls->related_ffs.clear();
@@ -242,7 +264,7 @@ void banking::FindRelatedFF(){
         }
     }
 
-    while(yseq.begin() != yseq.end()){
+    while(yseq.empty() == false){
         delete yseq.front();
         yseq.pop_front();
     }
@@ -252,10 +274,11 @@ void banking::FindRelatedFF(){
 
 void banking::FindBestCombtoPlace(){
     bool   SET_CONSTRAIN = true;
-    double DISPLACE_CONSTRAIN = 50;
+    double DISPLACE_CONSTRAIN = 200;
 
     cls->ConstructCombs(target_size);
-    while(cls->comb_list.begin() != cls->comb_list.end()){
+
+    while(cls->comb_list.empty() == false){
         target_comb = cls->comb_list.front();
         cls->comb_list.pop_front();
         if(target_comb->TestQuality(0) == SUCCESS){
@@ -268,29 +291,42 @@ void banking::FindBestCombtoPlace(){
                 new_ff->it_pointer = new_ff->to_list->begin();
                 for(auto f: target_comb->members){
                     if(f != essential_ff) {
-                        delete *(f->e_it);
+                        se* se_ptr = *(f->e_it);
+                        delete se_ptr;
                         xseq.erase(f->e_it);
                     }
                     tracking_list.erase(f->x_track_list_it);
                     new_ff->to_list->erase(f->it_pointer);
                     delete f;
                 }
-                break;
+                // delete target_comb;
+                cls->Clear();
+                return;
             }
             else{
+                // cout << endl;
+                // cout << "Fail" << endl;
+                // cout << "new type: " << new_ff->type->size_x << ", " << new_ff->type->size_y << endl;
+                // for(auto f: target_comb->members) {
+                //     cout << "old type: " << fixed << f->type->size_x << ", " << f->type->size_y << "; coox = " << f->coox << ", cooy = " << f->cooy << endl;
+                // }
+                // cout << endl;
                 for(auto f: target_comb->members) {
                     PM->PlaceBackFlipFlop(f);
                 }
                 delete new_ff;
-                delete target_comb;
+                // delete target_comb;
                 continue;
             }
         }
         else{
-            delete target_comb;
+            // delete target_comb;
             continue;
         }
     }
+
+    tracking_list.erase(essential_ff->x_track_list_it);
+    cls->Clear();
     return;
 }
 

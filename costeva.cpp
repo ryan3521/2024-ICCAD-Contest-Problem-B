@@ -247,9 +247,11 @@ void costeva::ResultCost(list<ffi*>* ff_list){
     double wns = 0;
     int violated_bins = 0;
     int density_cost = 0;
+    vector<int> arr(LIB->max_ff_size+1, 0);
     double total_cost;
 
     for(auto f: *ffs){
+        arr[f->d_pins.size()]++;
         bit_num = bit_num + f->d_pins.size();
     }
 
@@ -287,6 +289,16 @@ void costeva::ResultCost(list<ffi*>* ff_list){
     cout << "+ - - - - - + - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -|" << endl;
     cout << "|    Bits   |                            " << left << setw(8) << bit_num << "                                |" << endl;
     cout << "+================================================================================+" << endl;
+    cout << endl;
+
+    cout << "+---------------------+" << endl;
+    cout << "|  Size  Distribution |" << endl;
+    cout << "+---------------------+" << endl;
+
+    for(int i=1; i<=LIB->max_ff_size; i++){
+    cout << "|  Size " << right << setw(3) << " |   " << setw(5) << arr[i] << "    |" << endl; 
+    }
+    cout << "+---------------------+" << endl;
     cout << endl;
 
     fout << endl;

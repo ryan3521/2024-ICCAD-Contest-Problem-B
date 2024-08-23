@@ -31,8 +31,10 @@ void cluster::AddMember(ffi* new_member){
 void cluster::Clear(){
     size = 0;
     essential_ff = NULL;
+    type = NULL;
     related_ffs.clear();
     members.clear();
+    comb_list.clear();
 }
 
 bool cluster::cmp_dist(ffi* a, ffi* b){
@@ -44,6 +46,7 @@ bool cluster::cmp_cost(comb* a, comb* b){
 }
 
 void cluster::ConstructCombs(int target_size){
+
     comb_list.clear();
 
     for(auto it = related_ffs.begin(); it!=related_ffs.end(); it=it){
@@ -58,7 +61,7 @@ void cluster::ConstructCombs(int target_size){
         }
     }
 
-    if(related_ffs.begin() == related_ffs.end()) return;
+    if(related_ffs.empty()) return;
 
     related_ffs.sort(cmp_dist);
 
@@ -81,6 +84,7 @@ void cluster::ConstructCombs(int target_size){
 
     for(auto cmb: comb_list) cmb->Calculate_BestCost_FFtype(0, LIB, INST, DIE);
     comb_list.sort(cmp_cost);
+
 }
 
 void comb::Calculate_BestCost_FFtype(bool print, lib* LIB, inst* INST, dieInfo* DIE){
@@ -109,7 +113,8 @@ void comb::Calculate_BestCost_FFtype(bool print, lib* LIB, inst* INST, dieInfo* 
         slack = INST->TnsTest(print, dpins, qpins, ftype, DIE->displacement_delay, dpins_result, qpins_result);
         ns = (slack > 0) ? 0 : abs(slack);
         cost = (DIE->Alpha*ns + DIE->Beta*ftype->gate_power + DIE->Gamma*ftype->area)/(double)size;
-    
+
+
         if(cost < mincost){
             mincost = cost;
             mincost_ftype = ftype;
@@ -121,6 +126,7 @@ void comb::Calculate_BestCost_FFtype(bool print, lib* LIB, inst* INST, dieInfo* 
     }
     type = mincost_ftype;
     cost_per_bit = mincost;
+    
     // find best ff type: end
     return;
 }

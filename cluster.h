@@ -25,7 +25,6 @@ class comb{
 
 class cluster{
     private:
-        placement* PM;
         inst* INST;
         lib*  LIB;
         dieInfo* DIE;
@@ -38,8 +37,6 @@ class cluster{
         list<ffi*> related_ffs; 
         list<ffi*> members; 
         ffcell* type;
-
-        
 
         list<comb*> comb_list;
 

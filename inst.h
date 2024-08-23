@@ -19,10 +19,10 @@ class ffi;
 
 class se{
     public:
-        bool type;
+        int type;
         double coor;
         ffi* to_ff;
-        se(bool type, double coor, ffi* to_ff);
+        se(int type, double coor, ffi* to_ff);
 };
 
 class block{
