@@ -44,6 +44,7 @@ class banking{
         bool FindNewCluster();
         void FindRelatedFF();
         void FindBestCombtoPlace();
+        void RenameAllFlipFlops();
     public:
         banking(placement* PM, inst* INST, lib* LIB, dieInfo* DIE, list<ffi*>* PFFS);
         void run();

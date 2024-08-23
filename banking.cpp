@@ -40,9 +40,24 @@ void banking::Run_Placement_Banking(){
     return;
 }
 
+void banking::RenameAllFlipFlops(){
+    int cnt = 0;
+    string inst_name;
+
+    for(auto ff_list: ff_groups){
+        for(auto f: *ff_list) {
+            inst_name = "";
+            inst_name = inst_name + "NEWFF" + to_string(cnt);
+            f->name = inst_name;
+            PFFS->push_back(f);
+        }    
+    }
+}
+
 void banking::run(){
     Initial_Placement();
     Run_Placement_Banking();
+    RenameAllFlipFlops();
     return;
 }
 
