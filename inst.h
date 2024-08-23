@@ -59,6 +59,8 @@ class ffi{
         list<se*>::iterator e_it;
         list<ffi*>::iterator x_track_list_it;
         list<ffi*>::iterator y_track_list_it;
+        double dist_to_essential;
+        double cost;
 
         // member function
         ffi(string, double, double);
@@ -80,7 +82,7 @@ class ffi{
 
         double get_timing_cost(double x, double y, double displacement_delay);
         void Set_PseudoBlock_Size(double expand_rate);
-
+        void CalculateCost(double alpha, double beta, double gamma, double displacement_delay);
 };
 
 class gatei{

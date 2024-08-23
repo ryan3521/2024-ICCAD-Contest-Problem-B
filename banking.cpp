@@ -8,6 +8,7 @@ banking::banking(placement* PM, inst* INST, lib* LIB, dieInfo* DIE, list<ffi*>* 
     this->PFFS = PFFS;
     SUCCESS = true;
     FAIL    = true;
+    cls = new cluster(INST, LIB, DIE);
 }
 
 void banking::Initial_Placement(){
@@ -21,27 +22,27 @@ void banking::Initial_Placement(){
 }
 
 void banking::Run_Placement_Banking(){
-    
+    InitialFFsCost();
     for(auto ff_list: ff_groups){
-        banking_ffs.clear();
-        for(auto f: *ff_list) {banking_ffs.push_back(f);}
         for(target_size=2; target_size<=LIB->max_ff_size; target_size++){
+            for(auto f: *ff_list) {
+                banking_ffs.clear();
+                banking_ffs.push_back(f);
+            }
             SetPseudoBlock();
             ConstructXSequence();
             while(FindNewCluster()){
-                FindBestComb();
+                FindBestCombtoPlace();
             }
-        }
-        
+        }  
     }
-
 
     return;
 }
 
 void banking::run(){
     Initial_Placement();
-
+    Run_Placement_Banking();
     return;
 }
 
@@ -115,6 +116,14 @@ void banking::OriginalFFs_Placment(){
     cout << "BufferList: " << buffer_list.size() << endl;
 }
 
+void banking::InitialFFsCost(){
+    for(auto ff_list: ff_groups){
+        for(auto f: *ff_list) {
+            f->CalculateCost(DIE->Alpha,DIE->Beta,DIE->Gamma,DIE->displacement_delay);
+        }    
+    }
+}
+
 void banking::SetPseudoBlock(){
     double base_expand_rate = 10;
     double expand_rate;
@@ -173,12 +182,14 @@ bool banking::FindNewCluster(){
         if(xseq.front()->type == 0){ // type  == "start"
             tracking_list.push_front(xseq.front()->to_ff);
             tracking_list.front()->x_track_list_it = tracking_list.begin();
+            delete xseq.front();
             xseq.pop_front();
         }
         else{ // type  == "end"
             essential_ff = xseq.front()->to_ff;
             tracking_list.push_front(essential_ff);
             tracking_list.front()->x_track_list_it = tracking_list.begin();
+            delete xseq.front();
             xseq.pop_front();
             break;
         }
@@ -202,9 +213,9 @@ void banking::FindRelatedFF(){
         }
         else if(yseq.front()->to_ff == essential_ff){
             y_tracking_list.erase(yseq.front()->to_ff->y_track_list_it);
-            cls.essential_ff = essential_ff;
-            cls.related_ffs.clear();
-            for(auto f: y_tracking_list) cls.related_ffs.push_back(f);
+            cls->essential_ff = essential_ff;
+            cls->related_ffs.clear();
+            for(auto f: y_tracking_list) cls->related_ffs.push_back(f);
             delete yseq.front();
             yseq.pop_front();
             break;
@@ -224,6 +235,48 @@ void banking::FindRelatedFF(){
 }
             
 
+void banking::FindBestCombtoPlace(){
+    bool   SET_CONSTRAIN = true;
+    double DISPLACE_CONSTRAIN = 50;
 
+    cls->ConstructCombs(target_size);
+    while(cls->comb_list.begin() != cls->comb_list.end()){
+        target_comb = cls->comb_list.front();
+        cls->comb_list.pop_front();
+        if(target_comb->TestQuality(0) == SUCCESS){
+            for(auto f: target_comb->members) {PM->DeleteFlipFlop(f);}
+
+            ffi* new_ff = target_comb->GetNewFF();
+            if(PM->placeFlipFlop(new_ff, SET_CONSTRAIN, DISPLACE_CONSTRAIN) == SUCCESS){
+                new_ff->to_list = target_comb->members.front()->to_list;
+                new_ff->to_list->push_front(new_ff);
+                new_ff->it_pointer = new_ff->to_list->begin();
+                for(auto f: target_comb->members){
+                    if(f != essential_ff) {
+                        delete *(f->e_it);
+                        xseq.erase(f->e_it);
+                    }
+                    tracking_list.erase(f->x_track_list_it);
+                    new_ff->to_list->erase(f->it_pointer);
+                    delete f;
+                }
+                break;
+            }
+            else{
+                for(auto f: target_comb->members) {
+                    PM->PlaceBackFlipFlop(f);
+                }
+                delete new_ff;
+                delete target_comb;
+                continue;
+            }
+        }
+        else{
+            delete target_comb;
+            continue;
+        }
+    }
+    return;
+}
 
 

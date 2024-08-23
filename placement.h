@@ -91,7 +91,7 @@ class placement{
         void GatePlacement();
         bool placeFlipFlop(ffi* f, bool set_constrain, double displace_constrain);
         void DeleteFlipFlop(ffi* f);
-
+        void PlaceBackFlipFlop(ffi* f);
 
 };
 

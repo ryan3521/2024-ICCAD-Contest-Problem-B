@@ -688,6 +688,15 @@ void placement::place_formal(ffi* fi, plcmt_row* best_row, int best_pos_idx){
     return;
 }
 
+void placement::PlaceBackFlipFlop(ffi* f){
+    plcmt_row* best_row = rows[f->index_to_placement_row];
+    int best_pos_idx = f->index_to_site;
+
+    double start = best_row->start_x + best_pos_idx*best_row->site_w;
+    double end = start + f->type->size_x;
+    best_row->add_ff(start, end, f->type->size_y);
+}
+
 bool placement::placeFlipFlop(ffi* f, bool set_constrain, double displace_constrain){
     int idx;
     int closest_idx;

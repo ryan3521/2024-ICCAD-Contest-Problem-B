@@ -450,6 +450,7 @@ ffi::ffi(string name, double coox, double cooy){
     q_pins.clear();
     to_list = NULL;
     index_to_placement_row = -1;
+    cost = numeric_limits<double>::max();
 }
 
 void ffi::set_type(ffcell* type){
@@ -613,6 +614,10 @@ bool ffi::is_too_far(double x, double y, double displacement_delay){
     else return false;
 }
 
+void ffi::CalculateCost(double alpha, double beta, double gamma, double displacement_delay){
+    cost = alpha*this->get_timing_cost(coox, cooy, displacement_delay) + beta*type->gate_power + gamma*type->area;
+}
+
 double ffi::get_timing_cost(double x, double y, double displacement_delay){
     double cost = 0;
     double slack;
@@ -628,12 +633,12 @@ double ffi::get_timing_cost(double x, double y, double displacement_delay){
         if(slack < 0) cost = cost - slack;
     }
 
-    // for(auto& p: q_pins){
-    //     double pin_x = p->new_coox + rel_x;
-    //     double pin_y = p->new_cooy + rel_y;
-    //     slack = p->CalTns(pin_x, pin_y, false, type, displacement_delay);
-    //     if(slack < 0) cost = cost - slack;
-    // }
+    for(auto& p: q_pins){
+        double pin_x = p->new_coox + rel_x;
+        double pin_y = p->new_cooy + rel_y;
+        slack = p->CalTns(pin_x, pin_y, false, type, displacement_delay);
+        if(slack < 0) cost = cost - slack;
+    }
 
     return cost;
 }
