@@ -57,6 +57,8 @@ class ffi{
 
         block pseudo_block;
         list<se*>::iterator e_it;
+        list<ffi*>::iterator x_track_list_it;
+        list<ffi*>::iterator y_track_list_it;
 
         // member function
         ffi(string, double, double);

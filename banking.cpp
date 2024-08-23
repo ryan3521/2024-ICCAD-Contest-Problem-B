@@ -28,6 +28,9 @@ void banking::Run_Placement_Banking(){
         for(target_size=2; target_size<=LIB->max_ff_size; target_size++){
             SetPseudoBlock();
             ConstructXSequence();
+            while(FindNewCluster()){
+                FindBestComb();
+            }
         }
         
     }
@@ -121,7 +124,7 @@ void banking::SetPseudoBlock(){
     }
 }
 
-bool cmp_se(se* a, se* b){
+bool banking::cmp_se(se* a, se* b){
     if(a->coor == b->coor){
         int atype = a->type ? 1 : 0;
         int btype = b->type ? 1 : 0;
@@ -149,6 +152,76 @@ void banking::ConstructXSequence(){
     }
 }
 
+void banking::ConstructYSequence(){
+    se* s_ptr = NULL;
+    se* e_ptr = NULL;
+    yseq.clear();
+    for(auto f: tracking_list){
+        s_ptr = new se(0, f->pseudo_block.ymin, f);
+        e_ptr = new se(1, f->pseudo_block.ymax, f);
+        yseq.push_back(s_ptr);
+        yseq.push_back(e_ptr);
+    }
+    yseq.sort(cmp_se);
+}
+
+
+bool banking::FindNewCluster(){
+    if(xseq.begin() == xseq.end()) return false;
+
+    while(xseq.begin()!=xseq.end()){
+        if(xseq.front()->type == 0){ // type  == "start"
+            tracking_list.push_front(xseq.front()->to_ff);
+            tracking_list.front()->x_track_list_it = tracking_list.begin();
+            xseq.pop_front();
+        }
+        else{ // type  == "end"
+            essential_ff = xseq.front()->to_ff;
+            tracking_list.push_front(essential_ff);
+            tracking_list.front()->x_track_list_it = tracking_list.begin();
+            xseq.pop_front();
+            break;
+        }
+    }
+
+    ConstructYSequence();
+    FindRelatedFF();
+
+    return true;
+}
+
+void banking::FindRelatedFF(){
+    list<ffi*> y_tracking_list;
+
+    while(yseq.begin() != yseq.end()){
+        if(yseq.front()->type == 0){
+            y_tracking_list.push_front(yseq.front()->to_ff);
+            y_tracking_list.front()->y_track_list_it = y_tracking_list.begin();
+            delete yseq.front();
+            yseq.pop_front();
+        }
+        else if(yseq.front()->to_ff == essential_ff){
+            y_tracking_list.erase(yseq.front()->to_ff->y_track_list_it);
+            cls.essential_ff = essential_ff;
+            cls.related_ffs.clear();
+            for(auto f: y_tracking_list) cls.related_ffs.push_back(f);
+            delete yseq.front();
+            yseq.pop_front();
+            break;
+        }
+        else{
+            y_tracking_list.erase(yseq.front()->to_ff->y_track_list_it);
+            delete yseq.front();
+            yseq.pop_front();
+        }
+    }
+
+    while(yseq.begin() != yseq.end()){
+        delete yseq.front();
+        yseq.pop_front();
+    }
+    return;
+}
             
 
 

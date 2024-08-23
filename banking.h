@@ -24,8 +24,10 @@ class banking{
         list<ffi*> banking_ffs;
         list<se*>  xseq;
         list<se*>  yseq;
-        int target_size;
+        list<ffi*> tracking_list;
         cluster cls;
+        int target_size;
+        ffi* essential_ff;
 // ----------------------------------------
         static bool cmp_ff_x(ffi* a, ffi* b);
         static bool cmp_se(se* a, se* b);
@@ -36,6 +38,10 @@ class banking{
         void Run_Placement_Banking();
         void SetPseudoBlock();
         void ConstructXSequence();
+        void ConstructYSequence();
+        bool FindNewCluster();
+        void FindRelatedFF();
+        void FindBestComb();
     public:
         banking(placement* PM, inst* INST, lib* LIB, dieInfo* DIE, list<ffi*>* PFFS);
         void run();
