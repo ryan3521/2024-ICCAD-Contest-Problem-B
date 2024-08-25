@@ -24,7 +24,7 @@ void banking::Initial_Placement(){
 void banking::Run_Placement_Banking(){
     InitialFFsCost();
     for(auto ff_list: ff_groups){
-        for(target_size=2; target_size<=4; target_size++){
+        for(target_size=2; target_size<=2; target_size++){
             banking_ffs.clear();
             for(auto f: *ff_list) {
                 banking_ffs.push_back(f);
@@ -304,23 +304,25 @@ void banking::FindBestCombtoPlace(){
                 return;
             }
             else{
-                // cout << endl;
-                // cout << "Fail" << endl;
-                // cout << "new type: " << new_ff->type->size_x << ", " << new_ff->type->size_y << endl;
-                // for(auto f: target_comb->members) {
-                //     cout << "old type: " << fixed << f->type->size_x << ", " << f->type->size_y << "; coox = " << f->coox << ", cooy = " << f->cooy << endl;
-                // }
-                // cout << endl;
+                if(target_comb->members.front()->type->size_y == 2100 && target_comb->members.back()->type->size_y == 2100){
+                    cout << endl;
+                    cout << "Fail" << endl;
+                    cout << "new type: " << new_ff->type->size_x << ", " << new_ff->type->size_y << endl;
+                    for(auto f: target_comb->members) {
+                        cout << "old type: " << fixed << f->type->size_x << ", " << f->type->size_y << "; coox = " << f->coox << ", cooy = " << f->cooy << endl;
+                    }
+                    cout << endl;
+                }
                 for(auto f: target_comb->members) {
                     PM->PlaceBackFlipFlop(f);
                 }
                 delete new_ff;
-                // delete target_comb;
+                delete target_comb;
                 continue;
             }
         }
         else{
-            // delete target_comb;
+            delete target_comb;
             continue;
         }
     }
