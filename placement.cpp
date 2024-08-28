@@ -714,6 +714,7 @@ bool placement::placeFlipFlop(ffi* f, bool set_constrain, double displace_constr
     closest_idx = closest_IDX(f->coox, f->cooy);
     
     if(set_constrain){
+        double displace = (f->type->size_x + f->type->size_y) / 2;
         f->x_allow_dis = (f->type->size_x)*(displace_constrain/100);
         f->y_allow_dis = (f->type->size_y)*(displace_constrain/100);
     }

@@ -22,22 +22,42 @@ void banking::PlaceAndDebank(){
             place_order_array[f->size].push_back(f);
         }
     }
-    for(auto ff_list: place_order_array){
-        ff_list.sort(cmp_ff_x);
-    }
+
 
     int place_fail_count = 0;
     bool set_constrain = true;
-    double displace_constrain = 100;
+    double displace_constrain = 200;
     for(int i=LIB->max_ff_size; i>0; i--){
+
+        place_order_array[i].sort(cmp_ff_x);
+        
         for(auto f: place_order_array[i]){
             if(PM->placeFlipFlop(f, set_constrain, displace_constrain) == FAIL){
-                place_fail_array[i].push_back(f);
-                if(i==2)place_fail_count++;
+                if(ChangeTypeAndTry(f) == FAIL){
+                    if(f->size != 1){
+                        // Debank
+                        list<ffi*> debank_list;
+                        Debank(f, debank_list);
+                        for(auto small_f: debank_list){
+                            place_order_array[small_f->size].push_back(small_f);
+                        }
+                    }
+                    else{
+                        PM->placeFlipFlop(f, false, displace_constrain);
+                    }
+                }
+                place_fail_count++;
             }
         }
     }
     cout << "Place Fail FF NUM: " << place_fail_count << endl;
+
+    for(int i=LIB->max_ff_size; i>0; i--){
+        for(auto f: place_fail_array[i]){
+            PM->placeFlipFlop(f, false, displace_constrain);
+        }
+    }
+
 }
 
 void banking::RunBanking(){
@@ -87,8 +107,8 @@ void banking::RenameAllFlipFlops(){
 void banking::run(){
     CopyOriginalFFs();
     RunBanking(); 
-    RenameAllFlipFlops();
     PlaceAndDebank();
+    RenameAllFlipFlops();
     return;
 }
 
@@ -332,4 +352,101 @@ void banking::FindBestComb(){
     return;
 }
 
+void banking::Debank(ffi* big_f, list<ffi*>& debank_list){
+    for(auto f: big_f->members){
+        f->update_coor();
+        big_f->to_list->push_front(f);
+        f->it_pointer = big_f->to_list->begin();
+        debank_list.push_back(f);
+    }
+
+    big_f->to_list->erase(big_f->it_pointer);
+    delete big_f;
+
+    return;
+}
+
+bool banking::ChangeTypeAndTry(ffi* oriff){
+    bool set_constrain = true;
+    double displace_constrain = 400;
+    bool print = false;
+    ffcell* mincost_ftype = NULL;
+    list<pin*> best_dpins;
+    list<pin*> best_qpins;
+    list<pin*> dpins;
+    list<pin*> qpins;
+    double mincost = numeric_limits<double>::max();
+    double ori_size_x = oriff->type->size_x;
+    double ori_size_y = oriff->type->size_y;
+    double cost_per_bit = 0;
+    double dismantle_cost = 0;
+
+    // initial valid size: begin
+    int valid_bit_size = oriff->size;
+    while(LIB->fftable_cost[valid_bit_size].size() == 0){ valid_bit_size++; }
+    // initial valid size: end
+
+    for(auto p: oriff->d_pins) dpins.push_back(p);
+    for(auto p: oriff->q_pins) qpins.push_back(p);
+
+    for(auto f: oriff->members) dismantle_cost = dismantle_cost + f->cost;
+    
+    // find best ff type: begin
+    for(auto ftype: LIB->fftable_cost[valid_bit_size]){
+        double cost = 0;
+        double slack, ns;
+        list<pin*> dpins_result;
+        list<pin*> qpins_result;
+
+        if(((ftype->size_x < ori_size_x) || (ftype->size_y < ori_size_y) || (ftype->size_x == ori_size_x && ftype->size_y == ori_size_y)) == false){
+            continue;
+        }
+
+        slack = INST->TnsTest(print, dpins, qpins, ftype, DIE->displacement_delay, dpins_result, qpins_result);
+        ns = (slack > 0) ? 0 : abs(slack);
+        cost = (DIE->Alpha*ns + DIE->Beta*ftype->gate_power + DIE->Gamma*ftype->area);
+
+        if(cost >= dismantle_cost){continue;}
+        else if(cost < mincost){
+            oriff->type = ftype;
+            oriff->d_pins.clear();
+            oriff->q_pins.clear();
+            for(auto p: dpins_result) oriff->d_pins.push_back(p);
+            for(auto p: qpins_result) oriff->q_pins.push_back(p);
+            oriff->update_coor();
+            if(PM->placeFlipFlop(oriff, set_constrain, displace_constrain) == SUCCESS){
+                mincost = cost;
+                mincost_ftype = ftype;
+                best_dpins.clear();
+                best_qpins.clear();
+                for(auto p: dpins_result) best_dpins.push_back(p);
+                for(auto p: qpins_result) best_qpins.push_back(p);
+                PM->DeleteFlipFlop(oriff);
+            }
+        }
+    }
+    
+    if(mincost != numeric_limits<double>::max()){
+        oriff->type = mincost_ftype;
+        oriff->cost = mincost;
+        oriff->d_pins.clear();
+        oriff->q_pins.clear();
+        for(auto p: best_dpins) oriff->d_pins.push_back(p);
+        for(auto p: best_qpins) oriff->q_pins.push_back(p);
+        oriff->update_coor();
+
+        if(PM->placeFlipFlop(oriff, set_constrain, displace_constrain) == SUCCESS){
+            return true;
+        }
+        else{
+            cout <<  "error" << endl;
+            return false;
+        }
+    }
+    else{
+        return false;
+    }
+    
+    // find best ff type: end
+}
 
