@@ -44,9 +44,12 @@ void banking::PlaceAndDebank(){
                     }
                     else{
                         PM->placeFlipFlop(f, false, displace_constrain);
+                        place_fail_count++;
                     }
                 }
-                place_fail_count++;
+                else {
+                    // cout << "change type success" << endl;
+                }
             }
         }
     }
@@ -368,7 +371,7 @@ void banking::Debank(ffi* big_f, list<ffi*>& debank_list){
 
 bool banking::ChangeTypeAndTry(ffi* oriff){
     bool set_constrain = true;
-    double displace_constrain = 400;
+    double displace_constrain = 500;
     bool print = false;
     ffcell* mincost_ftype = NULL;
     list<pin*> best_dpins;
@@ -406,7 +409,7 @@ bool banking::ChangeTypeAndTry(ffi* oriff){
         ns = (slack > 0) ? 0 : abs(slack);
         cost = (DIE->Alpha*ns + DIE->Beta*ftype->gate_power + DIE->Gamma*ftype->area);
 
-        if(cost >= dismantle_cost){continue;}
+        if(cost >= dismantle_cost && oriff->size != 1){continue;}
         else if(cost < mincost){
             oriff->type = ftype;
             oriff->d_pins.clear();
