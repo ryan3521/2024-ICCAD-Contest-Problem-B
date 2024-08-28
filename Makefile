@@ -5,7 +5,7 @@ BINS = main
 TC1  = testcase1_0812.txt
 TC2  = testcase2_0812.txt
 TC3  = testcase3.txt
-INFILE = ./Testcase/$(TC1)
+INFILE = ./Testcase/$(TC2)
 OUTFILE = output.txt
 
 all: $(BINS)

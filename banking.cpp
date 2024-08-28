@@ -7,7 +7,7 @@ banking::banking(placement* PM, inst* INST, lib* LIB, dieInfo* DIE, list<ffi*>* 
     this->DIE  = DIE;
     this->PFFS = PFFS;
     SUCCESS = true;
-    FAIL    = true;
+    FAIL    = false;
     cls = new cluster(INST, LIB, DIE);
 }
 
@@ -33,12 +33,11 @@ void banking::PlaceAndDebank(){
         for(auto f: place_order_array[i]){
             if(PM->placeFlipFlop(f, set_constrain, displace_constrain) == FAIL){
                 place_fail_array[i].push_back(f);
-                place_fail_count++;
+                if(i==2)place_fail_count++;
             }
         }
     }
-
-
+    cout << "Place Fail FF NUM: " << place_fail_count << endl;
 }
 
 void banking::RunBanking(){
@@ -55,7 +54,7 @@ void banking::RunBanking(){
                         banking_ffs.push_back(f);
                     }
                 }
-                cout << target_size << " : " << itr << " : " << banking_ffs.size() << endl; 
+                // cout << target_size << " : " << itr << " : " << banking_ffs.size() << endl; 
                 expand_rate = base_expand_rate*itr*itr;
                 SetPseudoBlock(expand_rate);
                 ConstructXSequence();
@@ -88,8 +87,8 @@ void banking::RenameAllFlipFlops(){
 void banking::run(){
     CopyOriginalFFs();
     RunBanking(); 
-    // PlaceAndDebank();
     RenameAllFlipFlops();
+    PlaceAndDebank();
     return;
 }
 
