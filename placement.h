@@ -77,8 +77,6 @@ class placement{
         static bool ff_cmp(ffi* a, ffi* b);
         static bool row_cmp(plcmt_row* a, plcmt_row* b);
         void place_formal(ffi* fi, plcmt_row* best_row, int best_pos_idx);
-
-
     
     public:
         vector<plcmt_row*> rows;

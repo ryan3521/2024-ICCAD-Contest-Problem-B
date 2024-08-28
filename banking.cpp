@@ -11,36 +11,60 @@ banking::banking(placement* PM, inst* INST, lib* LIB, dieInfo* DIE, list<ffi*>* 
     cls = new cluster(INST, LIB, DIE);
 }
 
-void banking::Initial_Placement(){
-    cout << "Gate placing ..." << endl;
+void banking::PlaceAndDebank(){
     PM->GatePlacement();
+    
+    vector<list<ffi*>> place_order_array(LIB->max_ff_size+1);
+    vector<list<ffi*>> place_fail_array(LIB->max_ff_size+1);
 
-    CopyOriginalFFs();
-    cout << "Original FF placing ..." << endl;
-    OriginalFFs_Placment();
+    for(auto ff_list: ff_groups){
+        for(auto f: *ff_list) {
+            place_order_array[f->size].push_back(f);
+        }
+    }
+    for(auto ff_list: place_order_array){
+        ff_list.sort(cmp_ff_x);
+    }
+
+    int place_fail_count = 0;
+    bool set_constrain = true;
+    double displace_constrain = 100;
+    for(int i=LIB->max_ff_size; i>0; i--){
+        for(auto f: place_order_array[i]){
+            if(PM->placeFlipFlop(f, set_constrain, displace_constrain) == FAIL){
+                place_fail_array[i].push_back(f);
+                place_fail_count++;
+            }
+        }
+    }
+
 
 }
 
-void banking::Run_Placement_Banking(){
+void banking::RunBanking(){
+    double base_expand_rate = 50;
+    double expand_rate;
     InitialFFsCost();
     for(auto ff_list: ff_groups){
-        for(target_size=2; target_size<=2; target_size++){
-            banking_ffs.clear();
-            for(auto f: *ff_list) {
-                banking_ffs.push_back(f);
-            }
-            SetPseudoBlock();
-            ConstructXSequence();
+        for(target_size=2; target_size<=LIB->max_ff_size; target_size++){
+            if(LIB->fftable_cost[target_size].empty()) continue;
+            for(int itr=1; itr<=3; itr ++){
+                banking_ffs.clear();
+                for(auto f: *ff_list) {
+                    if(f->size < target_size){
+                        banking_ffs.push_back(f);
+                    }
+                }
+                cout << target_size << " : " << itr << " : " << banking_ffs.size() << endl; 
+                expand_rate = base_expand_rate*itr*itr;
+                SetPseudoBlock(expand_rate);
+                ConstructXSequence();
 
-            int cnt = 0 ;
-            while(FindNewCluster()){
-               
-                FindBestCombtoPlace();
-                
-                cnt ++;
+                while(FindNewCluster()){
+                    FindBestComb();
+                }
             }
         } 
-//        break; 
     }
 
     return;
@@ -56,13 +80,15 @@ void banking::RenameAllFlipFlops(){
             inst_name = inst_name + "NEWFF" + to_string(cnt);
             f->name = inst_name;
             PFFS->push_back(f);
+            cnt++;
         }    
     }
 }
 
 void banking::run(){
-    Initial_Placement();
-    Run_Placement_Banking();
+    CopyOriginalFFs();
+    RunBanking(); 
+    // PlaceAndDebank();
     RenameAllFlipFlops();
     return;
 }
@@ -79,6 +105,7 @@ void banking::CopyOriginalFFs(){
             inst_name = inst_name + "NEWFF" + to_string(newff_cnt);
             ffi* nf = new ffi(inst_name, f->coox, f->cooy);
 
+            nf->size = f->size;
             nf->type = f->type;
             nf->d_pins.reserve(f->d_pins.size());
             nf->q_pins.reserve(f->q_pins.size());
@@ -147,11 +174,10 @@ void banking::InitialFFsCost(){
     }
 }
 
-void banking::SetPseudoBlock(){
-    double base_expand_rate = 13;
-    double expand_rate;
+void banking::SetPseudoBlock(double expand_rate){
+    
+
     for(auto f: banking_ffs){
-        expand_rate = (target_size - f->d_pins.size()) > 0 ? base_expand_rate*(target_size - f->d_pins.size()) : 0;
         f->Set_PseudoBlock_Size(expand_rate);
     }
 }
@@ -272,9 +298,7 @@ void banking::FindRelatedFF(){
 }
             
 
-void banking::FindBestCombtoPlace(){
-    bool   SET_CONSTRAIN = true;
-    double DISPLACE_CONSTRAIN = 200;
+void banking::FindBestComb(){
 
     cls->ConstructCombs(target_size);
 
@@ -282,44 +306,21 @@ void banking::FindBestCombtoPlace(){
         target_comb = cls->comb_list.front();
         cls->comb_list.pop_front();
         if(target_comb->TestQuality(0) == SUCCESS){
-            for(auto f: target_comb->members) {PM->DeleteFlipFlop(f);}
 
             ffi* new_ff = target_comb->GetNewFF();
-            if(PM->placeFlipFlop(new_ff, SET_CONSTRAIN, DISPLACE_CONSTRAIN) == SUCCESS){
-                new_ff->to_list = target_comb->members.front()->to_list;
-                new_ff->to_list->push_front(new_ff);
-                new_ff->it_pointer = new_ff->to_list->begin();
-                for(auto f: target_comb->members){
-                    if(f != essential_ff) {
-                        se* se_ptr = *(f->e_it);
-                        delete se_ptr;
-                        xseq.erase(f->e_it);
-                    }
-                    tracking_list.erase(f->x_track_list_it);
-                    new_ff->to_list->erase(f->it_pointer);
-                    delete f;
+
+            for(auto f: target_comb->members){
+                if(f != essential_ff) {
+                    se* se_ptr = *(f->e_it);
+                    delete se_ptr;
+                    xseq.erase(f->e_it);
                 }
-                // delete target_comb;
-                cls->Clear();
-                return;
+                tracking_list.erase(f->x_track_list_it);
+                new_ff->to_list->erase(f->it_pointer);
             }
-            else{
-                if(target_comb->members.front()->type->size_y == 2100 && target_comb->members.back()->type->size_y == 2100){
-                    cout << endl;
-                    cout << "Fail" << endl;
-                    cout << "new type: " << new_ff->type->size_x << ", " << new_ff->type->size_y << endl;
-                    for(auto f: target_comb->members) {
-                        cout << "old type: " << fixed << f->type->size_x << ", " << f->type->size_y << "; coox = " << f->coox << ", cooy = " << f->cooy << endl;
-                    }
-                    cout << endl;
-                }
-                for(auto f: target_comb->members) {
-                    PM->PlaceBackFlipFlop(f);
-                }
-                delete new_ff;
-                delete target_comb;
-                continue;
-            }
+            delete target_comb;
+            cls->Clear();
+            return;
         }
         else{
             delete target_comb;

@@ -144,6 +144,7 @@ bool comb::TestQuality(bool print){
 ffi* comb::GetNewFF(){
     ffi* nf = new ffi("temp_name", 0, 0);
 
+    for(auto m: members) nf->size = nf->size + m->size;
     nf->type = type;
     nf->d_pins.reserve(size);
     nf->q_pins.reserve(size);
@@ -152,6 +153,9 @@ ffi* comb::GetNewFF(){
     nf->clk_pin = new pin;
     nf->update_coor();
     nf->cost = cost_per_bit*size;
+    nf->to_list = members.front()->to_list;
+    nf->to_list->push_front(nf);
+    nf->it_pointer = nf->to_list->begin();
 
     return nf;
 }

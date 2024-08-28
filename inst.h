@@ -37,6 +37,7 @@ class block{
 
 class ffi{
     public:
+        int size;
         string name;
         ffcell* type;
         double coox;
@@ -61,7 +62,7 @@ class ffi{
         list<ffi*>::iterator y_track_list_it;
         double dist_to_essential;
         double cost;
-
+        list<ffi*> members;
         // member function
         ffi(string, double, double);
         void set_type(ffcell* );
@@ -196,7 +197,6 @@ class inst{
         void PrintFF();
         void PrintGate();
         void DebankAllFF(lib& LIB);
-        void ConstructFSR(dieInfo& DIE);
         double TnsTest(bool print, list<pin*>& dpins, list<pin*>& qpins, ffcell* type, double coeff, list<pin*>& optseq_D, list<pin*>& optseq_Q);
 
 };

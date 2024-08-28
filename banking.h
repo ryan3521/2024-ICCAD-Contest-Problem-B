@@ -34,16 +34,16 @@ class banking{
         static bool cmp_se(se* a, se* b);
 // ----------------------------------------
         void CopyOriginalFFs();
-        void Initial_Placement();
+        void PlaceAndDebank();
         void OriginalFFs_Placment();
         void InitialFFsCost();
-        void Run_Placement_Banking();
-        void SetPseudoBlock();
+        void RunBanking();
+        void SetPseudoBlock(double expand_rate);
         void ConstructXSequence();
         void ConstructYSequence();
         bool FindNewCluster();
         void FindRelatedFF();
-        void FindBestCombtoPlace();
+        void FindBestComb();
         void RenameAllFlipFlops();
     public:
         banking(placement* PM, inst* INST, lib* LIB, dieInfo* DIE, list<ffi*>* PFFS);

@@ -542,7 +542,7 @@ int placement::closest_IDX(double x, double y){
 }
 
 void placement::GatePlacement(){
-
+    cout << "Gate placing ..." << endl;
     for(auto it: INST->gate_umap){
         gatei* g = it.second;
         placeGateInst(g, g->coox, g->cooy, g->type->size_x, g->type->size_y);

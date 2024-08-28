@@ -443,6 +443,7 @@ double inst::TnsTest(bool print, list<pin*>& dpins, list<pin*>& qpins, ffcell* t
 }
 
 ffi::ffi(string name, double coox, double cooy){
+    this->size = 0;
     this->name = name;
     this->coox = coox;
     this->cooy = cooy;
@@ -451,6 +452,7 @@ ffi::ffi(string name, double coox, double cooy){
     to_list = NULL;
     index_to_placement_row = -1;
     cost = numeric_limits<double>::max();
+    members.clear();
 }
 
 void ffi::set_type(ffcell* type){
@@ -489,6 +491,7 @@ pair<double, double> ffi::get_coor(){
 void ffi::initial_PinInfo(){
     pin* new_pin;
     int bit_num = type->bit_num;
+    this->size = bit_num;
     d_pins.resize(bit_num, NULL);
     q_pins.resize(bit_num, NULL);
 
