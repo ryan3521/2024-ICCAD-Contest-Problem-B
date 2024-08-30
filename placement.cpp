@@ -16,6 +16,7 @@ plcmt_row::plcmt_row(dieInfo* DIE, double sx, double sy, double sw, double sh, i
     glist.clear();
     space_list.clear();
     space_list.push_back(pair<int, int>(0, site_num-1));
+    pivot_valid = false;
     up_rows.clear();
     down_rows.clear();
     this->DIE = DIE;
@@ -72,7 +73,7 @@ void plcmt_row::delete_fblock(double start, double end){
     int si = (start - start_x)/site_w;
     int ei = si + ceil((end - start)/site_w) - 1;
 
-    if(space_list.begin()==space_list.end()){
+    if(space_list.empty()){
         space_list.push_back(pair<int, int>(si, ei));
         return;
     }
@@ -133,6 +134,8 @@ void plcmt_row::add_fblock(double start, double end){
     int si = (start - start_x)/site_w;
     int ei = si + ceil((end - start)/site_w) - 1;
 
+
+    
     for(auto rIt=space_list.rbegin(); rIt!=space_list.rend(); rIt++){
         if(si>=rIt->first && si<=rIt->second){
             if(si==rIt->first && ei==rIt->second){
@@ -268,7 +271,7 @@ void plcmt_row::delete_ff(double start, double end, double height){
 
 
 // ds: start idx, de: end idx
-bool plcmt_row::seg_mincost(ffi* fi, int ds, int de, int dw, int& best_pos_idx, double& mincost, bool dir){
+bool plcmt_row::seg_mincost(ffi* fi, int ds, int de, int dw, int& best_pos_idx, double& mincost, bool dir, bool set_constrain){
     bool find_new = false;
     double s; // absolute value, not relative
     double e;
@@ -282,7 +285,7 @@ bool plcmt_row::seg_mincost(ffi* fi, int ds, int de, int dw, int& best_pos_idx, 
         for(int i=ds; (i+dw-1)<=de; i++){
             if(mincost <= (s - fi->coox) || fi->x_allow_dis <= (s - fi->coox)) break;
             if(this->check_available(s, e, fi->type->size_y) == true){
-                if(abs(fi->coox - s) > fi->x_allow_dis) continue;
+                if(abs(fi->coox - s) > fi->x_allow_dis) break;
                 
                 cost = abs(fi->coox - s) + abs(fi->cooy - start_y);
 
@@ -290,6 +293,15 @@ bool plcmt_row::seg_mincost(ffi* fi, int ds, int de, int dw, int& best_pos_idx, 
                     mincost = cost;
                     best_pos_idx = i;
                     find_new = true;
+                    if(set_constrain == false){
+                        fi->x_allow_dis = mincost;
+                        fi->y_allow_dis = mincost;
+                    }
+                    else if(fi->y_allow_dis > mincost && fi->x_allow_dis > mincost){
+                        fi->x_allow_dis = mincost;
+                        fi->y_allow_dis = mincost;
+                    }
+                    return find_new;
                 }
                 else{
                     return find_new;
@@ -305,7 +317,7 @@ bool plcmt_row::seg_mincost(ffi* fi, int ds, int de, int dw, int& best_pos_idx, 
         for(int i=de-dw+1; i>=ds; i--){
             if(mincost <= (fi->coox - s) || fi->x_allow_dis <= (fi->coox - s)) break;
             if(this->check_available(s, e, fi->type->size_y) == true){
-                if(abs(fi->coox - s) > fi->x_allow_dis) continue;
+                if(abs(fi->coox - s) > fi->x_allow_dis) break;
 
                 cost = abs(fi->coox - s) + abs(fi->cooy - start_y);
 
@@ -313,6 +325,15 @@ bool plcmt_row::seg_mincost(ffi* fi, int ds, int de, int dw, int& best_pos_idx, 
                     mincost = cost;
                     best_pos_idx = i;
                     find_new = true;
+                    if(set_constrain == false){
+                        fi->x_allow_dis = mincost;
+                        fi->y_allow_dis = mincost;
+                    }
+                    else if(fi->y_allow_dis > mincost && fi->x_allow_dis > mincost){
+                        fi->x_allow_dis = mincost;
+                        fi->y_allow_dis = mincost;
+                    }
+                    return find_new;
                 }
                 else{
                     return find_new;
@@ -325,7 +346,7 @@ bool plcmt_row::seg_mincost(ffi* fi, int ds, int de, int dw, int& best_pos_idx, 
     return find_new;
 }
 
-double plcmt_row::place_trial(ffi* fi, bool& available, int& best_pos_idx, double global_mincost){ // ax is available x coordinate
+double plcmt_row::place_trial(ffi* fi, bool& available, int& best_pos_idx, double global_mincost, bool set_constrain){ // ax is available x coordinate
     available = false;
     double mincost = global_mincost; // local mincost
     double h = fi->type->size_y;
@@ -352,31 +373,31 @@ double plcmt_row::place_trial(ffi* fi, bool& available, int& best_pos_idx, doubl
     // preliminary examination: end
 
 
-    for(auto rIt = space_list.rbegin(); rIt!=space_list.rend(); rIt++){
-        if((rIt->second - rIt->first + 1) >= dw){
-            if(rIt->second < dx){
-                if(abs((fi->coox+fi->type->size_x) - (start_x+(rIt->second+1)*site_w)) > fi->x_allow_dis) continue;
+    for(auto It = space_list.begin(); It!=space_list.end(); It++){
+        if((It->second - It->first + 1) >= dw){
+            if(It->first > dx){
+                if(abs((fi->coox) - (start_x+(It->first*site_w))) > fi->x_allow_dis) break;
                 if(available == true){
-                    if(abs(best_pos_idx - dx) < abs(rIt->second-dw+1 - dx)) break;
+                    if(abs(best_pos_idx - dx) < abs(It->first - dx)) break;
                 }
-                if(this->seg_mincost(fi, rIt->first, rIt->second, dw, best_pos_idx, mincost, 1) == true){ 
+                if(this->seg_mincost(fi, It->first, It->second, dw, best_pos_idx, mincost, 0, set_constrain) == true){ 
                     available = true;
                     break;
                 }
             }
-            else if(dx>=rIt->first && dx<=rIt->second){
-                int de = (dx + dw - 1)<=(rIt->second) ? (dx + dw - 1):(rIt->second);
-                if(this->seg_mincost(fi, rIt->first, de, dw, best_pos_idx, mincost, 1) == true){
+            else if(dx>=It->first && dx<=It->second){
+                int de = (dx + dw - 1)<=(It->second) ? (dx + dw - 1):(It->second);
+                if(this->seg_mincost(fi, It->first, de, dw, best_pos_idx, mincost, 1, set_constrain) == true){
                     available = true;
                 }
-                if(this->seg_mincost(fi, dx, rIt->second, dw, best_pos_idx, mincost, 0) == true){
+                if(this->seg_mincost(fi, dx, It->second, dw, best_pos_idx, mincost, 0, set_constrain) == true){
                     available = true;
                     break;
                 }
             }
             else{
-                if(fi->coox - (start_x+rIt->first*site_w) > fi->x_allow_dis) continue;
-                if(this->seg_mincost(fi, rIt->first, rIt->second, dw, best_pos_idx, mincost, 0) == true){
+                if(abs((fi->coox+fi->type->size_x) - (start_x+(It->second+1)*site_w)) > fi->x_allow_dis) continue;    
+                if(this->seg_mincost(fi, It->first, It->second, dw, best_pos_idx, mincost, 1, set_constrain) == true){
                     available = true;
                 }
             }
@@ -709,14 +730,17 @@ bool placement::placeFlipFlop(ffi* f, bool set_constrain, double displace_constr
     int best_row_idx;
     bool place_success = false;
 
+    int search_row_count = 0;
     
 
     closest_idx = closest_IDX(f->coox, f->cooy);
     
     if(set_constrain){
         double displace = (f->type->size_x + f->type->size_y) / 2;
-        f->x_allow_dis = (f->type->size_x)*(displace_constrain/100);
-        f->y_allow_dis = (f->type->size_y)*(displace_constrain/100);
+        f->x_allow_dis = (displace)*(displace_constrain/100);
+        f->y_allow_dis = (displace)*(displace_constrain/100);
+        // f->x_allow_dis = (f->type->size_x)*(displace_constrain/100);
+        // f->y_allow_dis = (f->type->size_y)*(displace_constrain/100);
     }
     else{
         f->x_allow_dis = numeric_limits<double>::max();
@@ -730,14 +754,19 @@ bool placement::placeFlipFlop(ffi* f, bool set_constrain, double displace_constr
         if(rows[idx]->start_y - f->cooy > f->y_allow_dis) break;
         else if(f->cooy - rows[idx]->start_y > f->y_allow_dis) { idx++; continue;}
 
-        row_mincost = rows[idx]->place_trial(f, available, best_pos_idx, global_mincost);
-        if(available && global_mincost>row_mincost){
+        search_row_count++;
+        row_mincost = rows[idx]->place_trial(f, available, best_pos_idx, global_mincost, set_constrain);
+        if(available && global_mincost>=row_mincost){
             global_mincost = row_mincost;
             best_site_idx = best_pos_idx;
             best_row = rows[idx];
             best_row_idx = idx;
             place_success = true;
             if(set_constrain == false){
+                f->x_allow_dis = global_mincost;
+                f->y_allow_dis = global_mincost;
+            }
+            else if(f->y_allow_dis > global_mincost && f->x_allow_dis > global_mincost){
                 f->x_allow_dis = global_mincost;
                 f->y_allow_dis = global_mincost;
             }
@@ -751,7 +780,8 @@ bool placement::placeFlipFlop(ffi* f, bool set_constrain, double displace_constr
         if(f->cooy - rows[idx]->start_y > f->y_allow_dis) break;
         else if(rows[idx]->start_y - f->cooy > f->y_allow_dis) { idx--; continue;}
 
-        row_mincost = rows[idx]->place_trial(f, available, best_pos_idx, global_mincost);
+        search_row_count++;
+        row_mincost = rows[idx]->place_trial(f, available, best_pos_idx, global_mincost, set_constrain);
         if(available && global_mincost>row_mincost){
             global_mincost = row_mincost;
             best_site_idx = best_pos_idx;
@@ -759,6 +789,10 @@ bool placement::placeFlipFlop(ffi* f, bool set_constrain, double displace_constr
             best_row_idx = idx;
             place_success = true;
             if(set_constrain == false){
+                f->x_allow_dis = global_mincost;
+                f->y_allow_dis = global_mincost;
+            }
+            else if(f->y_allow_dis > global_mincost && f->x_allow_dis > global_mincost){
                 f->x_allow_dis = global_mincost;
                 f->y_allow_dis = global_mincost;
             }

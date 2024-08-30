@@ -23,8 +23,10 @@ void banking::PlaceAndDebank(){
         }
     }
 
-
-    int place_fail_count = 0;
+    cout << "Flip Flops place and debanking ..." << endl;
+    int initial_fail_count = 0;
+    int change_fail_count = 0;
+    int change_success_count = 0;
     bool set_constrain = true;
     double displace_constrain = 200;
     for(int i=LIB->max_ff_size; i>0; i--){
@@ -33,7 +35,9 @@ void banking::PlaceAndDebank(){
         
         for(auto f: place_order_array[i]){
             if(PM->placeFlipFlop(f, set_constrain, displace_constrain) == FAIL){
+                initial_fail_count++;
                 if(ChangeTypeAndTry(f) == FAIL){
+                    change_fail_count++;
                     if(f->size != 1){
                         // Debank
                         list<ffi*> debank_list;
@@ -44,26 +48,30 @@ void banking::PlaceAndDebank(){
                     }
                     else{
                         PM->placeFlipFlop(f, false, displace_constrain);
-                        place_fail_count++;
+
                     }
                 }
                 else {
                     // cout << "change type success" << endl;
+                    change_success_count++;
                 }
             }
         }
     }
-    cout << "Place Fail FF NUM: " << place_fail_count << endl;
+    cout << "Initial Place Fail FF NUM: " << initial_fail_count << endl;
+    cout << "Change  Place Fail FF NUM: " << change_fail_count << endl;
+    cout << "Change  Place Succ FF NUM: " << change_success_count << endl;
 
-    for(int i=LIB->max_ff_size; i>0; i--){
-        for(auto f: place_fail_array[i]){
-            PM->placeFlipFlop(f, false, displace_constrain);
-        }
-    }
+    // for(int i=LIB->max_ff_size; i>0; i--){
+    //     for(auto f: place_fail_array[i]){
+    //         PM->placeFlipFlop(f, false, displace_constrain);
+    //     }
+    // }
 
 }
 
 void banking::RunBanking(){
+    cout << "Banking Flip Flops ..." << endl;
     double base_expand_rate = 50;
     double expand_rate;
     InitialFFsCost();
@@ -371,7 +379,7 @@ void banking::Debank(ffi* big_f, list<ffi*>& debank_list){
 
 bool banking::ChangeTypeAndTry(ffi* oriff){
     bool set_constrain = true;
-    double displace_constrain = 500;
+    double displace_constrain = 200;
     bool print = false;
     ffcell* mincost_ftype = NULL;
     list<pin*> best_dpins;

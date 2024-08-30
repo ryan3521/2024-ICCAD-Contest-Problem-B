@@ -6,6 +6,7 @@
 #include <cmath>
 #include <ctime>
 #include <utility>
+#include <iterator>
 
 #include "inst.h"
 #include "die_info.h"
@@ -16,6 +17,8 @@ using namespace std;
 class plcmt_row{
     private:
         dieInfo* DIE;
+        list<pair<int, int>>::iterator pivot_itr;
+        bool pivot_valid;
 
     public:
         int idx;
@@ -58,8 +61,8 @@ class plcmt_row{
         // otherwise reture false.
         // if dir == 0 start finding from ds to de (start to end)
         // if dir == 1 start finding from de to ds (end to start)
-        bool seg_mincost(ffi* fi, int ds, int de, int dw, int& best_pos_idx, double& mincost, bool dir);
-        double place_trial(ffi* fi, bool& available, int& best_pos_idx, double global_mincost);
+        bool seg_mincost(ffi* fi, int ds, int de, int dw, int& best_pos_idx, double& mincost, bool dir, bool set_constrain);
+        double place_trial(ffi* fi, bool& available, int& best_pos_idx, double global_mincost, bool set_constrain);
         
 };
 
