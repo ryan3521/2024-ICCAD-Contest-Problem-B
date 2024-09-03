@@ -15,7 +15,7 @@ void banking::PlaceAndDebank(){
     PM->GatePlacement();
     
     vector<list<ffi*>> place_order_array(LIB->max_ff_size+1);
-    vector<list<ffi*>> place_fail_array(LIB->max_ff_size+1);
+    list<ffi*> place_fail_ffs;
 
     for(auto ff_list: ff_groups){
         for(auto f: *ff_list) {
@@ -32,51 +32,66 @@ void banking::PlaceAndDebank(){
     for(int i=LIB->max_ff_size; i>0; i--){
 
         place_order_array[i].sort(cmp_ff_x);
-        
+        place_fail_ffs.clear(); 
+
         for(auto f: place_order_array[i]){
             if(PM->placeFlipFlop(f, set_constrain, displace_constrain) == FAIL){
                 initial_fail_count++;
                 if(ChangeTypeAndTry(f) == FAIL){
                     change_fail_count++;
-                    if(f->size != 1){
-                        // Debank
-                        list<ffi*> debank_list;
-                        Debank(f, debank_list);
-                        for(auto small_f: debank_list){
-                            place_order_array[small_f->size].push_back(small_f);
-                        }
+                    if(f->size != LIB->min_ff_size){
+                        place_fail_ffs.push_back(f);
                     }
                     else{
                         PM->placeFlipFlop(f, false, displace_constrain);
-
                     }
                 }
                 else {
-                    // cout << "change type success" << endl;
                     change_success_count++;
                 }
             }
         }
+
+        for(auto f: place_fail_ffs){
+            if(PM->placeFlipFlop(f, set_constrain, 600) == FAIL){
+                list<ffi*> debank_list;
+
+                Debank(f, debank_list);
+                for(auto small_f: debank_list){
+                    place_order_array[small_f->size].push_back(small_f);
+                }
+            }
+            else{
+                double cost1 = 0;
+                double cost2 = 0;
+                cost1 = DIE->Alpha*f->get_timing_cost(f->coox, f->cooy, DIE->displacement_delay)
+                        + DIE->Beta*f->type->gate_power + DIE->Gamma*f->type->area;
+
+                for(auto sf: f->members) cost2 = cost2 + sf->cost;
+
+                if(cost2 <= cost1){
+                    PM->DeleteFlipFlop(f);
+                    list<ffi*> debank_list;
+                    Debank(f, debank_list);
+                    for(auto small_f: debank_list){
+                        place_order_array[small_f->size].push_back(small_f);
+                    }
+                }
+            }
+        }
     }
-    cout << "Initial Place Fail FF NUM: " << initial_fail_count << endl;
-    cout << "Change  Place Fail FF NUM: " << change_fail_count << endl;
-    cout << "Change  Place Succ FF NUM: " << change_success_count << endl;
-
-    // for(int i=LIB->max_ff_size; i>0; i--){
-    //     for(auto f: place_fail_array[i]){
-    //         PM->placeFlipFlop(f, false, displace_constrain);
-    //     }
-    // }
-
 }
 
 void banking::RunBanking(){
+
+    bool break_flag = false;
     cout << "Banking Flip Flops ..." << endl;
     double base_expand_rate = 50;
     double expand_rate;
-    InitialFFsCost();
+
     for(auto ff_list: ff_groups){
-        for(target_size=2; target_size<=LIB->max_ff_size; target_size++){
+
+        for(target_size=LIB->min_ff_size+1; target_size<=LIB->max_ff_size; target_size++){
             if(LIB->fftable_cost[target_size].empty()) continue;
             for(int itr=1; itr<=3; itr ++){
                 banking_ffs.clear();
@@ -85,16 +100,37 @@ void banking::RunBanking(){
                         banking_ffs.push_back(f);
                     }
                 }
-                // cout << target_size << " : " << itr << " : " << banking_ffs.size() << endl; 
+
                 expand_rate = base_expand_rate*itr*itr;
+
                 SetPseudoBlock(expand_rate);
                 ConstructXSequence();
 
                 while(FindNewCluster()){
-                    FindBestComb();
+
+                    FindBestComb(); 
+                }
+
+            }
+
+            banking_ffs.clear();
+            for(auto f: *ff_list) {
+                if(f->size < target_size && f->no_neighbor==true){
+                    banking_ffs.push_back(f);
+                    f->no_neighbor = false;
                 }
             }
+            
+            expand_rate = 30000;
+            SetPseudoBlock(expand_rate);
+            ConstructXSequence();
+
+            while(FindNewCluster()){
+                FindBestComb();
+            }
+
         } 
+
     }
 
     return;
@@ -117,6 +153,7 @@ void banking::RenameAllFlipFlops(){
 
 void banking::run(){
     CopyOriginalFFs();
+    InitialFFsCost();
     RunBanking(); 
     PlaceAndDebank();
     RenameAllFlipFlops();
@@ -127,7 +164,7 @@ void banking::CopyOriginalFFs(){
     string inst_name;
     int newff_cnt = 0;
     list<ffi*>* ff_list;
-    for(auto ori_ffs: INST->ffs_ori){
+    for(auto ori_ffs: INST->ffs_sing){
         ff_list = new list<ffi*>;
 
         for(auto f: *ori_ffs){
@@ -143,7 +180,6 @@ void banking::CopyOriginalFFs(){
             for(auto p: f->q_pins) nf->q_pins.push_back(p);
             nf->clk_pin = new pin;
             nf->update_coor();
-
             ff_list->push_back(nf);
             nf->to_list = ff_list;
             newff_cnt++;
@@ -192,8 +228,6 @@ void banking::OriginalFFs_Placment(){
             buffer_list.push_back(f);
         }
     }
-
-    cout << "BufferList: " << buffer_list.size() << endl;
 }
 
 void banking::InitialFFsCost(){
@@ -261,6 +295,7 @@ void banking::ConstructYSequence(){
 
 
 bool banking::FindNewCluster(){
+
     if(xseq.empty()) {
         return false;
     }
@@ -294,8 +329,9 @@ bool banking::FindNewCluster(){
 
 void banking::FindRelatedFF(){
     list<ffi*> y_tracking_list;
-
+    int i=0;
     while(yseq.empty() == false){
+
         if(yseq.front()->type == 0){
             y_tracking_list.push_front(yseq.front()->to_ff);
             y_tracking_list.front()->y_track_list_it = y_tracking_list.begin();
@@ -314,7 +350,9 @@ void banking::FindRelatedFF(){
             break;
         }
         else{
-            y_tracking_list.erase(yseq.front()->to_ff->y_track_list_it);
+            if(yseq.front()->coor < essential_ff->pseudo_block.ymin){
+                y_tracking_list.erase(yseq.front()->to_ff->y_track_list_it);
+            }
             delete yseq.front();
             yseq.pop_front();
         }
@@ -324,6 +362,7 @@ void banking::FindRelatedFF(){
         delete yseq.front();
         yseq.pop_front();
     }
+
     return;
 }
             
@@ -331,6 +370,7 @@ void banking::FindRelatedFF(){
 void banking::FindBestComb(){
 
     cls->ConstructCombs(target_size);
+
 
     while(cls->comb_list.empty() == false){
         target_comb = cls->comb_list.front();
@@ -382,6 +422,7 @@ bool banking::ChangeTypeAndTry(ffi* oriff){
     double displace_constrain = 200;
     bool print = false;
     ffcell* mincost_ftype = NULL;
+    ffcell* ori_fftype = oriff->type;
     list<pin*> best_dpins;
     list<pin*> best_qpins;
     list<pin*> dpins;
@@ -417,7 +458,7 @@ bool banking::ChangeTypeAndTry(ffi* oriff){
         ns = (slack > 0) ? 0 : abs(slack);
         cost = (DIE->Alpha*ns + DIE->Beta*ftype->gate_power + DIE->Gamma*ftype->area);
 
-        if(cost >= dismantle_cost && oriff->size != 1){continue;}
+        if(cost >= dismantle_cost && oriff->size != LIB->min_ff_size){continue;}
         else if(cost < mincost){
             oriff->type = ftype;
             oriff->d_pins.clear();
@@ -455,9 +496,17 @@ bool banking::ChangeTypeAndTry(ffi* oriff){
         }
     }
     else{
+
+        oriff->type = ori_fftype;
+        oriff->d_pins.clear();
+        oriff->q_pins.clear();
+        for(auto p: dpins) oriff->d_pins.push_back(p);
+        for(auto p: qpins) oriff->q_pins.push_back(p);
+        oriff->update_coor();
+
         return false;
     }
-    
+            
     // find best ff type: end
 }
-
+               

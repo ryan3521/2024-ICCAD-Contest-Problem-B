@@ -48,11 +48,10 @@ bool cluster::cmp_cost(comb* a, comb* b){
 void cluster::ConstructCombs(int target_size){
 
     comb_list.clear();
-
     for(auto it = related_ffs.begin(); it!=related_ffs.end(); it=it){
         ffi* f = *it;
 
-        if(essential_ff->d_pins.size() + f->d_pins.size() <= target_size){
+        if(essential_ff->size + f->size <= target_size){
             f->dist_to_essential = (f->cen_x - essential_ff->cen_x)*(f->cen_x - essential_ff->cen_x) + (f->cen_y - essential_ff->cen_y)*(f->cen_y - essential_ff->cen_y);
             it++;
         }
@@ -61,8 +60,12 @@ void cluster::ConstructCombs(int target_size){
         }
     }
 
-    if(related_ffs.empty()) return;
+    if(related_ffs.empty()) {
+        return;
+    }
 
+
+    essential_ff->no_neighbor = false;
     related_ffs.sort(cmp_dist);
 
     comb* new_comb = new comb();

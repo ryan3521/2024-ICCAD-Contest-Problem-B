@@ -414,6 +414,22 @@ double plcmt_row::closest_x(double x){
     else return x;
 }
 
+void plcmt_row::FillGap(double min_width){
+    int min_w = ceil(min_width/site_w);
+    int space_w;
+
+    auto itr = space_list.begin();
+    while(itr != space_list.end()){
+        space_w = itr->second - itr->first + 1;
+        if(space_w < min_w){
+            itr = space_list.erase(itr);
+        }
+        else{
+            itr++;
+        }
+    }
+}
+
 
 
 // *******************************************************************
@@ -516,7 +532,7 @@ int placement::closest_IDX(double x, double y){
             break;
         }
     }
-
+    
     // Step 2. Calculate mincost
     if(rows[idx]->x_inrange(x, x)) return idx;
     else if(x < rows[idx]->start_x) mincost = min_y_diff + (rows[idx]->start_x - x);
@@ -537,8 +553,8 @@ int placement::closest_IDX(double x, double y){
             if(cost < mincost){
                 idx = i;
                 mincost = cost;
-                i++;
             }
+            i++;
         }
     }
     // Find down
@@ -554,8 +570,8 @@ int placement::closest_IDX(double x, double y){
             if(cost < mincost){
                 idx = i;
                 mincost = cost;
-                i--;
             }
+            i--;
         }
     }
 
@@ -569,6 +585,17 @@ void placement::GatePlacement(){
         placeGateInst(g, g->coox, g->cooy, g->type->size_x, g->type->size_y);
     }
 
+    double min_width = numeric_limits<double>::max();
+    for(auto& ffcell_list: LIB->fftable_cost){
+        for(auto& type: ffcell_list){
+            if(type->size_x < min_width){
+                min_width = type->size_x;
+            }
+        }
+    }
+    for(auto r: rows){
+        r->FillGap(min_width);
+    }
     return;
 }
 
@@ -731,7 +758,7 @@ bool placement::placeFlipFlop(ffi* f, bool set_constrain, double displace_constr
     bool place_success = false;
 
     int search_row_count = 0;
-    
+
 
     closest_idx = closest_IDX(f->coox, f->cooy);
     
@@ -739,8 +766,6 @@ bool placement::placeFlipFlop(ffi* f, bool set_constrain, double displace_constr
         double displace = (f->type->size_x + f->type->size_y) / 2;
         f->x_allow_dis = (displace)*(displace_constrain/100);
         f->y_allow_dis = (displace)*(displace_constrain/100);
-        // f->x_allow_dis = (f->type->size_x)*(displace_constrain/100);
-        // f->y_allow_dis = (f->type->size_y)*(displace_constrain/100);
     }
     else{
         f->x_allow_dis = numeric_limits<double>::max();
@@ -755,6 +780,7 @@ bool placement::placeFlipFlop(ffi* f, bool set_constrain, double displace_constr
         else if(f->cooy - rows[idx]->start_y > f->y_allow_dis) { idx++; continue;}
 
         search_row_count++;
+        
         row_mincost = rows[idx]->place_trial(f, available, best_pos_idx, global_mincost, set_constrain);
         if(available && global_mincost>=row_mincost){
             global_mincost = row_mincost;

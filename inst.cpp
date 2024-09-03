@@ -183,6 +183,7 @@ void inst::SlackDispense(dieInfo& DIE){
         ffptr = it->second;
 
         for(int i=0; i<ffptr->q_pins.size(); i++){
+            if(ffptr->q_pins[i]->to_net == NULL) continue;
             // cout << "get critical slack : begin" << endl; 
             ffptr->q_pins[i]->dspd_slk = get_critical_slack(ffptr->q_pins[i]->to_net);
             // cout << "get critical slack : end" << endl; 
@@ -197,6 +198,7 @@ void inst::SlackDispense(dieInfo& DIE){
 
         // cout << ffptr->name << ": d pin" << endl;
         for(int i=0; i<ffptr->d_pins.size(); i++){
+            if(ffptr->q_pins[i]->to_net == NULL) continue;
             if(ffptr->d_pins[i]->dspd_slk < min_pos_slack/* && ffptr->d_pins[i]->dspd_slk > 0*/){
                 no_pos_slack = false;
                 min_pos_slack = ffptr->d_pins[i]->dspd_slk;
@@ -213,6 +215,7 @@ void inst::SlackDispense(dieInfo& DIE){
 
     for(auto& it: ff_umap){
         for(auto& p: it.second->d_pins){
+            if(p->to_net == NULL) continue;
             if(p->to_net->ipins.front()->pin_type == 'g'){
                 double min_cs = get_min_cs(p->to_net->ipins.front()->to_gate);
                 if(min_cs == numeric_limits<double>::max()){
@@ -235,7 +238,7 @@ void inst::DebankAllFF(lib& LIB){
     // If ff is multibit ff, debank into single bit ff.
     // The type of all single bit ffs will be the lowest cost one bit ff. 
     int ff_cnt = 0;
-    ffi* new_fi;
+    ffi* new_fi = NULL;
     ffcell* new_type;
     string inst_name;
 
@@ -244,26 +247,40 @@ void inst::DebankAllFF(lib& LIB){
         list<ffi*>* sing_list = new list<ffi*>;
         ffs_sing.push_back(sing_list);
         for(auto& ori_ff: *ori_list){
-            for(int i=0; i<ori_ff->d_pins.size(); i++){
-                inst_name = "";
+            int i=0;
+            while(i<ori_ff->d_pins.size()){
+                if(ori_ff->d_pins[i]->to_net == NULL) {
+                    i++;
+                    continue;
+                }
                 // Note: "NFSB" mean New FF Single Bit
-                inst_name = inst_name + "NFSB" + to_string(ff_cnt);
-                new_fi = new ffi(inst_name, 0, 0);
-                new_type = LIB.fftable_cost[1].front();
-
-                new_fi->type = new_type;
+                if(new_fi == NULL){
+                    inst_name = "";
+                    inst_name = inst_name + "NFSB" + to_string(ff_cnt);
+                    ff_cnt++;
+                    new_fi = new ffi(inst_name, 0, 0);
+                    new_fi->size = 0;
+                    new_fi->type = LIB.fftable_cost[LIB.min_ff_size].front();
+                    new_fi->clk_pin = new pin;
+                    sing_list->push_back(new_fi);
+                }
 
                 ori_ff->d_pins[i]->to_new_ff = new_fi;
                 ori_ff->q_pins[i]->to_new_ff = new_fi;
                 
                 new_fi->d_pins.push_back(ori_ff->d_pins[i]);
                 new_fi->q_pins.push_back(ori_ff->q_pins[i]);
+                new_fi->size++;
+                i++;
     
+                if(new_fi->size == LIB.min_ff_size){
+                    new_fi->update_coor();
+                    new_fi = NULL;
+                }
+            }
+            if(new_fi != NULL){
                 new_fi->update_coor();
-                new_fi->clk_pin = new pin;
-
-                sing_list->push_back(new_fi);
-                ff_cnt++;
+                new_fi = NULL;                
             }
         }
     }
@@ -453,6 +470,7 @@ ffi::ffi(string name, double coox, double cooy){
     index_to_placement_row = -1;
     cost = numeric_limits<double>::max();
     members.clear();
+    no_neighbor = true;
 }
 
 void ffi::set_type(ffcell* type){
@@ -598,24 +616,6 @@ void ffi::Set_PseudoBlock_Size(double expand_rate){
     pseudo_block.ymax = cooy + type->size_y + expand_size;
 }
 
-bool ffi::is_too_far(double x, double y, double displacement_delay){
-    double rel_x = x - coox;
-    double rel_y = y - cooy;
-
-    int neg_cnt = 0;
-    int bit_num = d_pins.size();
-
-    for(auto& p: d_pins){
-        double pin_x = p->new_coox + rel_x;
-        double pin_y = p->new_cooy + rel_y;
-        double hpwl = abs(pin_x - p->coox) + abs(pin_y - p->cooy);
-        double allow = (p->dspd_slk/displacement_delay)>0 ? (p->dspd_slk/displacement_delay) : 0;
-        if(hpwl > allow) neg_cnt++;
-    }
-
-    if(neg_cnt > bit_num/2) return true;
-    else return false;
-}
 
 void ffi::CalculateCost(double alpha, double beta, double gamma, double displacement_delay){
     cost = alpha*this->get_timing_cost(coox, cooy, displacement_delay) + beta*type->gate_power + gamma*type->area;
@@ -706,8 +706,10 @@ bool gatei::is_visited(){return v;}
 double gatei::get_critical_slack(){return critical_slack;}
 
 double pin::CalTns(double test_coox, double tes_cooy, bool is_D, ffcell* new_type, double coeff){
-
     double slack = 0;
+
+    if(to_net==NULL) return 0;
+
     if(is_D){
         pin* sp = to_net->ipins.front();
 

@@ -361,7 +361,8 @@ double costeva::calTns(double* WNS){
 
     double tns = 0;
     for(auto& f: *ffs){
-        int fslack = 0;
+
+        double worst_slack = 0;
         for(int i=0; i<f->d_pins.size(); i++){
             double slack = 0;
             pin* p = f->d_pins[i];
@@ -398,21 +399,15 @@ double costeva::calTns(double* WNS){
                 }
                 else{
                     slack = p->slack - (temp_ct + get_ct(sp->to_gate));
-                    // cout << "d slack: " << p->dspd_slk - temp_ct << endl;
-                    // cout << "q slack: " << -get_ct(sp->to_gate) << endl;
                 }
 
             }
             if(slack < 0){
-                neg_ff_cnt++;
                 tns = tns + slack;
+                neg_ff_cnt++;
                 if(slack < wns) wns = slack;
-                fslack = fslack + slack;
             }  
         }
-        // if(f->get_timing_cost(f->coox, f->cooy, DIE->displacement_delay) > 0){
-        //     cout << f->get_timing_cost(f->coox, f->cooy, DIE->displacement_delay) << " : " << fslack << endl;
-        // }
     }
     *WNS =  wns;
 

@@ -3,33 +3,28 @@
 void Output(string filename, list<ffi*>& PFFS, inst& INST){
     // cout << endl << "Writing Output >>> " << endl;
     fstream fout;
-    std::unordered_map<std::string,double> umap;
 
     fout.open(filename, ios::out);
 
     // CellInst num
     fout << "CellInst " << PFFS.size() << endl;
 
-    // Inst <instName> <locationX> <locationY>
+    // Inst <instName> <type> <locationX> <locationY>
     for(auto& fi: PFFS){
         fout << "Inst " << fi->name << " " << fi->type->name << " " << fi->coox << " " << fi->cooy << endl;
     }
 
     // <originalCellPinFullName> map <resultCellPinFullNameName>
+    pin* p;
     for(auto& it: INST.ff_umap){
-        umap.clear();
         auto fi = it.second;
-        for(auto& p: fi->d_pins){
+        for(int i=0; i<fi->d_pins.size(); i++){
+            p = fi->d_pins[i];
             fout << fi->name << "/" << p->name << " map " << p->to_new_ff->name << "/" << p->new_name << endl;
-            umap.insert(pair<string, int> (p->to_new_ff->name, 0));
-        }
-        for(auto& p: fi->q_pins){
+            p = fi->q_pins[i];
             fout << fi->name << "/" << p->name << " map " << p->to_new_ff->name << "/" << p->new_name << endl;
-        }
-        for(auto& it: umap){
-            fout << fi->name << "/CLK map " << it.first << "/CLK" << endl;
-        }
-    
+            fout << fi->name << "/CLK map " << p->to_new_ff->name << "/CLK" << endl;
+        }  
     }
 
     fout.close();

@@ -63,6 +63,7 @@ class ffi{
         double dist_to_essential;
         double cost;
         list<ffi*> members;
+        bool no_neighbor;
         // member function
         ffi(string, double, double);
         void set_type(ffcell* );
@@ -71,19 +72,11 @@ class ffi{
         string get_name();
         ffcell* get_type();
         void initial_PinInfo();
-        
-        // Function "new_coor()" will calculate the coox, cooy according to the d_pins and q_pins "old coordinate"
-        // After find out the new coox, cooy; It will also calculate the new coox and cooy for each pin (D and Q)
         void update_coor();
         void update_pin_loc();
-
-        // Given coordinate x and y, base on this coordinate calculate if the negative slack pin numbers are more then a half
-        // if the neg pin numbers are over the half, then return true, else false
-        bool is_too_far(double x, double y, double displacement_delay);
-
-        double get_timing_cost(double x, double y, double displacement_delay);
         void Set_PseudoBlock_Size(double expand_rate);
         void CalculateCost(double alpha, double beta, double gamma, double displacement_delay);
+        double get_timing_cost(double x, double y, double displacement_delay);
 };
 
 class gatei{

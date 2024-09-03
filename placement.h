@@ -41,6 +41,7 @@ class plcmt_row{
         // Member functions
         plcmt_row(dieInfo* DIE, double sx, double sy, double sw, double sh, int sn);
  
+        void FillGap(double min_width);
         void add_gblock(gatei* g,double start, double end);
         void add_fblock(double start, double end);
         void add_ff(double start, double end, double height);
@@ -53,6 +54,7 @@ class plcmt_row{
         bool x_inrange(double x1, double x2);
         bool y_inrange(double y1, double y2);
         double closest_x(double x);
+
 
         void print_spacelist();
 
