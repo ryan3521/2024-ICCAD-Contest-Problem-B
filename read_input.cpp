@@ -3,7 +3,7 @@
 
 
 void ReadInput(string filename, lib& LIB, inst& INST, dieInfo&  DIE, netlist& NL, placement& PM){
-    bool PRINT_INFO = true;
+    bool PRINT_INFO = false;
     fstream fin;
     string title;
     string name;

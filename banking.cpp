@@ -23,7 +23,7 @@ void banking::PlaceAndDebank(){
         }
     }
 
-    cout << "Flip Flops place and debanking ..." << endl;
+
     int initial_fail_count = 0;
     int change_fail_count = 0;
     int change_success_count = 0;
@@ -85,7 +85,7 @@ void banking::PlaceAndDebank(){
 void banking::RunBanking(){
 
     bool break_flag = false;
-    cout << "Banking Flip Flops ..." << endl;
+
     double base_expand_rate = 50;
     double expand_rate;
 
