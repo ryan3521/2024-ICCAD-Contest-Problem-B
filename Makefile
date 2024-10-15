@@ -1,10 +1,11 @@
 CC = g++
 CFLAGS = -std=c++11 -O3
-OBJS = lib.o inst.o netlist.o placement.o cluster.o kmeans_cls.o read_input.o cls_mapping.o finetune.o output.o modifycls.o costeva.o draw.o
+OBJS = lib.o inst.o netlist.o placement.o read_input.o output.o banking.o costeva.o cluster.o draw.o
 BINS = main
-TC1  = sampleCase
-TC2  = testcase1_0614.txt
-INFILE = ./Testcase/$(TC2)
+TC1  = testcase1_0812.txt
+TC2  = testcase2_0812.txt
+TC3  = testcase3.txt
+INFILE = ./Testcase/$(TC1)
 OUTFILE = output.txt
 
 all: $(BINS)

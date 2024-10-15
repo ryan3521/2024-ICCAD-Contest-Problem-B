@@ -8,27 +8,36 @@
 #include <cmath>
 #include <limits>
 
+
 #include "lib.h"
 #include "die_info.h"
 
 using namespace std;
 
-struct FSR{
-    bool can_move;
-    // ractangle parameters
-    double xmax;
-    double xmin;
-    double ymax;
-    double ymin;
-    double cen_x;
-    double cen_y;
+class pin;
+class ffi;
 
-    // diamond parameters
+class se{
+    public:
+        int type;
+        double coor;
+        ffi* to_ff;
+        se(int type, double coor, ffi* to_ff);
 };
 
-class pin;
+class block{
+    public:
+        double xmin;
+        double xmax;
+        double ymin;
+        double ymax;
+
+};
+
+
 class ffi{
     public:
+        int size;
         string name;
         ffcell* type;
         double coox;
@@ -38,13 +47,23 @@ class ffi{
         vector<pin*> d_pins;
         vector<pin*> q_pins;
         pin* clk_pin;
-        bool mark; // ??
-        FSR fsr;
 
-        double allow_dis; // (HPWL) AVG slack * displacement coefficient
+        double x_allow_dis; 
+        double y_allow_dis; 
 
+        list<ffi*>* to_list;
+        list<ffi*>::iterator it_pointer;
+        int index_to_placement_row;
+        int index_to_site;
 
-
+        block pseudo_block;
+        list<se*>::iterator e_it;
+        list<ffi*>::iterator x_track_list_it;
+        list<ffi*>::iterator y_track_list_it;
+        double dist_to_essential;
+        double cost;
+        list<ffi*> members;
+        bool no_neighbor;
         // member function
         ffi(string, double, double);
         void set_type(ffcell* );
@@ -53,29 +72,11 @@ class ffi{
         string get_name();
         ffcell* get_type();
         void initial_PinInfo();
-        
-        // Function "new_coor()" will calculate the coox, cooy according to the d_pins and q_pins "old coordinate"
-        // After find out the new coox, cooy; It will also calculate the new coox and cooy for each pin (D and Q)
-        void new_coor();
+        void update_coor();
         void update_pin_loc();
-
-        // Given coordinate x and y, base on this coordinate calculate if the negative slack pin numbers are more then a half
-        // if the neg pin numbers are over the half, then return true, else false
-        bool is_too_far(double x, double y, double displacement_delay);
-        bool allow_displace(double x, double y, double displacement_delay);
-        void calFSR(dieInfo& DIE);
-
-};
-
-class reg{ // This class represent each bit of register in the design
-    public:
-        pin* dpin;
-        pin* qpin;
-        double cen_x;
-        double cen_y;
-
-        // member function
-        void update_cen();
+        void Set_PseudoBlock_Size(double expand_rate);
+        void CalculateCost(double alpha, double beta, double gamma, double displacement_delay);
+        double get_timing_cost(double x, double y, double displacement_delay);
 };
 
 class gatei{
@@ -104,6 +105,7 @@ class gatei{
         void visit(double critical_slack);
         bool is_visited();
         double get_critical_slack();
+        
 
 };
 
@@ -151,10 +153,27 @@ class pin{ // pin prototype
             to_new_ff = NULL;
             isVisited = false;
         }
+
+        double CalTns(double new_coox, double new_cooy, bool is_D, ffcell* new_type, double coeff);
 };
 
 
 class inst{
+    private:
+        static bool preference_cmp(pair<int, double> a, pair<int, double> b);
+
+        struct pin_pair{
+            int idx;
+            pin* dpin;
+            pin* qpin;
+            list<pair<int, double>> preference_list; // int: port index, double: slack
+        };
+        struct port_pair{
+            double slack;
+            pin_pair* like_most_pin_pair;
+            list<pair<double, list<pin_pair*>::iterator>> choices_list;
+
+        };
     public:
         int ff_num;
         unordered_map<string, bool> type_umap; // 0: ff, 1: gate
@@ -171,7 +190,7 @@ class inst{
         void PrintFF();
         void PrintGate();
         void DebankAllFF(lib& LIB);
-        void ConstructFSR(dieInfo& DIE);
+        double TnsTest(bool print, list<pin*>& dpins, list<pin*>& qpins, ffcell* type, double coeff, list<pin*>& optseq_D, list<pin*>& optseq_Q);
 
 };
 

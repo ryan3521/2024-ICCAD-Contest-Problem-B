@@ -59,13 +59,7 @@ void netlist::add_pin(string str, inst& INST){
             ffi_ptr = it2->second;
             if(pin_name.find("D") != string::npos){
                 // find the corresponding pin idx
-                // str.erase(0, 1);
-                // if(str.size() == 0){
-                //     pin_index = 0;
-                // }
-                // else{
-                //     pin_index = stoi(str);
-                // }
+
                 pin_index = ffi_ptr->type->get_PinIDX(pin_name);
 
                 // assign corresponding net pointer to the pin
@@ -77,13 +71,7 @@ void netlist::add_pin(string str, inst& INST){
             }
             else if(pin_name.find("Q") != string::npos){
                 // find the corresponding pin idx
-                // str.erase(0, 1);
-                // if(str.size() == 0){
-                //     pin_index = 0;
-                // }
-                // else{
-                //     pin_index = stoi(str);
-                // }
+
                 pin_index = ffi_ptr->type->get_PinIDX(pin_name);
                 // assign corresponding net pointer to the pin
                 ffi_ptr->q_pins[pin_index]->to_net = new_net;
@@ -124,13 +112,7 @@ void netlist::add_pin(string str, inst& INST){
             // cout << pin_name << endl;
             if(pin_name.find("IN") != string::npos){
                 // find the corresponding pin idx
-                // str.erase(0, 2);
-                // if(str.size() == 0){
-                //     pin_index = 0;
-                // }
-                // else{
-                //     pin_index = stoi(str);
-                // }
+
                 pin_index = gi_ptr->type->get_PinIDX(pin_name);
                 // assign corresponding net pointer to the pin
                 gi_ptr->ipins[pin_index]->to_net = new_net;
@@ -141,13 +123,7 @@ void netlist::add_pin(string str, inst& INST){
             }
             else{ // is "OUT" pin
                 // find the corresponding pin idx
-                // str.erase(0, 3);
-                // if(str.size() == 0){
-                //     pin_index = 0;
-                // }
-                // else{
-                //     pin_index = stoi(str);
-                // }
+
                 pin_index = gi_ptr->type->get_PinIDX(pin_name);
                 // assign corresponding net pointer to the pin
                 gi_ptr->opins[pin_index]->to_net = new_net;

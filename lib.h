@@ -7,6 +7,7 @@
 #include <vector>
 #include <list>
 #include <utility>
+#include <limits>
 
 #include "die_info.h"
 
@@ -69,6 +70,8 @@ class ffcell : public cell{
         double Qpin_delay;
         double gate_power;
         double cost_per_bit;
+        double fsr_min_w;
+        double fsr_min_h;
 
 
         // member functions
@@ -89,43 +92,23 @@ class lib{
         static bool cmp_clk2Q(ffcell* a, ffcell* b);
         static bool cmp_APcost(ffcell* a, ffcell* b);
         static bool cmp_area(ffcell* a, ffcell* b);
-        vector<int> ffmapping_list; // if ff bit_size=b exist ffmapping_list[b]=-1, else ffmapping_list[b]=next big_ff bit_size
-        vector<int> mincost_list;
-        double find_min_cost(int bit, dieInfo& DIE);
-        void construct_optlist(int bit, list<ffcell*>& opt_list);
-        void check_opt_result();
-        vector<pair<int, int>> best_choice;
+       
     public:
         int max_ff_size;
-        // The "fftable_cost" only record the MBFF cell which truely exist in the given cell library
-        // if the list size in the fftable is 0, this mean the corresponding bit size MBFF doesn't exist in the LIB.
-        // the list of each bit size is sorted by "cost per bit" (power*Beta + area*Gamma)/bit
-        vector<list<ffcell*>> fftable_cost;
-        vector<double> mbff_cost;
+        int min_ff_size;
 
-        // The "fftable_c2q" only record the MBFF cell which truely exist in the given cell library
-        // if the list size in the fftable is 0, this mean the corresponding bit size MBFF doesn't exist in the LIB.
-        // the list of each bit size is sorted by "Qpin_delay"
+        unordered_map<std::string, cell* > cell_umap;
+    
+        vector<list<ffcell*>> fftable_cost;
         vector<list<ffcell*>> fftable_c2q;
         vector<list<ffcell*>> fftable_area;
 
-        // the "opt_fftable" will store the best MBFF configuration for each bit size
-        // (the optimize base on the "cost per bit")
-        // ex: bit size 7 can be composed of 1+2+4 ... 
-        vector<list<ffcell*>> opt_fftable; // optimize ff table
-
-        unordered_map<std::string, cell* > cell_umap;
-
-
-    
         lib();
         void add_cell(cell* new_cell);
         void set_Qpin_delay(string, double);
         void set_gate_power(string, double);
         void construct_fftable(dieInfo& DIE);
         cell* get_cell(string name);
-
-        void Print_member();
 
 
 };

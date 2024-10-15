@@ -6,17 +6,13 @@
 #include "lib.h"
 #include "inst.h"
 #include "netlist.h"
-#include "cluster.h"
 #include "placement.h"
 
 
 
 void ReadInput(string , lib&, inst&, dieInfo&, netlist&, placement&);
-void KmeansCls(dieInfo&, lib&, inst&, list<cluster*>&, list<ffi*>&);
-void MapClstoMBFF(lib&, list<cluster*>&, list<ffi*>&);
-void FineTune(lib&, list<ffi*>&, list<ffi*>&, list<ffi*>&, dieInfo&);
 void Output(string , list<ffi*>& , inst& );
-void DrawFFs(dieInfo&, lib&, inst&, list<ffi*>&);
+void DrawFFs(dieInfo&, lib&, inst&, list<ffi*>&, list<ffi*>&);
 void DrawGates(dieInfo&, lib&, inst&);
 
 #endif

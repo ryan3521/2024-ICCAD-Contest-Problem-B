@@ -18,14 +18,13 @@ Pin CLK 95 30
 Pin Q0 665 30 
 Pin D1 494 510 
 Pin Q1 665 750 
-NumInstances 4
-Inst reg1 SVT_FF_1 5952 3600 
+NumInstances 3
+Inst reg1 SVT_FF_2 5952 3600 
 Inst reg2 SVT_FF_1 1278 3600 
 Inst reg3 SVT_FF_1 1278 6000 
-Inst reg4 SVT_FF_1 3615 3600 
 NumNets 6
 Net p0 2
-Pin reg1/Q
+Pin reg1/Q1
 Pin reg2/D
 Net p1 2
 Pin reg2/Q
@@ -38,10 +37,9 @@ Pin reg4/Q
 Pin out
 Net in 2
 Pin in
-Pin reg1/D
-Net clk 5
+Pin reg1/D1
+Net clk 4
 Pin CLK
-Pin reg4/CLK
 Pin reg3/CLK
 Pin reg2/CLK
 Pin reg1/CLK
