@@ -1,25 +1,32 @@
 CC = g++
-CFLAGS = -std=c++11 -O3
-OBJS = lib.o inst.o netlist.o placement.o read_input.o output.o banking.o costeva.o cluster.o draw.o
-BINS = main
-TC1  = testcase1_0812.txt
-TC2  = testcase2_0812.txt
-TC3  = testcase3.txt
-INFILE = ./Testcase/$(TC1)
+CFLAGS = -std=c++11 -O3 -Iinc
+
+# Directories
+SRCDIR = src
+INCDIR = inc
+OBJDIR = obj
+
+# Source files and target
+SRC = $(wildcard $(SRCDIR)/*.cpp)
+OBJ = $(patsubst $(SRCDIR)/%.cpp, $(OBJDIR)/%.o, $(SRC))
+TARGET = main
+
+# Testcase
+TC1  = ./Testcase/testcase1_0812.txt
+TC2  = ./Testcase/testcase2_0812.txt
+TC3  = ./Testcase/testcase3.txt
 OUTFILE = output.txt
 
-all: $(BINS)
-	./$(BINS) $(INFILE) $(OUTFILE)
+all: $(TARGET)
+	./$(TARGET) $(TC1) $(OUTFILE)
 
-%.o: %.cpp 
+$(TARGET): $(OBJ) 
+	$(CC) $(OBJ) -o $(TARGET)
+
+$(OBJDIR)/%.o: $(SRCDIR)/%.cpp 
 	$(CC) $(CFLAGS) -c $< -o $@
-
-%.o: %.cpp %.h
-	$(CC) $(CFLAGS) -c $< -o $@
-
-$(BINS): main.cpp $(OBJS)
-	$(CC) $(CFLAGS) $^ -o $@
 
 clean:
-	rm $(BINS) $(OBJS) *.o
+	rm -rf $(OBJDIR) $(TARGET)
+
 	
