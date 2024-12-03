@@ -18,7 +18,7 @@ TC3  = ./Testcase/testcase3.txt
 OUTFILE = output.txt
 
 all: $(TARGET)
-	./$(TARGET) $(TC1) $(OUTFILE)
+	./$(TARGET) $(TC2) $(OUTFILE)
 
 $(TARGET): $(OBJ) 
 	$(CC) $(OBJ) -o $(TARGET)

@@ -79,8 +79,8 @@ class ffi{
         void update_pin_loc();
         void Set_PseudoBlock_Size(double expand_rate);
         void CalculateCost(double alpha, double beta, double gamma, double displacement_delay);
+        void getCriticalPath(int mode, double displacement_delay); // mode 0: original critical path , mode 1: new critical path
         double get_timing_cost(double x, double y, double displacement_delay);
-        double getCriticalPath();
 };
 
 class gatei{
@@ -109,7 +109,7 @@ class gatei{
         void visit(double critical_slack);
         bool is_visited();
         double get_critical_slack();
-        double getCriticalPath();
+        double getCriticalPath(int mode, double displacement_delay);
 
 };
 
@@ -148,6 +148,7 @@ class pin{ // pin prototype
         ffi* to_new_ff;
         double new_coox;
         double new_cooy;
+        double new_criticalPath_HPWL;
 
 
         pin(){

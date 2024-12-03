@@ -359,6 +359,10 @@ double costeva::calTns(double* WNS){
         f->update_pin_loc();
     }
 
+    // for(auto& f: *ffs){
+    //     f->getCriticalPath(1, DIE->displacement_delay);
+    // }
+
     double tns = 0;
     for(auto& f: *ffs){
 
@@ -367,6 +371,8 @@ double costeva::calTns(double* WNS){
             double slack = 0;
             pin* p = f->d_pins[i];
             
+            // slack = p->slack - (p->new_criticalPath_HPWL - p->criticalPath_HPWL)*(DIE->displacement_delay);
+
             if(p->to_net->ipins.front()->pin_type == 'f'){
                 auto sp = p->to_net->ipins.front(); // sp: source pin
                 double ori_hpwl = abs(sp->coox     - p->coox) + abs(sp->cooy     - p->cooy);

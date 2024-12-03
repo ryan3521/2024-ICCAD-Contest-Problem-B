@@ -240,7 +240,7 @@ void inst::CalCriticalPath(){
         g.second->is_tracking = false;
     }
     for(auto f: ff_umap){
-        f.second->getCriticalPath();
+        f.second->getCriticalPath(0, 0);
     }
 }
 
@@ -656,18 +656,38 @@ double ffi::get_timing_cost(double x, double y, double displacement_delay){
     return cost;
 }
 
-double ffi::getCriticalPath(){
-    for(auto p: d_pins){
-        auto sp = p->to_net->ipins.front();
-        if(sp->pin_type = 'd'){
-            p->criticalPath_HPWL = abs(p->coox - sp->coox) + abs(p->cooy - sp->cooy);
+void ffi::getCriticalPath(int mode, double displacement_delay){
+    if(mode == 0){
+        for(auto p: d_pins){
+            auto sp = p->to_net->ipins.front();
+            if(sp->pin_type = 'd'){
+                p->criticalPath_HPWL = abs(p->coox - sp->coox) + abs(p->cooy - sp->cooy);
+            }
+            else if(sp->pin_type = 'f'){
+                p->criticalPath_HPWL = abs(p->coox - sp->coox) + abs(p->cooy - sp->cooy);
+            }
+            else{
+                p->criticalPath_HPWL = sp->to_gate->getCriticalPath(mode,0) + abs(p->coox - sp->coox) + abs(p->cooy - sp->cooy);       
+            }     
         }
-        else if(sp->pin_type = 'f'){
-            p->criticalPath_HPWL = abs(p->coox - sp->coox) + abs(p->cooy - sp->cooy);
+        return;
+    }
+    else{
+        for(auto p: d_pins){
+            auto sp = p->to_net->ipins.front();
+            if(sp->pin_type = 'd'){
+                p->new_criticalPath_HPWL = abs(p->new_coox - sp->coox) + abs(p->new_cooy - sp->cooy);
+            }
+            else if(sp->pin_type = 'f'){
+                double ori_qpin_delay = sp->to_ff->type->get_Qpin_delay();
+                double new_qpin_delay = sp->to_new_ff->type->get_Qpin_delay();
+                p->new_criticalPath_HPWL = abs(p->new_coox - sp->new_coox) + abs(p->new_cooy - sp->new_cooy) + (new_qpin_delay - ori_qpin_delay)/displacement_delay;
+            }
+            else{
+                p->new_criticalPath_HPWL = sp->to_gate->getCriticalPath(mode, displacement_delay) + abs(p->new_coox - sp->coox) + abs(p->new_cooy - sp->cooy);       
+            }     
         }
-        else{
-            p->criticalPath_HPWL = sp->to_gate->getCriticalPath() + abs(p->coox - sp->coox) + abs(p->cooy - sp->cooy);       
-        }     
+        return;
     }
 }
 
@@ -725,29 +745,51 @@ void gatei::visit(double critical_slack){
     this->critical_slack = critical_slack;
 }
 
-double gatei::getCriticalPath(){
-    if(v == true){
-        return criticalPath_HPWL;
+double gatei::getCriticalPath(int mode, double displacement_delay){
+        if(v == true){
+            return criticalPath_HPWL;
+        }
+
+        double tempHPWL;
+        double maxHPWL = 0;
+
+
+    if(mode == 0){
+        for(auto p: ipins){
+            auto sp = p->to_net->ipins.front();
+            if(sp->pin_type = 'd'){
+                tempHPWL = abs(p->coox - sp->coox) + abs(p->cooy - sp->cooy);
+            }
+            else if(sp->pin_type = 'f'){
+                tempHPWL = abs(p->coox - sp->coox) + abs(p->cooy - sp->cooy);
+            }
+            else{
+                tempHPWL = sp->to_gate->getCriticalPath(mode, 0) + abs(p->coox - sp->coox) + abs(p->cooy - sp->cooy);       
+            }    
+            if(tempHPWL > maxHPWL){
+                maxHPWL = tempHPWL;
+            }
+        }
     }
-    
-    double tempHPWL;
-    double maxHPWL = 0;
+    else{
+        for(auto p: ipins){
+            auto sp = p->to_net->ipins.front();
+            if(sp->pin_type = 'd'){
+                tempHPWL = abs(p->coox - sp->coox) + abs(p->cooy - sp->cooy);
+            }
+            else if(sp->pin_type = 'f'){
+                double ori_qpin_delay = sp->to_ff->type->get_Qpin_delay();
+                double new_qpin_delay = sp->to_new_ff->type->get_Qpin_delay();
+                tempHPWL = abs(p->coox - sp->new_coox) + abs(p->cooy - sp->new_cooy) + (new_qpin_delay - ori_qpin_delay)/displacement_delay;
+            }
+            else{
+                tempHPWL = sp->to_gate->getCriticalPath(mode, displacement_delay) + abs(p->coox - sp->coox) + abs(p->cooy - sp->cooy);       
+            }    
+            if(tempHPWL > maxHPWL){
+                maxHPWL = tempHPWL;
+            }
+        }
 
-
-    for(auto p: ipins){
-        auto sp = p->to_net->ipins.front();
-        if(sp->pin_type = 'd'){
-            tempHPWL = abs(p->coox - sp->coox) + abs(p->cooy - sp->cooy);
-        }
-        else if(sp->pin_type = 'f'){
-            tempHPWL = abs(p->coox - sp->coox) + abs(p->cooy - sp->cooy);
-        }
-        else{
-            tempHPWL = sp->to_gate->getCriticalPath() + abs(p->coox - sp->coox) + abs(p->cooy - sp->cooy);       
-        }    
-        if(tempHPWL > maxHPWL){
-            maxHPWL = tempHPWL;
-        }
     }
 
     v = true;    
