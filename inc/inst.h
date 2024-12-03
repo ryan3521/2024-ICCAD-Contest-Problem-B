@@ -64,6 +64,9 @@ class ffi{
         double cost;
         list<ffi*> members;
         bool no_neighbor;
+        
+
+
         // member function
         ffi(string, double, double);
         void set_type(ffcell* );
@@ -77,6 +80,7 @@ class ffi{
         void Set_PseudoBlock_Size(double expand_rate);
         void CalculateCost(double alpha, double beta, double gamma, double displacement_delay);
         double get_timing_cost(double x, double y, double displacement_delay);
+        double getCriticalPath();
 };
 
 class gatei{
@@ -94,7 +98,7 @@ class gatei{
         double consume_time; // is used to trace the negative slack
         bool is_tracking;
         double min_cs; // smallest critical slack
-
+        double criticalPath_HPWL;
 
 
         gatei(string, double, double);
@@ -105,7 +109,7 @@ class gatei{
         void visit(double critical_slack);
         bool is_visited();
         double get_critical_slack();
-        
+        double getCriticalPath();
 
 };
 
@@ -135,7 +139,7 @@ class pin{ // pin prototype
         bool io;            // Only for pin type is 'd', 0 stand for IN; 1 stand for OUT;
         double slack;       // Only for pin type is 'f', and is belongs to "d_pins"
         double dspd_slk;    // Only for pin type is 'f', the dispensed slack for 'D' and 'Q' pin 
-
+        double criticalPath_HPWL;
         // Below are the variable newed by your friend Yuri
         bool isVisited;
 
@@ -187,6 +191,7 @@ class inst{
         void add_inst(lib& LIB, string inst_name, string typename_, double coox, double cooy);
         void set_TSlack(string inst_name, string pin_name, double slack);
         void SlackDispense(dieInfo& DIE);
+        void CalCriticalPath();
         void PrintFF();
         void PrintGate();
         void DebankAllFF(lib& LIB);

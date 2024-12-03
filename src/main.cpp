@@ -33,6 +33,7 @@ int main(int argc, char** argv){
 
     LIB.construct_fftable(DIE);
     INST.SlackDispense(DIE);
+    INST.CalCriticalPath();
     INST.DebankAllFF(LIB);
 
     FFBANK.run();

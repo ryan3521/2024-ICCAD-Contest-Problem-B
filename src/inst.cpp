@@ -234,6 +234,16 @@ void inst::SlackDispense(dieInfo& DIE){
     return;
 }
 
+void inst::CalCriticalPath(){
+    for(auto g: gate_umap){
+        g.second->v = false;
+        g.second->is_tracking = false;
+    }
+    for(auto f: ff_umap){
+        f.second->getCriticalPath();
+    }
+}
+
 void inst::DebankAllFF(lib& LIB){
     // If ff is multibit ff, debank into single bit ff.
     // The type of all single bit ffs will be the lowest cost one bit ff. 
@@ -646,6 +656,20 @@ double ffi::get_timing_cost(double x, double y, double displacement_delay){
     return cost;
 }
 
+double ffi::getCriticalPath(){
+    for(auto p: d_pins){
+        auto sp = p->to_net->ipins.front();
+        if(sp->pin_type = 'd'){
+            p->criticalPath_HPWL = abs(p->coox - sp->coox) + abs(p->cooy - sp->cooy);
+        }
+        else if(sp->pin_type = 'f'){
+            p->criticalPath_HPWL = abs(p->coox - sp->coox) + abs(p->cooy - sp->cooy);
+        }
+        else{
+            p->criticalPath_HPWL = sp->to_gate->getCriticalPath() + abs(p->coox - sp->coox) + abs(p->cooy - sp->cooy);       
+        }     
+    }
+}
 
 gatei::gatei(string name, double coox, double cooy){
     this->name = name;
@@ -699,6 +723,37 @@ void gatei::initial_PinInfo(){
 void gatei::visit(double critical_slack){
     v = true;
     this->critical_slack = critical_slack;
+}
+
+double gatei::getCriticalPath(){
+    if(v == true){
+        return criticalPath_HPWL;
+    }
+    
+    double tempHPWL;
+    double maxHPWL = 0;
+
+
+    for(auto p: ipins){
+        auto sp = p->to_net->ipins.front();
+        if(sp->pin_type = 'd'){
+            tempHPWL = abs(p->coox - sp->coox) + abs(p->cooy - sp->cooy);
+        }
+        else if(sp->pin_type = 'f'){
+            tempHPWL = abs(p->coox - sp->coox) + abs(p->cooy - sp->cooy);
+        }
+        else{
+            tempHPWL = sp->to_gate->getCriticalPath() + abs(p->coox - sp->coox) + abs(p->cooy - sp->cooy);       
+        }    
+        if(tempHPWL > maxHPWL){
+            maxHPWL = tempHPWL;
+        }
+    }
+
+    v = true;    
+    criticalPath_HPWL = maxHPWL;
+
+    return criticalPath_HPWL;
 }
 
 bool gatei::is_visited(){return v;}
