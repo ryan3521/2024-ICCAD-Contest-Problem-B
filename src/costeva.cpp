@@ -359,10 +359,9 @@ double costeva::calTns(double* WNS){
         f->update_pin_loc();
     }
 
-    // for(auto& f: *ffs){
-    //     f->getCriticalPath(1, DIE->displacement_delay);
-    // }
-
+    for(auto& f: *ffs){
+        f->getCriticalPath(1, DIE->displacement_delay);
+    }
     double tns = 0;
     for(auto& f: *ffs){
 
@@ -370,44 +369,43 @@ double costeva::calTns(double* WNS){
         for(int i=0; i<f->d_pins.size(); i++){
             double slack = 0;
             pin* p = f->d_pins[i];
-            
-            // slack = p->slack - (p->new_criticalPath_HPWL - p->criticalPath_HPWL)*(DIE->displacement_delay);
 
-            if(p->to_net->ipins.front()->pin_type == 'f'){
-                auto sp = p->to_net->ipins.front(); // sp: source pin
-                double ori_hpwl = abs(sp->coox     - p->coox) + abs(sp->cooy     - p->cooy);
-                double new_hpwl = abs(sp->new_coox - p->new_coox) + abs(sp->new_cooy - p->new_cooy);
-                double ori_qpin_delay = sp->to_ff->type->get_Qpin_delay();
-                double new_qpin_delay = sp->to_new_ff->type->get_Qpin_delay();
+            slack = p->slack - (p->new_criticalPath_HPWL - p->criticalPath_HPWL)*(DIE->displacement_delay);
 
-                slack = p->slack - (new_hpwl - ori_hpwl)*(DIE->displacement_delay) - (new_qpin_delay - ori_qpin_delay); 
-            }
-            else if(p->to_net->ipins.front()->pin_type == 'd'){
-                auto sp = p->to_net->ipins.front(); // sp: source pin
-                double ori_hpwl = abs(sp->coox - p->coox) + abs(sp->cooy - p->cooy);
-                double new_hpwl = abs(sp->coox - p->new_coox) + abs(sp->cooy - p->new_cooy);
-                double cen_ori_hpwl = abs(sp->coox - p->to_ff->cen_x) + abs(sp->cooy - p->to_ff->cen_y);
-                double cen_new_hpwl = abs(sp->coox - p->to_new_ff->cen_x) + abs(sp->cooy - p->to_new_ff->cen_y);
+            // if(p->to_net->ipins.front()->pin_type == 'f'){
+            //     auto sp = p->to_net->ipins.front(); // sp: source pin
+            //     double ori_hpwl = abs(sp->coox     - p->coox) + abs(sp->cooy     - p->cooy);
+            //     double new_hpwl = abs(sp->new_coox - p->new_coox) + abs(sp->new_cooy - p->new_cooy);
+            //     double ori_qpin_delay = sp->to_ff->type->get_Qpin_delay();
+            //     double new_qpin_delay = sp->to_new_ff->type->get_Qpin_delay();
 
-                slack = p->slack - (new_hpwl - ori_hpwl)*(DIE->displacement_delay);
+            //     slack = p->slack - (new_hpwl - ori_hpwl)*(DIE->displacement_delay) - (new_qpin_delay - ori_qpin_delay); 
+            // }
+            // else if(p->to_net->ipins.front()->pin_type == 'd'){
+            //     auto sp = p->to_net->ipins.front(); // sp: source pin
+            //     double ori_hpwl = abs(sp->coox - p->coox) + abs(sp->cooy - p->cooy);
+            //     double new_hpwl = abs(sp->coox - p->new_coox) + abs(sp->cooy - p->new_cooy);
+            //     double cen_ori_hpwl = abs(sp->coox - p->to_ff->cen_x) + abs(sp->cooy - p->to_ff->cen_y);
+            //     double cen_new_hpwl = abs(sp->coox - p->to_new_ff->cen_x) + abs(sp->cooy - p->to_new_ff->cen_y);
+
+            //     slack = p->slack - (new_hpwl - ori_hpwl)*(DIE->displacement_delay);
                 
-            }
-            else if(p->to_net->ipins.front()->pin_type == 'g'){
-                auto sp = p->to_net->ipins.front(); // sp: source pin
-                double ori_hpwl = abs(sp->coox - p->coox) + abs(sp->cooy - p->cooy);
-                double new_hpwl = abs(sp->coox - p->new_coox) + abs(sp->cooy - p->new_cooy);
-                double temp_ct  = (new_hpwl - ori_hpwl)*(DIE->displacement_delay);
-                double cen_ori_hpwl = abs(sp->coox - p->to_ff->cen_x) + abs(sp->cooy - p->to_ff->cen_y);
-                double cen_new_hpwl = abs(sp->coox - p->to_new_ff->cen_x) + abs(sp->cooy - p->to_new_ff->cen_y);
-                if(get_ct(sp->to_gate) == numeric_limits<double>::lowest()){
-                    slack = p->slack - (new_hpwl - ori_hpwl)*(DIE->displacement_delay);
+            // }
+            // else if(p->to_net->ipins.front()->pin_type == 'g'){
+            //     auto sp = p->to_net->ipins.front(); // sp: source pin
+            //     double ori_hpwl = abs(sp->coox - p->coox) + abs(sp->cooy - p->cooy);
+            //     double new_hpwl = abs(sp->coox - p->new_coox) + abs(sp->cooy - p->new_cooy);
+            //     double temp_ct  = (new_hpwl - ori_hpwl)*(DIE->displacement_delay);
+            //     double cen_ori_hpwl = abs(sp->coox - p->to_ff->cen_x) + abs(sp->cooy - p->to_ff->cen_y);
+            //     double cen_new_hpwl = abs(sp->coox - p->to_new_ff->cen_x) + abs(sp->cooy - p->to_new_ff->cen_y);
+            //     if(get_ct(sp->to_gate) == numeric_limits<double>::lowest()){
+            //         slack = p->slack - (new_hpwl - ori_hpwl)*(DIE->displacement_delay);
 
-                }
-                else{
-                    slack = p->slack - (temp_ct + get_ct(sp->to_gate));
-                }
-
-            }
+            //     }
+            //     else{
+            //         slack = p->slack - (temp_ct + get_ct(sp->to_gate));
+            //     }
+            // }
             if(slack < 0){
                 tns = tns + slack;
                 neg_ff_cnt++;

@@ -659,26 +659,33 @@ double ffi::get_timing_cost(double x, double y, double displacement_delay){
 void ffi::getCriticalPath(int mode, double displacement_delay){
     if(mode == 0){
         for(auto p: d_pins){
+            if(p == NULL) continue;
+            if(p->to_net == NULL) continue;
             auto sp = p->to_net->ipins.front();
-            if(sp->pin_type = 'd'){
+            if(sp->pin_type == 'd'){
                 p->criticalPath_HPWL = abs(p->coox - sp->coox) + abs(p->cooy - sp->cooy);
             }
-            else if(sp->pin_type = 'f'){
+            else if(sp->pin_type == 'f'){
                 p->criticalPath_HPWL = abs(p->coox - sp->coox) + abs(p->cooy - sp->cooy);
             }
-            else{
+            else if(sp->pin_type == 'g'){
                 p->criticalPath_HPWL = sp->to_gate->getCriticalPath(mode,0) + abs(p->coox - sp->coox) + abs(p->cooy - sp->cooy);       
-            }     
+            } 
+            else {
+                cout << "wrong" << endl;
+            }    
         }
         return;
     }
     else{
         for(auto p: d_pins){
+            if(p == NULL) continue;
+            if(p->to_net == NULL) continue;
             auto sp = p->to_net->ipins.front();
-            if(sp->pin_type = 'd'){
+            if(sp->pin_type == 'd'){
                 p->new_criticalPath_HPWL = abs(p->new_coox - sp->coox) + abs(p->new_cooy - sp->cooy);
             }
-            else if(sp->pin_type = 'f'){
+            else if(sp->pin_type == 'f'){
                 double ori_qpin_delay = sp->to_ff->type->get_Qpin_delay();
                 double new_qpin_delay = sp->to_new_ff->type->get_Qpin_delay();
                 p->new_criticalPath_HPWL = abs(p->new_coox - sp->new_coox) + abs(p->new_cooy - sp->new_cooy) + (new_qpin_delay - ori_qpin_delay)/displacement_delay;
@@ -756,15 +763,20 @@ double gatei::getCriticalPath(int mode, double displacement_delay){
 
     if(mode == 0){
         for(auto p: ipins){
+            if(p == NULL) continue;
+            if(p->to_net == NULL) continue;
             auto sp = p->to_net->ipins.front();
-            if(sp->pin_type = 'd'){
+            if(sp->pin_type == 'd'){
                 tempHPWL = abs(p->coox - sp->coox) + abs(p->cooy - sp->cooy);
             }
-            else if(sp->pin_type = 'f'){
+            else if(sp->pin_type == 'f'){
                 tempHPWL = abs(p->coox - sp->coox) + abs(p->cooy - sp->cooy);
+            }
+            else if(sp->pin_type == 'g'){
+                tempHPWL = sp->to_gate->getCriticalPath(mode, 0) + abs(p->coox - sp->coox) + abs(p->cooy - sp->cooy);       
             }
             else{
-                tempHPWL = sp->to_gate->getCriticalPath(mode, 0) + abs(p->coox - sp->coox) + abs(p->cooy - sp->cooy);       
+                cout << "wrong" << endl;
             }    
             if(tempHPWL > maxHPWL){
                 maxHPWL = tempHPWL;
@@ -773,11 +785,13 @@ double gatei::getCriticalPath(int mode, double displacement_delay){
     }
     else{
         for(auto p: ipins){
+            if(p == NULL) continue;
+            if(p->to_net == NULL) continue;
             auto sp = p->to_net->ipins.front();
-            if(sp->pin_type = 'd'){
+            if(sp->pin_type == 'd'){
                 tempHPWL = abs(p->coox - sp->coox) + abs(p->cooy - sp->cooy);
             }
-            else if(sp->pin_type = 'f'){
+            else if(sp->pin_type == 'f'){
                 double ori_qpin_delay = sp->to_ff->type->get_Qpin_delay();
                 double new_qpin_delay = sp->to_new_ff->type->get_Qpin_delay();
                 tempHPWL = abs(p->coox - sp->new_coox) + abs(p->cooy - sp->new_cooy) + (new_qpin_delay - ori_qpin_delay)/displacement_delay;

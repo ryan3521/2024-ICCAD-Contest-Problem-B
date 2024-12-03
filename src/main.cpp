@@ -38,7 +38,6 @@ int main(int argc, char** argv){
 
     FFBANK.run();
 
-
     Output(argv[2], PFFS, INST);
 
     double end = clock();
