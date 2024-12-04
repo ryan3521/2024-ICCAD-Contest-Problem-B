@@ -44,7 +44,7 @@ class costeva{
         double calPower();
         double calTns(double* WNS);
         int    calDensity();
-        
+
 
         double get_ct(gatei* g);
 

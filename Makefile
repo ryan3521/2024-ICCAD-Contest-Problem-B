@@ -15,10 +15,14 @@ TARGET = main
 TC1  = ./Testcase/testcase1_0812.txt
 TC2  = ./Testcase/testcase2_0812.txt
 TC3  = ./Testcase/testcase3.txt
+TC4  = ./Testcase/hiddencase01.txt
+TC5  = ./Testcase/hiddencase02.txt
+TC6  = ./Testcase/hiddencase03.txt
+TC7  = ./Testcase/hiddencase04.txt
 OUTFILE = output.txt
 
 all: $(TARGET)
-	./$(TARGET) $(TC1) $(OUTFILE)
+	./$(TARGET) $(TC2) $(OUTFILE)
 
 $(TARGET): $(OBJ) 
 	$(CC) $(OBJ) -o $(TARGET)

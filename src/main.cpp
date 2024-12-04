@@ -33,23 +33,23 @@ int main(int argc, char** argv){
 
     LIB.construct_fftable(DIE);
     INST.SlackDispense(DIE);
+    INST.CalCriticalPath();
     INST.DebankAllFF(LIB);
 
     FFBANK.run();
-
 
     Output(argv[2], PFFS, INST);
 
     double end = clock();
 
-    // COST.PrintParameter();
-    // COST.InitialCost();
-    // COST.ResultCost(&PFFS);
+    COST.PrintParameter();
+    COST.InitialCost();
+    COST.ResultCost(&PFFS);
 
     cout << endl << "Total execution time: " << (end - start) / 1000000.0  << " s" << '\n';
 
-    DrawFFs(DIE, LIB, INST, UPFFS, PFFS);
-    DrawGates( DIE, LIB, INST);
+    // DrawFFs(DIE, LIB, INST, UPFFS, PFFS);
+    // DrawGates( DIE, LIB, INST);
     return 0;
 }
 
