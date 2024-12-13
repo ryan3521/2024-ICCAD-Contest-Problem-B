@@ -75,7 +75,7 @@ class placement{
         inst* INST;
         int new_ff_cnt;
         list<plcmt_row*> temp_rows; 
-        list<plcmt_row*> virtual_rows;    
+  
 
         // Member function   
         int  closest_IDX(double x, double y);
@@ -95,6 +95,7 @@ class placement{
         bool placeFlipFlop(ffi* f, bool set_constrain, double displace_constrain);
         void DeleteFlipFlop(ffi* f);
         void PlaceBackFlipFlop(ffi* f);
+        void FillDummy();
 
 };
 
