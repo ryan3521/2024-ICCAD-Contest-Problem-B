@@ -20,6 +20,12 @@ class plcmt_row{
         list<pair<int, int>>::iterator pivot_itr;
         bool pivot_valid;
 
+        struct Dummy{
+            int start;
+            int end;
+        };
+        list<Dummy*> allDummy;
+
     public:
         int idx;
         bool is_tested;
@@ -42,6 +48,8 @@ class plcmt_row{
         plcmt_row(dieInfo* DIE, double sx, double sy, double sw, double sh, int sn);
  
         void FillGap(double min_width);
+        void FillDummy(double width);
+        void ClearDummy();
         void add_gblock(gatei* g,double start, double end);
         void add_fblock(double start, double end);
         void add_ff(double start, double end, double height);
@@ -77,12 +85,7 @@ class placement{
         list<plcmt_row*> temp_rows; 
 
 
-        struct Dummy{
-            int rowIndex;
-            double start;
-            double end;
-        };
-        list<Dummy*> allDummy;
+
 
         // Member function   
         int  closest_IDX(double x, double y);
@@ -102,8 +105,7 @@ class placement{
         bool placeFlipFlop(ffi* f, bool set_constrain, double displace_constrain);
         void DeleteFlipFlop(ffi* f);
         void PlaceBackFlipFlop(ffi* f);
-        void FillDummy(double width);
-        void ClearDummy();
+
 
 };
 

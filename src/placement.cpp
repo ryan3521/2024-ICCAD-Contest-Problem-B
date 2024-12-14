@@ -430,6 +430,74 @@ void plcmt_row::FillGap(double min_width){
     }
 }
 
+void plcmt_row::FillDummy(double width){
+    int min_w = ceil(width/site_w);
+    int space_w;
+
+    allDummy.clear();
+
+    auto itr = space_list.begin();
+    while(itr != space_list.end()){
+        space_w = itr->second - itr->first + 1;
+        if(space_w < min_w){
+            Dummy* dummyPointer = new Dummy;
+            dummyPointer->start = itr->first;
+            dummyPointer->end   = itr->second;
+            allDummy.push_back(dummyPointer);
+            itr = space_list.erase(itr);
+        }
+        else{
+            itr++;
+        }
+    }
+}
+
+void plcmt_row::ClearDummy(){
+    if(allDummy.empty()) return;
+
+    
+    if(space_list.empty()){
+        space_list.push_back(pair<int, int>(allDummy.front()->start, allDummy.front()->end));
+        delete allDummy.front();
+        allDummy.pop_front();
+        if(allDummy.empty()) return;
+    }
+    else if(space_list.front().first > allDummy.front()->end){
+        space_list.push_front(pair<int, int>(allDummy.front()->start, allDummy.front()->end));
+        delete allDummy.front();
+        allDummy.pop_front();
+        if(allDummy.empty()) return;
+    }
+
+    // now the space list won't be empty 
+    // and the "first space" in the space list must be front of the "first dummy"
+
+    auto front_it = space_list.begin();
+    auto it = space_list.begin();
+    while(allDummy.empty() == false){
+        if(it == space_list.end()){
+            space_list.insert(it, pair<int, int>(allDummy.front()->start, allDummy.front()->end));    
+            delete allDummy.front();
+            allDummy.pop_front();
+            continue;
+        }
+        
+        
+        if(front_it->second < allDummy.front()->start && it->first > allDummy.front()->end){
+            space_list.insert(front_it, pair<int, int>(allDummy.front()->start, allDummy.front()->end));    
+            delete allDummy.front();
+            allDummy.pop_front();
+            front_it++;
+        }
+        else{
+            front_it = it;
+            it++;
+        }
+    }
+
+    return;
+}
+
 
 
 // *******************************************************************
