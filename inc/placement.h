@@ -48,7 +48,7 @@ class plcmt_row{
         plcmt_row(dieInfo* DIE, double sx, double sy, double sw, double sh, int sn);
  
         void FillGap(double min_width);
-        void FillDummy(double width);
+        int  FillDummy(double width);
         void ClearDummy();
         void add_gblock(gatei* g,double start, double end);
         void add_fblock(double start, double end);
@@ -105,7 +105,8 @@ class placement{
         bool placeFlipFlop(ffi* f, bool set_constrain, double displace_constrain);
         void DeleteFlipFlop(ffi* f);
         void PlaceBackFlipFlop(ffi* f);
-
+        void FillDummy(double minWidth);
+        void ClearDummy();
 
 };
 

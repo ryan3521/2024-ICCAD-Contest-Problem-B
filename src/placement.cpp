@@ -430,10 +430,10 @@ void plcmt_row::FillGap(double min_width){
     }
 }
 
-void plcmt_row::FillDummy(double width){
+int plcmt_row::FillDummy(double width){
     int min_w = ceil(width/site_w);
     int space_w;
-
+    int cnt = 0;
     allDummy.clear();
 
     auto itr = space_list.begin();
@@ -445,11 +445,13 @@ void plcmt_row::FillDummy(double width){
             dummyPointer->end   = itr->second;
             allDummy.push_back(dummyPointer);
             itr = space_list.erase(itr);
+            cnt++;
         }
         else{
             itr++;
         }
     }
+    return cnt;
 }
 
 void plcmt_row::ClearDummy(){
@@ -645,6 +647,26 @@ int placement::closest_IDX(double x, double y){
 
     return idx;
 }
+
+
+void placement::FillDummy(double min_width){
+
+    // Fill the dummy for each row
+    int cnt = 0;
+    for(auto r: rows){
+        cnt = cnt + r->FillDummy(min_width);
+    }
+    cout << "Fill Dummy: " << cnt << endl;
+    return;
+}
+
+void placement::ClearDummy(){
+    for(auto r: rows){
+        r->ClearDummy();
+    }
+    return;
+}
+
 
 void placement::GatePlacement(){
 

@@ -115,6 +115,7 @@ void comb::Calculate_BestCost_FFtype(bool print, lib* LIB, inst* INST, dieInfo* 
 
         slack = INST->TnsTest(print, dpins, qpins, ftype, DIE->displacement_delay, dpins_result, qpins_result);
         ns = (slack > 0) ? 0 : abs(slack);
+        //ns = 0;
         cost = (DIE->Alpha*ns + DIE->Beta*ftype->gate_power + DIE->Gamma*ftype->area)/(double)size;
 
 

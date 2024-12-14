@@ -11,6 +11,17 @@ banking::banking(placement* PM, inst* INST, lib* LIB, dieInfo* DIE, list<ffi*>* 
     cls = new cluster(INST, LIB, DIE);
 }
 
+void banking::run(){
+    CopyOriginalFFs();
+    InitialFFsCost();
+    cout << "Banking ..." << endl; 
+    RunBanking(); 
+    cout << "Legalizing ..." << endl;
+    PlaceAndDebank();
+    RenameAllFlipFlops();
+    return;
+}
+
 void banking::PlaceAndDebank(){
     PM->GatePlacement();
     
@@ -31,8 +42,18 @@ void banking::PlaceAndDebank(){
     double displace_constrain = 200;
     for(int i=LIB->max_ff_size; i>0; i--){
 
+
+
         place_order_array[i].sort(cmp_ff_x);
         place_fail_ffs.clear(); 
+
+
+        double min_width = numeric_limits<double>::max();
+        for(auto f: place_order_array[i]){
+            if(f->type->size_x < min_width) min_width = f->type->size_x;
+        }
+        PM->FillDummy(min_width);
+
 
         for(auto f: place_order_array[i]){
             if(PM->placeFlipFlop(f, set_constrain, displace_constrain) == FAIL){
@@ -79,6 +100,8 @@ void banking::PlaceAndDebank(){
                 }
             }
         }
+
+        PM->ClearDummy();
     }
 }
 
@@ -151,14 +174,6 @@ void banking::RenameAllFlipFlops(){
     }
 }
 
-void banking::run(){
-    CopyOriginalFFs();
-    InitialFFsCost();
-    RunBanking(); 
-    PlaceAndDebank();
-    RenameAllFlipFlops();
-    return;
-}
 
 void banking::CopyOriginalFFs(){
     string inst_name;
@@ -273,7 +288,7 @@ void banking::ConstructXSequence(){
             continue;
         }
         else{
-            cout << "error" << endl;
+            cout << "error1" << endl;
             return;
         }
     }
@@ -316,7 +331,7 @@ bool banking::FindNewCluster(){
             break;
         }
         else{
-            cout << "error" << endl;
+            cout << "error2" << endl;
             return false;
         }
     }
@@ -491,7 +506,7 @@ bool banking::ChangeTypeAndTry(ffi* oriff){
             return true;
         }
         else{
-            cout <<  "error" << endl;
+            cout <<  "error3" << endl;
             return false;
         }
     }
