@@ -128,6 +128,15 @@ class net{
 };
 
 class pin{ // pin prototype
+    private:
+        struct LinkedPinInfo{
+            pin* targetFloatPin; 
+            pin* relatedFixedPin;
+            double FixedHPWL;
+        };
+
+        list<LinkedPinInfo*> connected_SourcePins; // only for D pin
+        void FindLinkedPin(gatei* g, double current_FixedHPWL, list<LinkedPinInfo*>& connected_SourcePins);
     public:
         string name;
         net* to_net;        // net that current pin belongs to
@@ -160,6 +169,8 @@ class pin{ // pin prototype
         }
 
         double CalTns(double new_coox, double new_cooy, bool is_D, ffcell* new_type, double coeff);
+        void updateCriticalHPWL(double displacementDelay);
+        void ConstructConnectedSourcePins();
 };
 
 

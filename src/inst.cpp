@@ -871,6 +871,63 @@ double pin::CalTns(double test_coox, double tes_cooy, bool is_D, ffcell* new_typ
     return (slack >= 0)? 1 : slack;
 }
 
+void pin::FindLinkedPin(gatei* g, double current_FixedHPW, list<LinkedPinInfo*>& connected_SourcePins){
+    for(auto p: g->ipins){
+        if(p == NULL) continue;
+
+        pin* sourcePin = p->to_net->ipins.front();
+        if(sourcePin->pin_type == 'g'){
+            double accumulated_FixedHPWL = current_FixedHPW + abs(sourcePin->coox - p->coox) + abs(sourcePin->cooy - p->cooy);
+            FindLinkedPin(sourcePin->to_gate, accumulated_FixedHPWL, connected_SourcePins);
+        }
+        else if(sourcePin->pin_type == 'd'){
+            LinkedPinInfo* tempPointer = new LinkedPinInfo;
+            tempPointer->targetFloatPin = NULL;
+            tempPointer->relatedFixedPin = p;
+            tempPointer->FixedHPWL = current_FixedHPW + abs(sourcePin->coox - p->coox) + abs(sourcePin->cooy - p->cooy);
+            connected_SourcePins.push_back(tempPointer);
+        }
+        else if(sourcePin->pin_type == 'f'){
+            LinkedPinInfo* tempPointer = new LinkedPinInfo;
+            tempPointer->targetFloatPin = sourcePin;
+            tempPointer->relatedFixedPin = p;
+            tempPointer->FixedHPWL = current_FixedHPW;
+            connected_SourcePins.push_back(tempPointer);
+        }
+        else{
+            cout << "Error: unknown pin type (Function pin::FindLinkedPin)" << endl;
+        }
+    }
+    return;
+}
+
+void pin::ConstructConnectedSourcePins(){
+    connected_SourcePins.clear();
+
+    if(to_net->ipins.front()->pin_type == 'f'){
+        return;
+    }
+    else if(to_net->ipins.front()->pin_type == 'd'){
+        return;
+    }
+    else if(to_net->ipins.front()->pin_type == 'g'){
+        FindLinkedPin(to_net->ipins.front()->to_gate, 0, connected_SourcePins);
+    }
+    else{
+        cout << "Error: unknown pin type (Function pin::ConstructConnectedSourcePins)" << endl;
+    }
+    return;
+}
+
+void pin::updateCriticalHPWL(double displacementDelay){
+    if(connected_SourcePins.empty()){ // Case 2 & 3
+
+    }
+    else{ // Case 1
+
+    }
+}
+
 se::se(int type, double coor, ffi* to_ff){
     this->type = type;
     this->coor = coor;
