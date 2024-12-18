@@ -48,12 +48,7 @@ void banking::PlaceAndDebank(){
         place_fail_ffs.clear(); 
 
 
-        double min_width = numeric_limits<double>::max();
-        for(auto f: place_order_array[i]){
-            if(f->type->size_x < min_width) min_width = f->type->size_x;
-        }
-        PM->FillDummy(min_width);
-
+        cout << "Legalizing " << i << " size MBFF" << endl;
 
         for(auto f: place_order_array[i]){
             if(PM->placeFlipFlop(f, set_constrain, displace_constrain) == FAIL){
@@ -100,8 +95,6 @@ void banking::PlaceAndDebank(){
                 }
             }
         }
-
-        PM->ClearDummy();
     }
 }
 
@@ -114,7 +107,8 @@ void banking::RunBanking(){
 
     for(auto ff_list: ff_groups){
 
-        for(target_size=LIB->min_ff_size+1; target_size<=LIB->max_ff_size; target_size++){
+        // for(target_size=LIB->min_ff_size+1; target_size<=LIB->max_ff_size; target_size++){
+        for(target_size=LIB->max_ff_size; target_size>0; target_size--){
             if(LIB->fftable_cost[target_size].empty()) continue;
             for(int itr=1; itr<=3; itr ++){
                 banking_ffs.clear();
