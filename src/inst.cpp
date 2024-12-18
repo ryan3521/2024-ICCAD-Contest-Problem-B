@@ -941,11 +941,15 @@ void pin::updateCriticalHPWL(double displacementDelay){
         for(LinkedPinInfo* itr: connected_SourcePins){
             double tempHPWLSeg; // temp HPWL Segment
             if(itr->targetFloatPin == NULL){
+                // targetpin type is Die pin
                 tempHPWLSeg = itr->FixedHPWL;
             }
             else{
-
+                // targetpin type is FF pin
+                tempHPWLSeg = abs(itr->targetFloatPin->coox - itr->relatedFixedPin->coox) + abs(itr->targetFloatPin->cooy - itr->relatedFixedPin->cooy) + (itr->targetFloatPin->to_ff->type->Qpin_delay)/displacementDelay;
+                tempHPWLSeg = tempHPWLSeg + itr->FixedHPWL;
             }
+            if(tempHPWLSeg > new_criticalPath_HPWL) new_criticalPath_HPWL = tempHPWLSeg;
         }
         new_criticalPath_HPWL = new_criticalPath_HPWL + abs(sourcePin->coox - coox) + abs(sourcePin->cooy - cooy);
     }
