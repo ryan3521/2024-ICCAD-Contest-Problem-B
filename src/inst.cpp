@@ -920,12 +920,36 @@ void pin::ConstructConnectedSourcePins(){
 }
 
 void pin::updateCriticalHPWL(double displacementDelay){
-    if(connected_SourcePins.empty()){ // Case 2 & 3
+    if(pin_type != 'f') return;
 
+    pin* sourcePin = to_net->ipins.front();
+    if(connected_SourcePins.empty()){ // Case 2 & 3
+        if(sourcePin->pin_type == 'f'){
+            new_criticalPath_HPWL = abs(sourcePin->coox - coox) + abs(sourcePin->cooy - cooy);
+            new_criticalPath_HPWL = new_criticalPath_HPWL + (sourcePin->to_new_ff->type->Qpin_delay)/displacementDelay;
+        }
+        else if(sourcePin->pin_type == 'd'){
+            new_criticalPath_HPWL = abs(sourcePin->coox - coox) + abs(sourcePin->cooy - cooy);
+        }
+        else{
+            // if the sourcePin is connected to gate, than the conncected_SourcePins List shouldn't be empty.
+            cout << "Error: Call from pin::updateCriticalHPWL" << endl;
+        }
     }
     else{ // Case 1
+        new_criticalPath_HPWL = 0;
+        for(LinkedPinInfo* itr: connected_SourcePins){
+            double tempHPWLSeg; // temp HPWL Segment
+            if(itr->targetFloatPin == NULL){
+                tempHPWLSeg = itr->FixedHPWL;
+            }
+            else{
 
+            }
+        }
+        new_criticalPath_HPWL = new_criticalPath_HPWL + abs(sourcePin->coox - coox) + abs(sourcePin->cooy - cooy);
     }
+    return;
 }
 
 se::se(int type, double coor, ffi* to_ff){
