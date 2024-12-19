@@ -95,6 +95,11 @@ class placement{
         placement(lib* LIB, inst* INST, dieInfo* DIE);
         void addRow(double sx, double sy, double sw, double sh, int sn);
         void initial();
+        
+
+
+
+        /* below may not be need after Legalizer is construceted. */
         void placeGateInst(gatei* g, double x, double y, double w, double h);
         void GatePlacement();
         bool placeFlipFlop(ffi* f, bool set_constrain, double displace_constrain);

@@ -23,12 +23,13 @@ class Legalizer{
         int mapWidth;
         int mapHeight;
         dieInfo* DIE;
+        placement* PM;
         vector<vector<Bin*>> binMap;
         void ConstructBinMap();
         void SetBinRows();
 
     public:
-        Legalizer(dieInfo* DIE);
+        Legalizer(dieInfo* DIE, placement* PM);
         void Initialize();
         void PlaceGate(gatei* gatePointer);
 };

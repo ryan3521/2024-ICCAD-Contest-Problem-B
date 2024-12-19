@@ -1,9 +1,9 @@
 #include "legalizer.h"
 
 
-Legalizer::Legalizer(dieInfo* DIE){
+Legalizer::Legalizer(dieInfo* DIE, placement* PM){
     this->DIE = DIE;
-
+    this->PM  = PM;
 }
 
 void Legalizer::Initialize(){
@@ -75,7 +75,32 @@ void Legalizer::ConstructBinMap(){
 }
 
 void Legalizer::SetBinRows(){
+    for(auto r: PM->rows){
+        // initial
+        int remain_siteNum = r->site_num;
+        double remain_startx = r->start_x;
+        double starty        = r->start_y;
+        double siteWidth  = r->site_w;
+        double siteHeight = r->site_h;
 
+        while(remain_siteNum > 0){
+            // Step 1: find closest Bin base on startx & starty
+            int rowi = starty/DIE->bin_height;
+            int colj = remain_startx/DIE->bin_width;
+
+            // Step 2: cut down a proper placement row >> need to specify "siteNum and starty" from the new placement row
+            double startx = remain_startx;
+            int siteNum = ceil((binMap[rowi][colj]->upperRightX - startx)/siteWidth);
+
+            // Step 3: add it into the bin
+            binMap[rowi][colj]->AddRow(startx, starty, siteWidth, siteHeight, siteNum);
+
+            // Step 4: update the remain placement row >> specify the "siteNum and starty
+            remain_startx = remain_startx + siteWidth*siteNum;
+            remain_siteNum = remain_siteNum - siteNum;
+        }       
+    }
+    return;
 }
 
 Bin::Bin(int index, int rowi, int colj, double bottomLeftX, double bottomLeftY, double upperRightX, double upperRightY){
@@ -112,6 +137,20 @@ void Bin::AddRow(double startx, double starty, double siteWidth, double siteHeig
     else{
         newRow->down_rows.push_back(rows[rowNum-1]);
         rows[rowNum-1]->up_rows.push_back(newRow);
+    }
+
+    // Check
+    if(newRow->down_rows.empty() == false){
+        auto downRow = newRow->down_rows.front();
+        if(newRow->start_y != downRow->start_y + siteHeight){
+            cout << "Error: row do not connect together (Bin::AddRow)" << endl;
+        }
+        if(newRow->site_num != downRow->site_num){
+            cout << "Error: site number not match (Bin::AddRow)" << endl;
+        }
+        if(newRow->start_x != downRow->start_x){
+            cout << "Error: placement row not align (Bin::AddRow)" << endl;
+        }
     }
 
     rows.push_back(newRow);
