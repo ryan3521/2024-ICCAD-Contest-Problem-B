@@ -48,8 +48,8 @@ int main(int argc, char** argv){
 
     cout << endl << "Total execution time: " << (end - start) / 1000.0  << " s" << '\n';
 
-    // DrawFFs(DIE, LIB, INST, UPFFS, PFFS);
-    // DrawGates( DIE, LIB, INST);
+    DrawFFs(DIE, LIB, INST, UPFFS, PFFS);
+    DrawGates( DIE, LIB, INST);
     return 0;
 }
 

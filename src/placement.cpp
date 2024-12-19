@@ -780,11 +780,11 @@ void placement::placeGateInst(gatei* g, double x, double y, double w, double h){
 
            if(rows[idx]->x_overlapped(xmin, xmax, fit)==true && rows[idx]->y_overlapped(ymin, ymax)==true){
                 if(rows[idx]->x_inrange(xmin, xmax)==true && rows[idx]->y_inrange(ymin, ymax)==true){
-                    rows[idx]->add_gblock(g, xmin, xmax);
+                    rows[idx]->AddBlockAnyway(xmin, xmax);
                     return;
                 }
                 else if(rows[idx]->x_inrange(xmin, xmax)==true){
-                    rows[idx]->add_gblock(g, xmin, xmax);
+                    rows[idx]->AddBlockAnyway(xmin, xmax);
                     if(ymin < rows[idx]->start_y){
                         placeGateInst(g, xmin, ymin, w, rows[idx]->start_y - ymin);
                     }
@@ -794,7 +794,7 @@ void placement::placeGateInst(gatei* g, double x, double y, double w, double h){
                     return;
                 }
                 else if(rows[idx]->y_inrange(ymin, ymax)==true){
-                    rows[idx]->add_gblock(g, xmin, xmax);
+                    rows[idx]->AddBlockAnyway(xmin, xmax);
                     if(xmin < rows[idx]->start_x){
                         placeGateInst(g, xmin, ymin, rows[idx]->start_x - xmin, h);
                     }
@@ -804,7 +804,7 @@ void placement::placeGateInst(gatei* g, double x, double y, double w, double h){
                     return;
                 }
                 else{
-                    rows[idx]->add_gblock(g, xmin, xmax);
+                    rows[idx]->AddBlockAnyway(xmin, xmax);
                     if(xmin < rows[idx]->start_x){
                         placeGateInst(g, xmin, ymin, rows[idx]->start_x - xmin, h);
                         xmin = rows[idx]->start_x;

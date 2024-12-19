@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 
 drawOriginal = False
 drawBankingResult = True
-markDisplacement = True
+markDisplacement = False
 
 
 # **********************************************************
