@@ -14,7 +14,7 @@
 using namespace std;
 
 
-class plcmt_row{
+class PlacementRow{
     private:
         dieInfo* DIE;
         list<pair<int, int>>::iterator pivot_itr;
@@ -25,6 +25,8 @@ class plcmt_row{
             int end;
         };
         list<Dummy*> allDummy;
+
+
 
     public:
         int idx;
@@ -37,20 +39,23 @@ class plcmt_row{
         double site_w;
         double site_h;
         int site_num;
-        list<plcmt_row*> up_rows;
-        list<plcmt_row*> down_rows;
+        list<PlacementRow*> up_rows;
+        list<PlacementRow*> down_rows;
 
 
         list<gatei*> glist; // store the gate instances which were placed in this row;
         list<pair<int, int>> space_list; // the available space before pivot
 
         // Member functions
-        plcmt_row(dieInfo* DIE, double sx, double sy, double sw, double sh, int sn);
+        PlacementRow(dieInfo* DIE, double sx, double sy, double sw, double sh, int sn);
  
         void FillGap(double min_width);
         int  FillDummy(double width);
         void ClearDummy();
-        void add_gblock(gatei* g,double start, double end);
+
+        // *
+        void AddBlockAnyway(double start, double end);
+        // *
         void add_fblock(double start, double end);
         void add_ff(double start, double end, double height);
         void delete_ff(double start, double end, double height);
@@ -82,19 +87,16 @@ class placement{
         lib* LIB;
         inst* INST;
         int new_ff_cnt;
-        list<plcmt_row*> temp_rows; 
-
-
-
+        list<PlacementRow*> temp_rows; 
 
         // Member function   
         int  closest_IDX(double x, double y);
         static bool ff_cmp(ffi* a, ffi* b);
-        static bool row_cmp(plcmt_row* a, plcmt_row* b);
-        void place_formal(ffi* fi, plcmt_row* best_row, int best_pos_idx);
+        static bool row_cmp(PlacementRow* a, PlacementRow* b);
+        void place_formal(ffi* fi, PlacementRow* best_row, int best_pos_idx);
     
     public:
-        vector<plcmt_row*> rows;
+        vector<PlacementRow*> rows;
 
         // Member functions
         placement(lib* LIB, inst* INST, dieInfo* DIE);

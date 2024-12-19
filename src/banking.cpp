@@ -107,8 +107,8 @@ void banking::RunBanking(){
 
     for(auto ff_list: ff_groups){
 
-        // for(target_size=LIB->min_ff_size+1; target_size<=LIB->max_ff_size; target_size++){
-        for(target_size=LIB->max_ff_size; target_size>0; target_size--){
+        for(target_size=LIB->min_ff_size+1; target_size<=LIB->max_ff_size; target_size++){
+        // for(target_size=LIB->max_ff_size; target_size>0; target_size--){
             if(LIB->fftable_cost[target_size].empty()) continue;
             for(int itr=1; itr<=3; itr ++){
                 banking_ffs.clear();

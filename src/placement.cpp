@@ -1,11 +1,11 @@
 #include "placement.h"
 
 // *******************************************************************
-// *                        CLASS plcmt_row                          *
+// *                        CLASS PlacementRow                          *
 // *******************************************************************
 
 // Constructor
-plcmt_row::plcmt_row(dieInfo* DIE, double sx, double sy, double sw, double sh, int sn){
+PlacementRow::PlacementRow(dieInfo* DIE, double sx, double sy, double sw, double sh, int sn){
     is_tested = false;
     is_visited = false;
     start_x = sx;
@@ -25,7 +25,7 @@ plcmt_row::plcmt_row(dieInfo* DIE, double sx, double sy, double sw, double sh, i
 
 }
 
-void plcmt_row::print_spacelist(){
+void PlacementRow::print_spacelist(){
     cout << endl << "Space List: " << space_list.size() << endl;
     for(auto it = space_list.begin(); it != space_list.end(); it++){
         cout << "[" << it->first << ", " << it->second << "] -> ";
@@ -35,41 +35,62 @@ void plcmt_row::print_spacelist(){
     cout << endl;
 }
 
-void plcmt_row::add_gblock(gatei* g, double start, double end){
-    int si, ei;
+void PlacementRow::AddBlockAnyway(double start, double end){
+    int start_i, end_i;
 
     if(start < start_x) start = start_x;
     if(end > xmax) end = xmax;
 
-    si = (start - start_x)/site_w;
-    ei = si + ceil((end - start)/site_w) - 1;
 
+    start_i = (start - start_x)/site_w;
+    end_i   = start_i + ceil((end - start)/site_w) - 1;
+    
+    auto spaceItr = space_list.begin();
+    while(spaceItr != space_list.end()){
 
-    for(auto rIt=space_list.rbegin(); rIt!=space_list.rend(); rIt++){
-        if(si>=rIt->first && si<=rIt->second){
-            if(si==rIt->first && ei==rIt->second){
-                space_list.erase(--rIt.base());
-            }
-            else if(si==rIt->first && ei<rIt->second){
-                rIt->first = ei+1;
-            }
-            else if(si>rIt->first && ei<rIt->second){
-                int t = rIt->second;
-                rIt->second = si-1;
-                auto it = rIt.base();
-                space_list.insert(it, pair<int, int>(ei+1, t));
-            }
-            else if(si>rIt->first && ei==rIt->second){
-                rIt->second = si-1;
-            }
+        if(spaceItr->first > end_i){
             return;
         }
+        else if(start_i > spaceItr->second){
+            spaceItr++;
+            continue;
+        }
+        else{
+            if(start_i <= spaceItr->first && end_i >= spaceItr->second){
+                // space: |OOOOOOO|
+                // block: |XXXXXXX|
+                spaceItr = space_list.erase(spaceItr);
+                continue;
+            }
+            else if(start_i <= spaceItr->first && end_i < spaceItr->second){
+                // space: |OOOOOOO|
+                // block: |XXXXX--|
+                spaceItr->first = end_i+1;
+                return;
+            }
+            else if(start_i > spaceItr->first && end_i < spaceItr->second){
+                // space: |OOOOOOO|
+                // block: |--XXX--|
+                int t = spaceItr->first;
+                spaceItr->first = end_i+1;
+                space_list.insert(spaceItr, pair<int, int>(t, start_i-1));
+                return;
+            }
+            else if(start_i > spaceItr->first && end_i >= spaceItr->second){
+                // space: |OOOOOOO|
+                // block: |--XXXXX|XXX
+                spaceItr->second = start_i-1;
+                spaceItr++;
+                continue;
+            }
+        }
     }
-
     return;
 }
 
-void plcmt_row::delete_fblock(double start, double end){
+
+
+void PlacementRow::delete_fblock(double start, double end){
     int si = (start - start_x)/site_w;
     int ei = si + ceil((end - start)/site_w) - 1;
 
@@ -130,7 +151,7 @@ void plcmt_row::delete_fblock(double start, double end){
     }
 }
 
-void plcmt_row::add_fblock(double start, double end){
+void PlacementRow::add_fblock(double start, double end){
     int si = (start - start_x)/site_w;
     int ei = si + ceil((end - start)/site_w) - 1;
 
@@ -159,7 +180,7 @@ void plcmt_row::add_fblock(double start, double end){
 
 }
 
-bool plcmt_row::check_available(double start, double end, double height){
+bool PlacementRow::check_available(double start, double end, double height){
     int si, ei;
 
     if(start<start_x || ei>=xmax) return false;
@@ -185,7 +206,7 @@ bool plcmt_row::check_available(double start, double end, double height){
     return false;
 }
 
-bool plcmt_row::height_available(double height){
+bool PlacementRow::height_available(double height){
     if(height <= site_h) return true;
     else {
         for(auto& pr: up_rows){
@@ -196,7 +217,7 @@ bool plcmt_row::height_available(double height){
 }
 
 
-bool plcmt_row::x_overlapped(double x1, double x2, bool& fit){
+bool PlacementRow::x_overlapped(double x1, double x2, bool& fit){
     fit = false;
     if((x1 == start_x) && (x2 == (xmax))){
         fit = true;
@@ -215,7 +236,7 @@ bool plcmt_row::x_overlapped(double x1, double x2, bool& fit){
     }
 }
 
-bool plcmt_row::y_overlapped(double y1, double y2){
+bool PlacementRow::y_overlapped(double y1, double y2){
 
     if(start_y >= y2){
         return false;
@@ -229,17 +250,17 @@ bool plcmt_row::y_overlapped(double y1, double y2){
 
 }
 
-bool plcmt_row::x_inrange(double x1, double x2){
+bool PlacementRow::x_inrange(double x1, double x2){
     if(x1>=start_x && x2<=xmax) return true;
     else return false;
 }
 
-bool plcmt_row::y_inrange(double y1, double y2){
+bool PlacementRow::y_inrange(double y1, double y2){
     if(y1>=start_y && y2<=ymax) return true;
     else return false;
 }
 
-void plcmt_row::add_ff(double start, double end, double height){
+void PlacementRow::add_ff(double start, double end, double height){
     this->add_fblock(start, end);
     
     if(height > site_h){
@@ -254,7 +275,7 @@ void plcmt_row::add_ff(double start, double end, double height){
     return;
 }
 
-void plcmt_row::delete_ff(double start, double end, double height){
+void PlacementRow::delete_ff(double start, double end, double height){
     this->delete_fblock(start, end);
 
     if(height > site_h){
@@ -271,7 +292,7 @@ void plcmt_row::delete_ff(double start, double end, double height){
 
 
 // ds: start idx, de: end idx
-bool plcmt_row::seg_mincost(ffi* fi, int ds, int de, int dw, int& best_pos_idx, double& mincost, bool dir, bool set_constrain){
+bool PlacementRow::seg_mincost(ffi* fi, int ds, int de, int dw, int& best_pos_idx, double& mincost, bool dir, bool set_constrain){
     bool find_new = false;
     double s; // absolute value, not relative
     double e;
@@ -346,7 +367,7 @@ bool plcmt_row::seg_mincost(ffi* fi, int ds, int de, int dw, int& best_pos_idx, 
     return find_new;
 }
 
-double plcmt_row::place_trial(ffi* fi, bool& available, int& best_pos_idx, double global_mincost, bool set_constrain){ // ax is available x coordinate
+double PlacementRow::place_trial(ffi* fi, bool& available, int& best_pos_idx, double global_mincost, bool set_constrain){ // ax is available x coordinate
     available = false;
     double mincost = global_mincost; // local mincost
     double h = fi->type->size_y;
@@ -408,13 +429,13 @@ double plcmt_row::place_trial(ffi* fi, bool& available, int& best_pos_idx, doubl
 }
 
 
-double plcmt_row::closest_x(double x){
+double PlacementRow::closest_x(double x){
     if(x < start_x) return start_x;
     else if(x > (start_x + site_num*site_w)) return (start_x + site_num*site_w);
     else return x;
 }
 
-void plcmt_row::FillGap(double min_width){
+void PlacementRow::FillGap(double min_width){
     int min_w = ceil(min_width/site_w);
     int space_w;
 
@@ -430,7 +451,7 @@ void plcmt_row::FillGap(double min_width){
     }
 }
 
-int plcmt_row::FillDummy(double width){
+int PlacementRow::FillDummy(double width){
     int min_w = ceil(width/site_w);
     int space_w;
     int cnt = 0;
@@ -454,7 +475,7 @@ int plcmt_row::FillDummy(double width){
     return cnt;
 }
 
-void plcmt_row::ClearDummy(){
+void PlacementRow::ClearDummy(){
     if(allDummy.empty()) return;
 
     
@@ -514,20 +535,20 @@ placement::placement(lib* LIB, inst* INST, dieInfo* DIE){
     this->DIE  = DIE;
 }
 
-bool placement::row_cmp(plcmt_row* a, plcmt_row* b){
+bool placement::row_cmp(PlacementRow* a, PlacementRow* b){
     if(a->start_y == b->start_y) return a->start_x < b->start_x;
     return a->start_y < b->start_y;
 }
 
 void placement::addRow(double sx, double sy, double sw, double sh, int sn){
-    plcmt_row* pr = new plcmt_row(DIE, sx, sy, sw, sh, sn);
+    PlacementRow* pr = new PlacementRow(DIE, sx, sy, sw, sh, sn);
     temp_rows.push_back(pr);
 }
 
 void placement::initial(){
     bool is_overlapped;
     bool is_fit;
-    list<pair<double, plcmt_row*>> hightlevel_list;
+    list<pair<double, PlacementRow*>> hightlevel_list;
 
     hightlevel_list.clear();
     temp_rows.sort(row_cmp);
@@ -553,7 +574,7 @@ void placement::initial(){
             }
         }
         if(is_fit == false){
-            hightlevel_list.push_back(pair<double, plcmt_row*>(pr->start_y + pr->site_h, pr));
+            hightlevel_list.push_back(pair<double, PlacementRow*>(pr->start_y + pr->site_h, pr));
         }
     }
 
@@ -704,11 +725,11 @@ void placement::placeGateInst(gatei* g, double x, double y, double w, double h){
 
             if(rows[idx]->x_overlapped(xmin, xmax, fit)==true && rows[idx]->y_overlapped(ymin, ymax)==true){
                 if(rows[idx]->x_inrange(xmin, xmax)==true && rows[idx]->y_inrange(ymin, ymax)==true){
-                    rows[idx]->add_gblock(g, xmin, xmax);
+                    rows[idx]->AddBlockAnyway(xmin, xmax);
                     return;
                 }
                 else if(rows[idx]->x_inrange(xmin, xmax)==true){
-                    rows[idx]->add_gblock(g, xmin, xmax);
+                    rows[idx]->AddBlockAnyway(xmin, xmax);
                     if(ymin < rows[idx]->start_y){
                         placeGateInst(g, xmin, ymin, w, rows[idx]->start_y - ymin);
                     }
@@ -718,7 +739,7 @@ void placement::placeGateInst(gatei* g, double x, double y, double w, double h){
                     return;
                 }
                 else if(rows[idx]->y_inrange(ymin, ymax)==true){
-                    rows[idx]->add_gblock(g, xmin, xmax);
+                    rows[idx]->AddBlockAnyway(xmin, xmax);
                     if(xmin < rows[idx]->start_x){
                         placeGateInst(g, xmin, ymin, rows[idx]->start_x - xmin, h);
                     }
@@ -728,7 +749,7 @@ void placement::placeGateInst(gatei* g, double x, double y, double w, double h){
                     return;
                 }
                 else{
-                    rows[idx]->add_gblock(g, xmin, xmax);
+                    rows[idx]->AddBlockAnyway(xmin, xmax);
                     if(xmin < rows[idx]->start_x){
                         placeGateInst(g, xmin, ymin, rows[idx]->start_x - xmin, h);
                         xmin = rows[idx]->start_x;
@@ -815,7 +836,7 @@ bool placement::ff_cmp(ffi* a, ffi* b){
     return a->coox < b->coox;
 }
 
-void placement::place_formal(ffi* fi, plcmt_row* best_row, int best_pos_idx){
+void placement::place_formal(ffi* fi, PlacementRow* best_row, int best_pos_idx){
     double start = best_row->start_x + best_pos_idx*best_row->site_w;
     double end = start + fi->type->size_x;
    
@@ -827,7 +848,7 @@ void placement::place_formal(ffi* fi, plcmt_row* best_row, int best_pos_idx){
 }
 
 void placement::PlaceBackFlipFlop(ffi* f){
-    plcmt_row* best_row = rows[f->index_to_placement_row];
+    PlacementRow* best_row = rows[f->index_to_placement_row];
     int best_pos_idx = f->index_to_site;
 
     double start = best_row->start_x + best_pos_idx*best_row->site_w;
@@ -842,7 +863,7 @@ bool placement::placeFlipFlop(ffi* f, bool set_constrain, double displace_constr
     int best_pos_idx;
     double global_mincost = numeric_limits<double>::max();
     double row_mincost;
-    plcmt_row* best_row = NULL;
+    PlacementRow* best_row = NULL;
     int best_site_idx;
     int best_row_idx;
     bool place_success = false;
