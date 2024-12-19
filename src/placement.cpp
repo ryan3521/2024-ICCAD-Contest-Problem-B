@@ -5,7 +5,7 @@
 // *******************************************************************
 
 // Constructor
-PlacementRow::PlacementRow(dieInfo* DIE, double sx, double sy, double sw, double sh, int sn){
+PlacementRow::PlacementRow(double sx, double sy, double sw, double sh, int sn){
     is_tested = false;
     is_visited = false;
     start_x = sx;
@@ -16,10 +16,8 @@ PlacementRow::PlacementRow(dieInfo* DIE, double sx, double sy, double sw, double
     glist.clear();
     space_list.clear();
     space_list.push_back(pair<int, int>(0, site_num-1));
-    pivot_valid = false;
     up_rows.clear();
     down_rows.clear();
-    this->DIE = DIE;
     xmax = start_x + site_w*site_num;
     ymax = start_y + site_h;
 
@@ -541,7 +539,7 @@ bool placement::row_cmp(PlacementRow* a, PlacementRow* b){
 }
 
 void placement::addRow(double sx, double sy, double sw, double sh, int sn){
-    PlacementRow* pr = new PlacementRow(DIE, sx, sy, sw, sh, sn);
+    PlacementRow* pr = new PlacementRow(sx, sy, sw, sh, sn);
     temp_rows.push_back(pr);
 }
 

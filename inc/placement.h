@@ -16,10 +16,6 @@ using namespace std;
 
 class PlacementRow{
     private:
-        dieInfo* DIE;
-        list<pair<int, int>>::iterator pivot_itr;
-        bool pivot_valid;
-
         struct Dummy{
             int start;
             int end;
@@ -41,21 +37,18 @@ class PlacementRow{
         int site_num;
         list<PlacementRow*> up_rows;
         list<PlacementRow*> down_rows;
-
-
-        list<gatei*> glist; // store the gate instances which were placed in this row;
+        list<gatei*> glist;              // store the gate instances which were placed in this row;
         list<pair<int, int>> space_list; // the available space before pivot
 
         // Member functions
-        PlacementRow(dieInfo* DIE, double sx, double sy, double sw, double sh, int sn);
+        PlacementRow(double sx, double sy, double sw, double sh, int sn);
  
         void FillGap(double min_width);
         int  FillDummy(double width);
         void ClearDummy();
 
-        // *
+
         void AddBlockAnyway(double start, double end);
-        // *
         void add_fblock(double start, double end);
         void add_ff(double start, double end, double height);
         void delete_ff(double start, double end, double height);

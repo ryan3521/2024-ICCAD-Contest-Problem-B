@@ -20,9 +20,12 @@ class Bin;
 
 class Legalizer{
     private:
+        int mapWidth;
+        int mapHeight;
         dieInfo* DIE;
         vector<vector<Bin*>> binMap;
-
+        void ConstructBinMap();
+        void SetBinRows();
 
     public:
         Legalizer(dieInfo* DIE);
@@ -33,14 +36,20 @@ class Legalizer{
 class Bin{
     public: 
         int rowNum = 0;
+        int index, rowi, colj;
         double cenX, cenY;
-        double bottomLeftX, bottomeLeftY;
+        double bottomLeftX, bottomLeftY;
+        double upperRightX, upperRightY;
         double rowStartX, rowEndX;
         double rowStartY, rowEndY;
+        Bin* upBin;
+        Bin* downBin;
+        Bin* leftBin;
+        Bin* rightBin;
         vector<PlacementRow*> rows;
 
         // Functions
-        Bin(int index, int rowi, int colj);
+        Bin(int index, int rowi, int colj, double bottomLeftX, double bottomLeftY, double upperRightX, double upperRightY);
         void AddRow(double startx, double starty, double siteWidth, double siteHeight, int siteNum);
         void Block(double startx, double starty, double width, double height);
 
