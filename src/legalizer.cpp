@@ -9,7 +9,6 @@ Legalizer::Legalizer(dieInfo* DIE, placement* PM){
 void Legalizer::Initialize(){
     ConstructBinMap();
     SetBinRows();
-
 }
 
 void Legalizer::ConstructBinMap(){
