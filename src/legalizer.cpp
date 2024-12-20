@@ -102,6 +102,23 @@ void Legalizer::SetBinRows(){
     return;
 }
 
+
+void Legalizer::PlaceGate(gatei* gatePointer){
+    double startx = gatePointer->coox;
+    double starty = gatePointer->cooy;
+    double width  = gatePointer->type->size_x;
+    double height = gatePointer->type->size_y;
+
+    int rowi = starty/DIE->bin_height;
+    int colj = startx/DIE->bin_width;
+
+    rowi = (binMap[rowi][colj]->rowStartY > starty) ? rowi - 1:rowi;
+    colj = (binMap[rowi][colj]->rowStartX > startx) ? colj - 1:colj;
+
+    binMap[rowi][colj]->Block(startx, starty, width, height);
+    return;
+}
+
 Bin::Bin(int index, int rowi, int colj, double bottomLeftX, double bottomLeftY, double upperRightX, double upperRightY){
     rowNum = 0;
     this->index = index;
@@ -155,5 +172,30 @@ void Bin::AddRow(double startx, double starty, double siteWidth, double siteHeig
     rows.push_back(newRow);
     rowNum++;
 
+    return;
+}
+
+void Bin::Block(double startx, double starty, double width, double height){
+    double endx = startx + width;
+    double endy = starty + height;
+
+    if(endx > rowEndX && rightBin != NULL){
+        rightBin->Block(rowEndX, starty, endx - rowEndX, height);
+        endx = rowEndX;
+        width = rowEndX - startx;
+    }
+
+    if(endy > rowEndY && upBin != NULL){
+        upBin->Block(startx, rowEndY, width, endy - rowEndY);
+        endy = rowEndY;
+        height = rowEndY - starty;
+    }
+
+    int start_row_i = (starty - rowStartY)/rows[0]->site_h;
+    int end_row_i   = (endy - rowStartY)/rows[0]->site_h;
+
+    for(int i=start_row_i; i<=end_row_i; i++){
+        rows[i]->AddBlockAnyway(startx, endx);
+    }
     return;
 }
