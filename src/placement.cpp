@@ -16,8 +16,9 @@ PlacementRow::PlacementRow(double sx, double sy, double sw, double sh, int sn){
     glist.clear();
     space_list.clear();
     space_list.push_back(pair<int, int>(0, site_num-1));
-    up_rows.clear();
-    down_rows.clear();
+    upRow = NULL;
+    downRow = NULL;
+    rightRow = NULL;
     xmax = start_x + site_w*site_num;
     ymax = start_y + site_h;
 
@@ -181,22 +182,47 @@ void PlacementRow::add_fblock(double start, double end){
 bool PlacementRow::check_available(double start, double end, double height){
     int si, ei;
 
-    if(start<start_x || ei>=xmax) return false;
+    if(start<start_x) return false;
+
+    if(end > xmax){
+        if(rightRow != NULL){
+            if(rightRow->check_available(xmax, end, height) == false){
+                return false;
+            }
+        }
+        end = xmax;
+    }
 
     si = (start - start_x)/site_w;
     ei = si + ceil((end - start)/site_w) - 1;
 
 
     for(auto it = space_list.begin(); it!=space_list.end(); it++){
-        if(si>=it->first && ei<=it->second) {
-            if(height > site_h){
-                for(auto& pr: up_rows){
-                    if(pr->check_available(start, end, height - site_h) == true) return true;
+        auto it_next = it;
+        it_next++;
+
+        if(it->second < si){
+            continue;
+        }
+        else if(it->first > ei){
+            return false;
+        }
+        else { // this space segment is overlapped with the checking target
+            if(it->first<=si && it->second>=ei){
+                if(height > site_h){
+                    if(upRow != NULL){
+                        if(upRow->check_available(start, end, height - site_h) == true) return true;
+                    }
+                    else{
+                        return true;
+                    }
                 }
-                return false;
+                else{
+                    return true;
+                }
             }
             else{
-                return true;
+                return false;
             }
         }
     }
@@ -207,8 +233,8 @@ bool PlacementRow::check_available(double start, double end, double height){
 bool PlacementRow::height_available(double height){
     if(height <= site_h) return true;
     else {
-        for(auto& pr: up_rows){
-            if(pr->height_available(height - site_h)) return true;
+        if(upRow != NULL){
+            if(upRow->height_available(height - site_h)) return true;
         }
         return false;
     }
@@ -262,11 +288,8 @@ void PlacementRow::add_ff(double start, double end, double height){
     this->add_fblock(start, end);
     
     if(height > site_h){
-        for(auto& pr: up_rows){
-            if(pr->x_inrange(start, end)){
-                pr->add_ff(start, end, height - site_h);
-                break;
-            }        
+        if(upRow != NULL){
+            upRow->add_ff(start, end, height - site_h);    
         }    
     }
 
@@ -277,11 +300,8 @@ void PlacementRow::delete_ff(double start, double end, double height){
     this->delete_fblock(start, end);
 
     if(height > site_h){
-        for(auto& pr: up_rows){
-            if(pr->x_inrange(start, end)){
-                pr->delete_ff(start, end, height - site_h);
-                break;
-            }        
+        if(upRow != NULL){
+            upRow->delete_ff(start, end, height - site_h); 
         }    
     }
 
@@ -365,6 +385,207 @@ bool PlacementRow::seg_mincost(ffi* fi, int ds, int de, int dw, int& best_pos_id
     return find_new;
 }
 
+bool PlacementRow::FindSpaceOrJump(double idealcoox, double idealcooy, double globalMincost, double askCoox, double askCooy, double& replyCoox, double width, double height, bool direction, dieInfo& DIE){
+    bool find = false;
+    bool haveSpace = false;
+
+    if(direction){
+        if(askCoox == xmax - site_w) return false;
+
+        auto space_itr = space_list.begin();
+        while(space_itr != space_list.end()){
+            double spaceStart = space_itr->first*site_w;
+            double spaceEnd   = space_itr->second*(site_w+1);
+            double spaceWidth = spaceStart - spaceEnd;
+            double displacement = abs(askCoox - idealcoox) + abs(askCooy - idealcooy);
+            
+            if(displacement >= globalMincost){
+                return false;
+            }
+
+            auto next_itr = space_itr;
+            next_itr++;
+
+            if(next_itr == space_list.end()){
+                if(spaceEnd == xmax){
+                    if(rightRow != NULL){
+                        if(rightRow->space_list.front().first == 0){
+                            spaceEnd = rightRow->start_x + (site_w)*(rightRow->space_list.front().second + 1);
+                        }
+                    }
+                    else{
+                        spaceEnd = xmax + floor((DIE.die_width - xmax)/site_w)*site_w;
+                    }
+                }
+            }
+
+            haveSpace = false;
+
+            if(askCoox >= spaceEnd){
+                space_itr++;
+                continue;
+            }
+            else if(spaceStart > askCoox){
+                find = false;
+                askCoox = spaceStart;
+                continue;
+            }
+            else if(spaceEnd - askCoox >= width){
+                haveSpace = true;            
+            }
+            
+            if(haveSpace){
+                if(find){
+                    replyCoox = askCoox;
+                    return true;
+                }
+                if(height-site_h > 0){
+                    if(upRow == NULL){
+                        replyCoox = askCoox;
+                        return true;
+                    }
+                    else if(upRow->FindSpaceOrJump(idealcoox, idealcooy, globalMincost, askCoox, askCooy, replyCoox, width, height - site_h, direction, DIE)){
+                        if(replyCoox == askCoox){
+                            return true;
+                        }
+                        else{
+                            askCoox = replyCoox;
+                            find = true;
+                            continue;
+                        }
+                    }
+                    else{
+                        return false;
+                    }
+                }
+                else{
+                    replyCoox = askCoox;
+                    return true;
+                }
+            }
+            else{
+                space_itr++;
+                continue;
+            }
+        }
+        return false;
+    }
+    else{
+        if(askCoox == start_x) return false;
+
+        auto space_itr = space_list.rbegin();
+        while(space_itr != space_list.rend()){
+            double spaceStart = space_itr->first*site_w;
+            double spaceEnd   = space_itr->second*(site_w+1);
+            double spaceWidth = spaceStart - spaceEnd;
+            double displacement = abs(askCoox - idealcoox) + abs(askCooy - idealcooy);
+            
+            if(displacement >= globalMincost){
+                return false;
+            }
+
+            if(space_itr == space_list.rbegin()){
+                if(spaceEnd == xmax){
+                    if(rightRow != NULL){
+                        if(rightRow->space_list.front().first == 0){
+                            spaceEnd = rightRow->start_x + (site_w)*(rightRow->space_list.front().second + 1);
+                        }
+                    }
+                    else{
+                        spaceEnd = xmax + floor((DIE.die_width - xmax)/site_w)*site_w;
+                    }
+                }
+            }
+
+            auto next_itr = space_itr;
+            next_itr++;
+
+            haveSpace = false;
+
+            if(askCoox+width <= spaceStart){
+                space_itr++;
+                continue;
+            }
+            else if(spaceEnd < askCoox+width){
+                find = false;
+                askCoox = spaceEnd - ceil(width/site_w)*site_w;
+                continue;
+            }
+            else if(spaceStart <= askCoox){
+                haveSpace = true;
+            }
+
+
+            if(haveSpace){
+                if(find){
+                    replyCoox = askCoox;
+                    return true;
+                }
+                if(height-site_h > 0){
+                    if(upRow == NULL){
+                        replyCoox = askCoox;
+                        return true;
+                    }
+                    else if(upRow->FindSpaceOrJump(idealcoox, idealcooy, globalMincost, askCoox, askCooy, replyCoox, width, height - site_h, direction, DIE)){
+                        if(replyCoox == askCoox){
+                            return true;
+                        }
+                        else{
+                            askCoox = replyCoox;
+                            find = true;
+                            continue;
+                        }
+                    }
+                    else{
+                        return false;
+                    }
+                }
+                else{
+                    replyCoox = askCoox;
+                    return true;
+                }
+            }
+            else{
+                space_itr++;
+                continue;
+            }
+        }
+        return false;
+    }
+}
+
+
+void PlacementRow::PlaceTrial(ffi* f, int& bestRowIndex, int& bestSiteIndex, double& globalMincost, dieInfo& DIE){
+    double idealcoox = f->coox;
+    double idealcooy = f->cooy;
+    double replyCoox;
+    double width  = f->type->size_x;
+    double height = f->type->size_y;
+    bool direction;
+    
+    // the askCoox should be an on site value
+    double askCoox = start_x + floor((askCoox-start_x)/site_w)*site_w;
+    double askCooy = start_y; 
+
+    if(askCoox > xmax - site_w) askCoox = xmax - site_w;
+
+    direction = 0;
+    if(this->FindSpaceOrJump(idealcoox, idealcooy, globalMincost, askCoox, askCooy, replyCoox, width, height, direction, DIE)){
+        globalMincost = abs(idealcoox - replyCoox) + abs(idealcooy - start_y);
+        bestRowIndex = idx;
+        bestSiteIndex = (replyCoox - start_x)/site_w;
+    }
+
+    direction = 1;
+    if(this->FindSpaceOrJump(idealcoox, idealcooy, globalMincost, askCoox, askCooy, replyCoox, width, height, direction, DIE)){
+        globalMincost = abs(idealcoox - replyCoox) + abs(idealcooy - start_y);
+        bestRowIndex = idx;
+        bestSiteIndex = (replyCoox - start_x)/site_w;
+    }
+
+    return;
+}
+
 double PlacementRow::place_trial(ffi* fi, bool& available, int& best_pos_idx, double global_mincost, bool set_constrain){ // ax is available x coordinate
     available = false;
     double mincost = global_mincost; // local mincost
@@ -379,16 +600,16 @@ double PlacementRow::place_trial(ffi* fi, bool& available, int& best_pos_idx, do
 
 
     // preliminary examination: begin
-    if(this->height_available(h) == false) return mincost;
-    if(this->x_inrange(sx, sx+w) == false){
-        if(sx < start_x){
-            if(abs(sx - start_x) >= fi->x_allow_dis) return mincost;
-            if(abs(sx - start_x) + abs(start_y - sy) >= global_mincost) return mincost;
-        }
-        else{
-            if(abs(start_x + site_num*site_w - w - sx) + abs(start_y - sy) >= global_mincost) return mincost;
-        }
-    }
+    // if(this->height_available(h) == false) return mincost;
+    // if(this->x_inrange(sx, sx+w) == false){
+    //     if(sx < start_x){
+    //         if(abs(sx - start_x) >= fi->x_allow_dis) return mincost;
+    //         if(abs(sx - start_x) + abs(start_y - sy) >= global_mincost) return mincost;
+    //     }
+    //     else{
+    //         if(abs(start_x + site_num*site_w - w - sx) + abs(start_y - sy) >= global_mincost) return mincost;
+    //     }
+    // }
     // preliminary examination: end
 
 
@@ -544,36 +765,17 @@ void placement::addRow(double sx, double sy, double sw, double sh, int sn){
 }
 
 void placement::initial(){
-    bool is_overlapped;
-    bool is_fit;
-    list<pair<double, PlacementRow*>> hightlevel_list;
-
-    hightlevel_list.clear();
     temp_rows.sort(row_cmp);
     rows.reserve(temp_rows.size());
 
-
-
-    for(auto& pr: temp_rows){
-        rows.push_back(pr);
-        is_fit = false;
-        for(auto& it: hightlevel_list){
-            if(pr->start_y == it.first){
-                is_overlapped = it.second->x_overlapped(pr->start_x, pr->start_x + pr->site_w*pr->site_num, is_fit);
-                if(is_overlapped){
-                    pr->down_rows.push_back(it.second);
-                    it.second->up_rows.push_back(pr);
-                    if(is_fit){
-                        it.first = pr->start_y + pr->site_h;
-                        it.second = pr;
-                        break;
-                    }
-                }
-            }
+    PlacementRow* prevRow = NULL;
+    for(auto currRow: temp_rows){
+        rows.push_back(currRow);
+        if(prevRow != NULL){
+            prevRow->upRow   = currRow;
+            currRow->downRow = prevRow;
         }
-        if(is_fit == false){
-            hightlevel_list.push_back(pair<double, PlacementRow*>(pr->start_y + pr->site_h, pr));
-        }
+        prevRow = currRow;
     }
 
     for(int i=0; i<rows.size(); i++) { rows[i]->idx = i; }

@@ -146,18 +146,18 @@ void Bin::AddRow(double startx, double starty, double siteWidth, double siteHeig
     
     if(rowNum == 0){
         if(rowi != 0){
-            newRow->down_rows.push_back(downBin->rows[downBin->rowNum-1]);
-            downBin->rows[downBin->rowNum-1]->up_rows.push_back(newRow);
+            newRow->downRow = downBin->rows[downBin->rowNum-1];
+            downBin->rows[downBin->rowNum-1]->upRow = newRow;
         }
     }
     else{
-        newRow->down_rows.push_back(rows[rowNum-1]);
-        rows[rowNum-1]->up_rows.push_back(newRow);
+        newRow->downRow = rows[rowNum-1];
+        rows[rowNum-1]->upRow = newRow;
     }
 
     // Check
-    if(newRow->down_rows.empty() == false){
-        auto downRow = newRow->down_rows.front();
+    if(newRow->downRow != NULL){
+        auto downRow = newRow->downRow;
         if(newRow->start_y != downRow->start_y + siteHeight){
             cout << "Error: row do not connect together (Bin::AddRow)" << endl;
         }

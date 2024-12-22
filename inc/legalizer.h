@@ -53,6 +53,9 @@ class Bin{
         Bin(int index, int rowi, int colj, double bottomLeftX, double bottomLeftY, double upperRightX, double upperRightY);
         void AddRow(double startx, double starty, double siteWidth, double siteHeight, int siteNum);
         void Block(double startx, double starty, double width, double height);
+        void Push(int direction); 
+        bool Available(double startx, double starty, double width, double height);
+        bool FindAvailable(ffi* f);
 
 };
 

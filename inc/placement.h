@@ -35,8 +35,9 @@ class PlacementRow{
         double site_w;
         double site_h;
         int site_num;
-        list<PlacementRow*> up_rows;
-        list<PlacementRow*> down_rows;
+        PlacementRow* upRow;
+        PlacementRow* downRow;
+        PlacementRow* rightRow;
         list<gatei*> glist;              // store the gate instances which were placed in this row;
         list<pair<int, int>> space_list; // the available space before pivot
 
@@ -53,7 +54,7 @@ class PlacementRow{
         void add_ff(double start, double end, double height);
         void delete_ff(double start, double end, double height);
         void delete_fblock(double start, double end);
-        bool check_available(double start, double end, double height);
+        bool check_available(double start, double end, double height3);
         bool height_available(double height);
         bool x_overlapped(double x1, double x2, bool& fit); // x2 must >= x1
         bool y_overlapped(double y1, double y2); // y2 must >= y1
@@ -71,8 +72,22 @@ class PlacementRow{
         // if dir == 1 start finding from de to ds (end to start)
         bool seg_mincost(ffi* fi, int ds, int de, int dw, int& best_pos_idx, double& mincost, bool dir, bool set_constrain);
         double place_trial(ffi* fi, bool& available, int& best_pos_idx, double global_mincost, bool set_constrain);
+        void PlaceTrial(ffi* f, int& bestRowIndex, int& bestSiteIndex, double& globalMincost, dieInfo& DIE);
         
-};
+        // idealcoox, idealcooy: the coordinate using to calculate the displacement cost
+        // globalMincost: the global minimum diplacement cost
+        // askCoox:
+        // replyCoox:
+        // width:
+        // height:
+        // direction;
+        bool FindSpaceOrJump(double idealcoox, double idealcooy,
+                             double globalMincost, 
+                             double askCoox, double askCooy, double& replyCoox, 
+                             double width, double height, 
+                             bool direction,
+                             dieInfo& DIE);
+};  
 
 class placement{
     private:
