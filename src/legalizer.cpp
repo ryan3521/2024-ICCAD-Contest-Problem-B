@@ -199,3 +199,63 @@ void Bin::Block(double startx, double starty, double width, double height){
     }
     return;
 }
+
+bool Bin::FindAvailable(ffi* f, int& bestRowIndex, int& bestSiteIndex, dieInfo& DIE){
+    bool findUp   = true;
+    bool findDown = true;
+    int upRow_i; 
+    int downRow_i;
+    double globalMincost = numeric_limits<double>::max();
+    double rowIdealMincost;
+
+
+    // Initial upRow_i and downRow_i
+    upRow_i   = (f->cooy - rowStartY)/rows[0]->site_h;
+    if(upRow_i >= rowNum){
+        upRow_i = rowNum - 1;
+    }
+    else if(upRow_i < 0){
+        upRow_i = 0;
+    }  
+    downRow_i = upRow_i - 1;
+    
+
+    while(findUp || findDown){
+        if(upRow_i >= rowNum){
+            findUp = false;
+        }
+        if(downRow_i < 0){
+            findDown = false;
+        }
+
+        if(findUp){
+            rowIdealMincost = abs(f->cooy - rows[upRow_i]->start_y);
+            findUp = (rowIdealMincost >= globalMincost) ? false:true;
+        }
+        if(findDown){
+            rowIdealMincost = abs(f->cooy - rows[downRow_i]->start_y);
+            findDown = (rowIdealMincost >= globalMincost) ? false:true;
+        }
+
+        if(findUp){
+            rows[upRow_i]->PlaceTrial(f, bestRowIndex, bestSiteIndex, globalMincost, DIE);
+            upRow_i++;
+        }
+        if(findDown){
+            rows[downRow_i]->PlaceTrial(f, bestRowIndex, bestSiteIndex, globalMincost, DIE);
+            downRow_i--;
+        }
+    }
+
+    if(globalMincost == numeric_limits<double>::max()){
+        return false;
+    }
+    else{
+        return true;
+    }
+}
+
+void Bin::LegalizeAndPlace(){
+    return;
+}
+
