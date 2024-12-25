@@ -121,7 +121,6 @@ void Legalizer::PlaceGate(gatei* gatePointer){
 }
 
 void Legalizer::LegalizeAllBins(){
-    
     for(auto b: allBins){
         b->distanceToCentroid = pow(b->cenX - DIE->cenx, 2) + pow(b->cenY - DIE->ceny, 2);
     }
@@ -129,13 +128,32 @@ void Legalizer::LegalizeAllBins(){
 
     for(auto b: allBins){
         b->LegalizeFFList();
-        // LegalizeFailedFF(b);
+        LegalizeFailedFFs(b);
     }
     return;
 }
 
+void Legalizer::LegalizeFailedFFs(Bin* targetBin){
+    while(targetBin->placeFailFFs.empty() == false){
+        ffi* f = targetBin->placeFailFFs.front();
+        targetBin->placeFailFFs.pop_front();
+
+        if(ExpansionLegalize(targetBin, f) == false){
+            cout << "Cannot find space to legalize (call by Legalizer::LegalizeFailedFFs)" << endl;
+            break;
+        }
+    }
+}
+
 bool Legalizer::ExpansionLegalize(Bin* targetBin, ffi* f){
-    int expansion = 1;
+    int  expansion = 1;
+    int  bestRowIndex;
+    int  bestSiteIndex;
+
+    Bin* bestBin = NULL;
+    int  bestBinRowIndex;
+    int  bestBinSiteIndex;
+    double globalMincost = numeric_limits<double>::max();
 
     if(targetBin == NULL) return false;
 
@@ -162,8 +180,110 @@ bool Legalizer::ExpansionLegalize(Bin* targetBin, ffi* f){
         }    
         
         // Up
-        if()
+        if(maxi < mapHeight){
+            int startj = (minj < 0) ? 0 : minj;
+            int endj   = (maxj < mapWidth) ? (maxj) : (mapWidth - 1);
+        
+            for(int j=startj; j<=endj; j++){
+                Bin* targetBin = binMap[maxi][j];
+                if(targetBin->FindAvailable(f, bestRowIndex, bestSiteIndex)){
+                    // calculate cost 
+                    double coox = targetBin->rows[bestRowIndex]->start_x + bestSiteIndex*targetBin->rows[bestRowIndex]->site_w;
+                    double cooy = targetBin->rows[bestRowIndex]->start_y;
+                    double cost = pow(f->coox - coox, 2) + pow(f->cooy - cooy, 2);
+
+                    // compare with globalMincost
+                    if(cost < globalMincost){
+                        globalMincost = cost;
+                        bestBin          = targetBin;
+                        bestBinRowIndex  = bestRowIndex;
+                        bestBinSiteIndex = bestSiteIndex;
+                    }
+                }
+            }
+        }
+
+        // Right
+        if(maxj < mapWidth){
+            int starti   = (mini < 0) ? 0 : (mini + 1);
+            int endi = (maxi < mapHeight) ? (maxi - 1) : (mapHeight - 1); 
+
+            for(int i=starti; i<=endi; i++){
+                Bin* targetBin = binMap[i][maxj];
+                if(targetBin->FindAvailable(f, bestRowIndex, bestSiteIndex)){
+                    // calculate cost 
+                    double coox = targetBin->rows[bestRowIndex]->start_x + bestSiteIndex*targetBin->rows[bestRowIndex]->site_w;
+                    double cooy = targetBin->rows[bestRowIndex]->start_y;
+                    double cost = pow(f->coox - coox, 2) + pow(f->cooy - cooy, 2);
+
+                    // compare with globalMincost
+                    if(cost < globalMincost){
+                        globalMincost = cost;
+                        bestBin          = targetBin;
+                        bestBinRowIndex  = bestRowIndex;
+                        bestBinSiteIndex = bestSiteIndex;
+                    }
+                }
+            }
+        }
+
+        // Down
+        if(mini >= 0){
+            int startj = (minj < 0) ? 0 : minj;
+            int endj   = (maxj < mapWidth) ? (maxj) : (mapWidth - 1);
+            
+            for(int j=startj; j<=endj; j++){
+                Bin* targetBin = binMap[mini][j];
+                if(targetBin->FindAvailable(f, bestRowIndex, bestSiteIndex)){
+                    // calculate cost 
+                    double coox = targetBin->rows[bestRowIndex]->start_x + bestSiteIndex*targetBin->rows[bestRowIndex]->site_w;
+                    double cooy = targetBin->rows[bestRowIndex]->start_y;
+                    double cost = pow(f->coox - coox, 2) + pow(f->cooy - cooy, 2);
+
+                    // compare with globalMincost
+                    if(cost < globalMincost){
+                        globalMincost = cost;
+                        bestBin          = targetBin;
+                        bestBinRowIndex  = bestRowIndex;
+                        bestBinSiteIndex = bestSiteIndex;
+                    }
+                }
+            }
+        }
+
+
+        // Left
+        if(minj >= 0){
+            int starti   = (mini < 0) ? 0 : (mini + 1);
+            int endi = (maxi < mapHeight) ? (maxi - 1) : (mapHeight - 1); 
+
+            for(int i=starti; i<=endi; i++){
+                Bin* targetBin = binMap[i][minj];
+                if(targetBin->FindAvailable(f, bestRowIndex, bestSiteIndex)){
+                    // calculate cost 
+                    double coox = targetBin->rows[bestRowIndex]->start_x + bestSiteIndex*targetBin->rows[bestRowIndex]->site_w;
+                    double cooy = targetBin->rows[bestRowIndex]->start_y;
+                    double cost = pow(f->coox - coox, 2) + pow(f->cooy - cooy, 2);
+
+                    // compare with globalMincost
+                    if(cost < globalMincost){
+                        globalMincost = cost;
+                        bestBin          = targetBin;
+                        bestBinRowIndex  = bestRowIndex;
+                        bestBinSiteIndex = bestSiteIndex;
+                    }
+                }
+            }
+        }
+    
+        if(globalMincost != numeric_limits<double>::max()){
+            bestBin->PlaceFFAt(f, bestBinRowIndex, bestBinSiteIndex);
+            return true;
+        }
+
+        expansion++;
     }
+    return false;
 }
 
 bool Legalizer::cmpBin(Bin* a, Bin* b){
@@ -256,36 +376,31 @@ void Bin::AddBlock(double startx, double starty, double width, double height){
     return;
 }
 
-bool Bin::LegalizeFF(ffi* f){
+bool Bin::TryToLegalizeFF(ffi* f){
     int bestRowIndex;
     int bestSiteIndex;
 
-    if(matchFailSizeHistory(f)){
-        return false;
-    }
-
-
     if(FindAvailable(f, bestRowIndex, bestSiteIndex)){
-        double startx = rowStartX + rows[bestRowIndex]->site_w*bestSiteIndex;
-        double starty = rows[bestRowIndex]->start_y;
-        double width  = f->type->size_x;
-        double height = f->type->size_y;
-        AddBlock(startx, starty, width, height);
-        f->coox = startx;
-        f->cooy = starty;
-        f->index_to_placement_row = bestRowIndex;
-        f->index_to_site          = bestSiteIndex;
-        f->update_pin_loc();
+        PlaceFFAt(f, bestRowIndex, bestSiteIndex);
         return true;
     }
     else{   
-        // Record this type to the fail history list
-        FailSize* failSize = new FailSize;
-        failSize->size_x = f->type->size_x;
-        failSize->size_y = f->type->size_y;
-        failSizeHistory.push_back(failSize);
         return false;
     }
+}
+
+void Bin::PlaceFFAt(ffi* f, int bestRowIndex, int bestSiteIndex){
+    double startx = rowStartX + rows[bestRowIndex]->site_w*bestSiteIndex;
+    double starty = rows[bestRowIndex]->start_y;
+    double width  = f->type->size_x;
+    double height = f->type->size_y;
+    AddBlock(startx, starty, width, height);
+    f->coox = startx;
+    f->cooy = starty;
+    f->index_to_placement_row = bestRowIndex;
+    f->index_to_site          = bestSiteIndex;
+    f->update_pin_loc();
+    return;
 }
 
 bool Bin::FindAvailable(ffi* f, int& bestRowIndex, int& bestSiteIndex){
@@ -295,6 +410,11 @@ bool Bin::FindAvailable(ffi* f, int& bestRowIndex, int& bestSiteIndex){
     int downRow_i;
     double globalMincost = numeric_limits<double>::max();
     double rowIdealMincost;
+
+
+    if(matchFailSizeHistory(f)){
+        return false;
+    }
 
 
     // Initial upRow_i and downRow_i
@@ -336,6 +456,11 @@ bool Bin::FindAvailable(ffi* f, int& bestRowIndex, int& bestSiteIndex){
     }
 
     if(globalMincost == numeric_limits<double>::max()){
+        // Record this type to the fail history list
+        FailSize* failSize = new FailSize;
+        failSize->size_x = f->type->size_x;
+        failSize->size_y = f->type->size_y;
+        failSizeHistory.push_back(failSize);
         return false;
     }
     else{
@@ -360,7 +485,7 @@ void Bin::LegalizeFFList(){
         auto f = toBePlacedFFs.front();
         toBePlacedFFs.pop_front();
 
-        if(LegalizeFF(f)){
+        if(TryToLegalizeFF(f)){
             placeSuccessFFs.push_back(f);
         }
         else{

@@ -28,6 +28,7 @@ class Legalizer{
         list<Bin*> allBins;
         void ConstructBinMap();
         void SetBinRows();
+        void LegalizeFailedFFs(Bin* targetBin);
         bool ExpansionLegalize(Bin* targetBin, ffi* f);
         static bool cmpBin(Bin* a, Bin* b);
 
@@ -73,14 +74,13 @@ class Bin{
         void AddRow(double startx, double starty, double siteWidth, double siteHeight, int siteNum);
         void AddBlock(double startx, double starty, double width, double height);
         void DeleteFFBlock(ffi* f);
-        bool LegalizeFF(ffi* f);
-        bool FindAvailable(ffi* f, int& bestRowIndex, int& bestSiteIndex);
         void LegalizeFFList();
+        void PlaceFFAt(ffi* f, int bestRowIndex, int bestSiteIndex);
+        bool TryToLegalizeFF(ffi* f);
+        bool FindAvailable(ffi* f, int& bestRowIndex, int& bestSiteIndex);
         bool matchFailSizeHistory(ffi* f); // true: in history, false: not in history
 
-        // void Push(int direction); 
-        // bool Available(double startx, double starty, double width, double height);
-
+        //void Push(int direction); 
 };
 
 
