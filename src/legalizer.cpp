@@ -29,9 +29,10 @@ void Legalizer::ConstructBinMap(){
         double bottomLeftY = DIE->bin_height*i;
         double upperRightX  = (bottomLeftX + DIE->bin_width  > DIE->die_width)  ? DIE->die_width  : bottomLeftX + DIE->bin_width;
         double upperRightY  = (bottomLeftY + DIE->bin_height > DIE->die_height) ? DIE->die_height : bottomLeftY + DIE->bin_height;
-            Bin* binPtr = new Bin(binCnt, i, j, bottomLeftX, bottomLeftY, upperRightX, upperRightY);
+            Bin* binPtr = new Bin(binCnt, i, j, bottomLeftX, bottomLeftY, upperRightX, upperRightY, DIE);
             binCnt++;
             binMap[i][j] = binPtr;
+            allBins.push_back(binPtr);
         }
     }
 
@@ -115,11 +116,61 @@ void Legalizer::PlaceGate(gatei* gatePointer){
     rowi = (binMap[rowi][colj]->rowStartY > starty) ? rowi - 1:rowi;
     colj = (binMap[rowi][colj]->rowStartX > startx) ? colj - 1:colj;
 
-    binMap[rowi][colj]->Block(startx, starty, width, height);
+    binMap[rowi][colj]->AddBlock(startx, starty, width, height);
     return;
 }
 
-Bin::Bin(int index, int rowi, int colj, double bottomLeftX, double bottomLeftY, double upperRightX, double upperRightY){
+void Legalizer::LegalizeAllBins(){
+    
+    for(auto b: allBins){
+        b->distanceToCentroid = pow(b->cenX - DIE->cenx, 2) + pow(b->cenY - DIE->ceny, 2);
+    }
+    allBins.sort(cmpBin);
+
+    for(auto b: allBins){
+        b->LegalizeFFList();
+        // LegalizeFailedFF(b);
+    }
+    return;
+}
+
+bool Legalizer::ExpansionLegalize(Bin* targetBin, ffi* f){
+    int expansion = 1;
+
+    if(targetBin == NULL) return false;
+
+    while(1){
+        int maxi = targetBin->rowi + expansion;
+        int mini = targetBin->rowi - expansion;
+        int maxj = targetBin->colj + expansion;
+        int minj = targetBin->colj - expansion;
+        
+        int upRight_i = maxi;
+        int upRight_j = maxj;
+
+        int upLeft_i = maxi;
+        int upLeft_j = minj;
+        
+        int downRight_i = mini;
+        int downRight_j = maxj;
+        
+        int downLeft_i = mini;
+        int downLeft_j = minj;
+
+        if(minj < 0 && mini < 0 && maxi >= mapHeight && maxj >= mapWidth){
+            return false;
+        }    
+        
+        // Up
+        if()
+    }
+}
+
+bool Legalizer::cmpBin(Bin* a, Bin* b){
+    return a->distanceToCentroid < b->distanceToCentroid;
+}
+
+Bin::Bin(int index, int rowi, int colj, double bottomLeftX, double bottomLeftY, double upperRightX, double upperRightY, dieInfo* DIE){
     rowNum = 0;
     this->index = index;
     this->rowi = rowi;
@@ -130,6 +181,7 @@ Bin::Bin(int index, int rowi, int colj, double bottomLeftX, double bottomLeftY, 
     this->upperRightY = upperRightY;
     cenX = (bottomLeftX + upperRightX)/2;
     cenY = (bottomLeftY + upperRightY)/2;
+    failSizeHistory.clear();
 }
 
 void Bin::AddRow(double startx, double starty, double siteWidth, double siteHeight, int siteNum){
@@ -155,6 +207,10 @@ void Bin::AddRow(double startx, double starty, double siteWidth, double siteHeig
         rows[rowNum-1]->upRow = newRow;
     }
 
+    if(leftBin != NULL){
+        leftBin->rows[rowNum]->rightRow = newRow;
+    }
+
     // Check
     if(newRow->downRow != NULL){
         auto downRow = newRow->downRow;
@@ -175,18 +231,18 @@ void Bin::AddRow(double startx, double starty, double siteWidth, double siteHeig
     return;
 }
 
-void Bin::Block(double startx, double starty, double width, double height){
+void Bin::AddBlock(double startx, double starty, double width, double height){
     double endx = startx + width;
     double endy = starty + height;
 
     if(endx > rowEndX && rightBin != NULL){
-        rightBin->Block(rowEndX, starty, endx - rowEndX, height);
+        rightBin->AddBlock(rowEndX, starty, endx - rowEndX, height);
         endx = rowEndX;
         width = rowEndX - startx;
     }
 
     if(endy > rowEndY && upBin != NULL){
-        upBin->Block(startx, rowEndY, width, endy - rowEndY);
+        upBin->AddBlock(startx, rowEndY, width, endy - rowEndY);
         endy = rowEndY;
         height = rowEndY - starty;
     }
@@ -200,7 +256,39 @@ void Bin::Block(double startx, double starty, double width, double height){
     return;
 }
 
-bool Bin::FindAvailable(ffi* f, int& bestRowIndex, int& bestSiteIndex, dieInfo& DIE){
+bool Bin::LegalizeFF(ffi* f){
+    int bestRowIndex;
+    int bestSiteIndex;
+
+    if(matchFailSizeHistory(f)){
+        return false;
+    }
+
+
+    if(FindAvailable(f, bestRowIndex, bestSiteIndex)){
+        double startx = rowStartX + rows[bestRowIndex]->site_w*bestSiteIndex;
+        double starty = rows[bestRowIndex]->start_y;
+        double width  = f->type->size_x;
+        double height = f->type->size_y;
+        AddBlock(startx, starty, width, height);
+        f->coox = startx;
+        f->cooy = starty;
+        f->index_to_placement_row = bestRowIndex;
+        f->index_to_site          = bestSiteIndex;
+        f->update_pin_loc();
+        return true;
+    }
+    else{   
+        // Record this type to the fail history list
+        FailSize* failSize = new FailSize;
+        failSize->size_x = f->type->size_x;
+        failSize->size_y = f->type->size_y;
+        failSizeHistory.push_back(failSize);
+        return false;
+    }
+}
+
+bool Bin::FindAvailable(ffi* f, int& bestRowIndex, int& bestSiteIndex){
     bool findUp   = true;
     bool findDown = true;
     int upRow_i; 
@@ -238,11 +326,11 @@ bool Bin::FindAvailable(ffi* f, int& bestRowIndex, int& bestSiteIndex, dieInfo& 
         }
 
         if(findUp){
-            rows[upRow_i]->PlaceTrial(f, bestRowIndex, bestSiteIndex, globalMincost, DIE);
+            rows[upRow_i]->PlaceTrial(f, bestRowIndex, bestSiteIndex, globalMincost, *DIE);
             upRow_i++;
         }
         if(findDown){
-            rows[downRow_i]->PlaceTrial(f, bestRowIndex, bestSiteIndex, globalMincost, DIE);
+            rows[downRow_i]->PlaceTrial(f, bestRowIndex, bestSiteIndex, globalMincost, *DIE);
             downRow_i--;
         }
     }
@@ -255,7 +343,70 @@ bool Bin::FindAvailable(ffi* f, int& bestRowIndex, int& bestSiteIndex, dieInfo& 
     }
 }
 
-void Bin::LegalizeAndPlace(){
+void Bin::LegalizeFFList(){
+    placeSuccessFFs.clear();
+    placeFailFFs.clear();
+
+
+    // calculate FF to Die Centroid distance
+    for(auto f: toBePlacedFFs){
+        f->distanceToDieCentoid = pow(f->coox - DIE->cenx, 2) + pow(f->cooy - DIE->ceny, 2);
+    }
+
+    // sort by distance to die centroid
+    toBePlacedFFs.sort(cmpFF);
+    
+    while(toBePlacedFFs.empty() == false){
+        auto f = toBePlacedFFs.front();
+        toBePlacedFFs.pop_front();
+
+        if(LegalizeFF(f)){
+            placeSuccessFFs.push_back(f);
+        }
+        else{
+            placeFailFFs.push_back(f);
+        }
+    }
+
+    // find other bins to place for the placeFailFFs
+    while(placeFailFFs.empty()){
+        auto f = placeFailFFs.front();
+        placeFailFFs.pop_front();
+    }
+
+    finishLegalization = true;
     return;
 }
 
+
+bool Bin::matchFailSizeHistory(ffi* f){
+    for(auto failSize: failSizeHistory){
+        if(f->type->size_x == failSize->size_x && f->type->size_y == failSize->size_y){
+            return true;
+        }
+    }
+    return false;
+}
+
+bool Bin::cmpFF(ffi* a, ffi* b){
+    return a->distanceToDieCentoid < b->distanceToDieCentoid;
+}
+
+void Bin::DeleteFFBlock(ffi* f){
+    double ffStart = f->coox;
+    double ffEnd   = f->coox + f->type->size_x;
+
+    if(ffEnd > rowEndX){
+        if(rows[f->index_to_placement_row]->rightRow == NULL){
+            rows[f->index_to_placement_row]->delete_ff(ffStart, rowEndX, f->type->size_y);
+        }
+        else{
+            rows[f->index_to_placement_row]->delete_ff(ffStart, rowEndX, f->type->size_y);
+            rows[f->index_to_placement_row]->rightRow->delete_ff(rowEndX, ffEnd, f->type->size_y);
+        }
+    }
+    else{
+        rows[f->index_to_placement_row]->delete_ff(ffStart, ffEnd, f->type->size_y);
+    }
+    return;
+}

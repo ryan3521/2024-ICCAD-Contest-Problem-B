@@ -62,10 +62,10 @@ class ffi{
         list<ffi*>::iterator y_track_list_it;
         double dist_to_essential;
         double cost;
-        list<ffi*> members;
+        double distanceToDieCentoid;
+        double cost;
         bool no_neighbor;
-        
-
+        list<ffi*> members;
 
         // member function
         ffi(string, double, double);

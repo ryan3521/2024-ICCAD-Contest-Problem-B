@@ -41,6 +41,8 @@ void ReadInput(string filename, lib& LIB, inst& INST, dieInfo&  DIE, netlist& NL
     fin >> title;
     fin >> coox >> cooy;
     fin >> DIE.die_width >> DIE.die_height;
+    DIE.cenx = DIE.die_width/2;
+    DIE.ceny = DIE.die_height/2;
 
     // Read input pin
     if(PRINT_INFO) cout << "Reading input pin ..." << endl;

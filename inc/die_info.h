@@ -19,6 +19,8 @@ class dieInfo{
         // die size
         double die_width;
         double die_height;
+        double cenx;
+        double ceny;
 
 
         // displacement delay coefficient
