@@ -44,7 +44,7 @@ class PlacementRow{
         // Member functions
         PlacementRow(double sx, double sy, double sw, double sh, int sn);
  
-        void FillGap(double min_width);
+        void FillGap(double gapWidth);
         int  FillDummy(double width);
         void ClearDummy();
 

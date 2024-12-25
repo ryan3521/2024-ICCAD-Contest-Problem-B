@@ -654,12 +654,20 @@ double PlacementRow::closest_x(double x){
     else return x;
 }
 
-void PlacementRow::FillGap(double min_width){
-    int min_w = ceil(min_width/site_w);
+void PlacementRow::FillGap(double gapWidth){
+    int min_w = ceil(gapWidth/site_w);
     int space_w;
 
     auto itr = space_list.begin();
     while(itr != space_list.end()){
+        auto itr_next = itr;
+        itr_next++;
+
+        if(itr == space_list.begin() || itr_next == space_list.end()){
+            itr++;
+            continue;
+        }
+
         space_w = itr->second - itr->first + 1;
         if(space_w < min_w){
             itr = space_list.erase(itr);

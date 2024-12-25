@@ -145,6 +145,25 @@ void Legalizer::LegalizeFailedFFs(Bin* targetBin){
     }
 }
 
+void Legalizer::FillTrivialGap(double gapWidth){
+    for(auto b: allBins){
+        b->FillTrivialGap(gapWidth);
+    }
+    return;
+}
+
+void Legalizer::AddToBePlacedFF(ffi* f){
+    int rowi = f->cen_y/DIE->bin_height;
+    int colj = f->cen_x/DIE->bin_width;
+
+    if(rowi < 0) {rowi = 0;}
+    else if(rowi >= mapHeight) {rowi = mapHeight - 1;}
+    if(colj < 0) {colj = 0;}
+    else if(colj >= mapWidth)  {colj = mapWidth - 1;}
+
+    binMap[rowi][colj]->toBePlacedFFs.push_back(f);
+}
+
 bool Legalizer::ExpansionLegalize(Bin* targetBin, ffi* f){
     int  expansion = 1;
     int  bestRowIndex;
@@ -301,6 +320,9 @@ Bin::Bin(int index, int rowi, int colj, double bottomLeftX, double bottomLeftY, 
     this->upperRightY = upperRightY;
     cenX = (bottomLeftX + upperRightX)/2;
     cenY = (bottomLeftY + upperRightY)/2;
+    toBePlacedFFs.clear();
+    placeSuccessFFs.clear();
+    placeFailFFs.clear();
     failSizeHistory.clear();
 }
 
@@ -535,3 +557,11 @@ void Bin::DeleteFFBlock(ffi* f){
     }
     return;
 }
+
+void Bin::FillTrivialGap(double gapWidth){
+    for(auto r: rows){
+        r->FillGap(gapWidth);
+    }
+    return;
+}
+

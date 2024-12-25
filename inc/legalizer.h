@@ -36,6 +36,8 @@ class Legalizer{
         Legalizer(dieInfo* DIE, placement* PM);
         void Initialize();
         void PlaceGate(gatei* gatePointer);
+        void AddToBePlacedFF(ffi* f);
+        void FillTrivialGap(double gapWidth);
         void LegalizeAllBins();
 };
 
@@ -76,6 +78,7 @@ class Bin{
         void DeleteFFBlock(ffi* f);
         void LegalizeFFList();
         void PlaceFFAt(ffi* f, int bestRowIndex, int bestSiteIndex);
+        void FillTrivialGap(double gapWidth);
         bool TryToLegalizeFF(ffi* f);
         bool FindAvailable(ffi* f, int& bestRowIndex, int& bestSiteIndex);
         bool matchFailSizeHistory(ffi* f); // true: in history, false: not in history
