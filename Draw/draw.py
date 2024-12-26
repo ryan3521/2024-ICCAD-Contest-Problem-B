@@ -2,9 +2,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
+drawGates = True
 drawOriginal = False
 drawBankingResult = True
-markDisplacement = True
+markDisplacement = False
+drawBinLine = True
 
 
 # **********************************************************
@@ -13,7 +15,7 @@ markDisplacement = True
 if drawOriginal:
     f = open('ff_original.txt', 'r')
 
-    die_w, die_h = [float(x) for x in next(f).split()] # read first line
+    die_w, die_h, bin_w, bin_h = [float(x) for x in next(f).split()] # read first line
     ff_num = [int(x) for x in next(f).split()] # read second line
 
     scale_factor = 100/die_w
@@ -39,19 +41,34 @@ if drawOriginal:
 
     f = open('gate.txt', 'r')
 
-    die_w, die_h = [float(x) for x in next(f).split()] # read first line
+    die_w, die_h, bin_w, bin_h = [float(x) for x in next(f).split()] # read first line
     ff_num = [int(x) for x in next(f).split()] # read second line
 
-    for line in f:
-        ff_name, coox, cooy, w, h = [word for word in line.split()]
+    # Draw Bin Line
+    if drawBinLine:
+        # Draw Vertical Line
+        j = bin_w
+        while (j < die_w):
+            plt.plot([j*scale_factor, j*scale_factor], [0, die_h*scale_factor], color='b') # plot line
+            j = j + bin_w
+        
+        # Draw Horizontal Line
+        i = bin_h
+        while (i < die_h):
+            plt.plot([0, die_w*scale_factor], [i*scale_factor, i*scale_factor], color='b') # plot line
+            i = i + bin_h
 
-        coox = float(coox)
-        cooy = float(cooy)
-        w = float(w)
-        h = float(h)
+    if drawGates:
+        for line in f:
+            ff_name, coox, cooy, w, h = [word for word in line.split()]
 
-        patch = plt.Rectangle(xy=(coox*scale_factor, cooy*scale_factor), fill=False, width=w*scale_factor, height=h*scale_factor, color='g')
-        ax.add_patch(patch)
+            coox = float(coox)
+            cooy = float(cooy)
+            w = float(w)
+            h = float(h)
+
+            patch = plt.Rectangle(xy=(coox*scale_factor, cooy*scale_factor), fill=False, width=w*scale_factor, height=h*scale_factor, color='g')
+            ax.add_patch(patch)
 
 
     plt.xlim([0, die_w*scale_factor])
@@ -73,7 +90,7 @@ if drawBankingResult:
     outputFileName = "bankingResult.png"
     if markDisplacement: outputFileName = "bankingResult_markDisplace.png"
 
-    die_w, die_h = [float(x) for x in next(f).split()] # read first line
+    die_w, die_h, bin_w, bin_h = [float(x) for x in next(f).split()] # read first line
     ff_num = [int(x) for x in next(f).split()] # read second line
 
     scale_factor = 100/die_w
@@ -112,19 +129,34 @@ if drawBankingResult:
 
     f = open('gate.txt', 'r')
 
-    die_w, die_h = [float(x) for x in next(f).split()] # read first line
+    die_w, die_h, bin_w, bin_h = [float(x) for x in next(f).split()] # read first line
     ff_num = [int(x) for x in next(f).split()] # read second line
 
-    for line in f:
-        ff_name, coox, cooy, w, h = [word for word in line.split()]
+    # Draw Bin Line
+    if drawBinLine:
+        # Draw Vertical Line
+        j = bin_w
+        while (j < die_w):
+            plt.plot([j*scale_factor, j*scale_factor], [0, die_h*scale_factor], color='b') # plot line
+            j = j + bin_w
+        
+        # Draw Horizontal Line
+        i = bin_h
+        while (i < die_h):
+            plt.plot([0, die_w*scale_factor], [i*scale_factor, i*scale_factor], color='b') # plot line
+            i = i + bin_h
 
-        coox = float(coox)
-        cooy = float(cooy)
-        w = float(w)
-        h = float(h)
+    if drawGates:
+        for line in f:
+            ff_name, coox, cooy, w, h = [word for word in line.split()]
 
-        patch = plt.Rectangle(xy=(coox*scale_factor, cooy*scale_factor), fill=False, width=w*scale_factor, height=h*scale_factor, color='g')
-        ax.add_patch(patch)
+            coox = float(coox)
+            cooy = float(cooy)
+            w = float(w)
+            h = float(h)
+
+            patch = plt.Rectangle(xy=(coox*scale_factor, cooy*scale_factor), fill=False, width=w*scale_factor, height=h*scale_factor, color='g')
+            ax.add_patch(patch)
 
 
     plt.xlim([0, die_w*scale_factor])

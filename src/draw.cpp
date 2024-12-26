@@ -7,7 +7,7 @@ void DrawFFs(dieInfo& DIE, lib& LIB, inst& INST, list<ffi*>& UPFFS, list<ffi*>& 
     fout.open("./Draw/ff_original.txt", ios::out);
     // Format: Original FFs
     // --------------
-    // Die.W Die.H
+    // Die.W Die.H Bin.W Bin.H
     // FF num
     // Name X Y W H 
     // Name X Y W H 
@@ -17,7 +17,7 @@ void DrawFFs(dieInfo& DIE, lib& LIB, inst& INST, list<ffi*>& UPFFS, list<ffi*>& 
     // .
     // --------------
 
-    fout << DIE.die_width << " " << DIE.die_height << endl;
+    fout << DIE.die_width << " " << DIE.die_height << " " << DIE.bin_width << " " << DIE.bin_height << endl;
 
     int ffcnt = INST.ff_umap.size();
     fout << ffcnt << endl;
@@ -45,7 +45,8 @@ void DrawFFs(dieInfo& DIE, lib& LIB, inst& INST, list<ffi*>& UPFFS, list<ffi*>& 
     // .
     // --------------
 
-    fout << DIE.die_width << " " << DIE.die_height << endl;
+    fout << DIE.die_width << " " << DIE.die_height << " " << DIE.bin_width << " " << DIE.bin_height << endl;
+
 
     ffcnt = 0;
     for(auto flist: INST.ffs_sing){
@@ -77,7 +78,8 @@ void DrawFFs(dieInfo& DIE, lib& LIB, inst& INST, list<ffi*>& UPFFS, list<ffi*>& 
     // // .
     // // --------------
 
-    // fout << DIE.die_width << " " << DIE.die_height << endl;
+    // fout << DIE.die_width << " " << DIE.die_height << " " << DIE.bin_width << " " << DIE.bin_height << endl;
+
 
     // fout << ffcnt << endl;
 
@@ -108,7 +110,8 @@ void DrawFFs(dieInfo& DIE, lib& LIB, inst& INST, list<ffi*>& UPFFS, list<ffi*>& 
     // .
     // --------------
 
-    fout << DIE.die_width << " " << DIE.die_height << endl;
+    fout << DIE.die_width << " " << DIE.die_height << " " << DIE.bin_width << " " << DIE.bin_height << endl;
+
 
     fout << PFFS.size() << endl;
 
@@ -148,7 +151,8 @@ void DrawGates(dieInfo& DIE, lib& LIB, inst& INST){
     fstream fout;
     fout.open("./Draw/gate.txt", ios::out);
 
-    fout << DIE.die_width << " " << DIE.die_height << endl;
+    fout << DIE.die_width << " " << DIE.die_height << " " << DIE.bin_width << " " << DIE.bin_height << endl;
+
 
     int gcnt = INST.gate_umap.size();
     fout << gcnt << endl;

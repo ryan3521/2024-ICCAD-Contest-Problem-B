@@ -22,7 +22,7 @@ TC7  = ./Testcase/hiddencase04.txt
 OUTFILE = output.txt
 
 all: $(TARGET)
-	./$(TARGET) $(TC2) $(OUTFILE)
+	./$(TARGET) $(TC4) $(OUTFILE)
 
 $(TARGET): $(OBJ) 
 	$(CC) $(OBJ) -o $(TARGET)

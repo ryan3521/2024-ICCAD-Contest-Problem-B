@@ -566,7 +566,7 @@ void PlacementRow::PlaceTrial(ffi* f, int& bestRowIndex, int& bestSiteIndex, dou
 
 
     // the askCoox should be an on site value
-    double askCoox = start_x + floor((askCoox-start_x)/site_w)*site_w;
+    double askCoox = start_x + floor((idealcoox-start_x)/site_w)*site_w;
     double askCooy = start_y; 
 
     if(askCoox > xmax - site_w) askCoox = xmax - site_w;
