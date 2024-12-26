@@ -61,7 +61,6 @@ class ffi{
         list<ffi*>::iterator x_track_list_it;
         list<ffi*>::iterator y_track_list_it;
         double dist_to_essential;
-        double cost;
         double distanceToDieCentoid;
         double cost;
         bool no_neighbor;

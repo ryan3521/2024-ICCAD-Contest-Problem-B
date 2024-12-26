@@ -1,14 +1,26 @@
 #include "legalizer.h"
 
 
-Legalizer::Legalizer(dieInfo* DIE, placement* PM){
-    this->DIE = DIE;
-    this->PM  = PM;
+Legalizer::Legalizer(inst* INST, lib* LIB, dieInfo* DIE, placement* PM){
+    this->LIB  = LIB;
+    this->PM   = PM;
+    this->DIE  = DIE;
+    this->INST = INST;
 }
 
 void Legalizer::Initialize(){
     ConstructBinMap();
     SetBinRows();
+    PlaceAllGates();
+    FillTrivialGap();
+}
+
+void Legalizer::PlaceAllGates(){
+    cout << "Placing all Gates ..." << endl;
+    for(auto it: INST->gate_umap){
+        gatei* g = it.second;
+        PlaceGate(g);
+    }
 }
 
 void Legalizer::ConstructBinMap(){
@@ -16,6 +28,9 @@ void Legalizer::ConstructBinMap(){
 
     mapHeight = ceil(DIE->die_height/DIE->bin_height);
     mapWidth  = ceil(DIE->die_width/DIE->bin_width);
+
+    // cout << "map Height: " << mapHeight << endl;
+    // cout << "map Width: " << mapWidth << endl;
 
     binMap.resize(mapHeight);
     for(int i=0; i<mapHeight; i++){
@@ -75,6 +90,7 @@ void Legalizer::ConstructBinMap(){
 }
 
 void Legalizer::SetBinRows(){
+    cout << "Setting Bin Rows ..." << endl;
     for(auto r: PM->rows){
         // initial
         int remain_siteNum = r->site_num;
@@ -127,7 +143,12 @@ void Legalizer::LegalizeAllBins(){
     allBins.sort(cmpBin);
 
     for(auto b: allBins){
+        // cout << "Bin index: " << b->index << endl;
+        // cout << "rowi: " << b->rowi << endl;
+        // cout << "colj: " << b->colj << endl;
+        // cout << "to be legalize ffs: " << b->toBePlacedFFs.size() << endl;
         b->LegalizeFFList();
+        // cout << "Legalizing fail ffs" << endl;
         LegalizeFailedFFs(b);
     }
     return;
@@ -145,7 +166,17 @@ void Legalizer::LegalizeFailedFFs(Bin* targetBin){
     }
 }
 
-void Legalizer::FillTrivialGap(double gapWidth){
+void Legalizer::FillTrivialGap(){
+    cout << "Filling Trivial Gaps ..." << endl;
+    double gapWidth = numeric_limits<double>::max();
+
+    for(auto& ffcell_list: LIB->fftable_cost){
+        for(auto& type: ffcell_list){
+            if(type->size_x < gapWidth){
+                gapWidth = type->size_x;
+            }
+        }
+    }
     for(auto b: allBins){
         b->FillTrivialGap(gapWidth);
     }
@@ -318,6 +349,7 @@ Bin::Bin(int index, int rowi, int colj, double bottomLeftX, double bottomLeftY, 
     this->bottomLeftY = bottomLeftY;
     this->upperRightX = upperRightX;
     this->upperRightY = upperRightY;
+    this->DIE = DIE;
     cenX = (bottomLeftX + upperRightX)/2;
     cenY = (bottomLeftY + upperRightY)/2;
     toBePlacedFFs.clear();
@@ -390,7 +422,7 @@ void Bin::AddBlock(double startx, double starty, double width, double height){
     }
 
     int start_row_i = (starty - rowStartY)/rows[0]->site_h;
-    int end_row_i   = (endy - rowStartY)/rows[0]->site_h;
+    int end_row_i   = ceil((endy - rowStartY)/rows[0]->site_h) - 1;
 
     for(int i=start_row_i; i<=end_row_i; i++){
         rows[i]->AddBlockAnyway(startx, endx);
@@ -401,6 +433,8 @@ void Bin::AddBlock(double startx, double starty, double width, double height){
 bool Bin::TryToLegalizeFF(ffi* f){
     int bestRowIndex;
     int bestSiteIndex;
+
+    // cout << "Try to legalize ff: " << f->name << endl;
 
     if(FindAvailable(f, bestRowIndex, bestSiteIndex)){
         PlaceFFAt(f, bestRowIndex, bestSiteIndex);
@@ -494,11 +528,13 @@ void Bin::LegalizeFFList(){
     placeSuccessFFs.clear();
     placeFailFFs.clear();
 
+    // cout << "to be placed ffs number: " << toBePlacedFFs.size() << endl;
 
     // calculate FF to Die Centroid distance
     for(auto f: toBePlacedFFs){
         f->distanceToDieCentoid = pow(f->coox - DIE->cenx, 2) + pow(f->cooy - DIE->ceny, 2);
     }
+
 
     // sort by distance to die centroid
     toBePlacedFFs.sort(cmpFF);
@@ -513,12 +549,7 @@ void Bin::LegalizeFFList(){
         else{
             placeFailFFs.push_back(f);
         }
-    }
 
-    // find other bins to place for the placeFailFFs
-    while(placeFailFFs.empty()){
-        auto f = placeFailFFs.front();
-        placeFailFFs.pop_front();
     }
 
     finishLegalization = true;

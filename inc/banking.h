@@ -5,6 +5,7 @@
 #include "lib.h"
 #include "cluster.h"
 #include "placement.h"
+#include "legalizer.h"
 
 
 
@@ -14,6 +15,7 @@ class banking{
         bool FAIL;
 // ----------------------------------------
         placement* PM;
+        Legalizer* LG;
         inst* INST;
         lib*  LIB;
         dieInfo* DIE;
@@ -47,7 +49,8 @@ class banking{
         void RenameAllFlipFlops();
         bool ChangeTypeAndTry(ffi* f);
         void Debank(ffi* f, list<ffi*>& debank_list);
-                         
+        void RunLegalization();
+
     public:
         banking(placement* PM, inst* INST, lib* LIB, dieInfo* DIE, list<ffi*>* PFFS);
         void run();

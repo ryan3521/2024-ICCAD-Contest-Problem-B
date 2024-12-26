@@ -20,24 +20,27 @@ class Bin;
 
 class Legalizer{
     private:
-        int mapWidth;
-        int mapHeight;
+        lib*  LIB;
+        inst* INST;
         dieInfo* DIE;
         placement* PM;
+        int mapWidth;
+        int mapHeight;
         vector<vector<Bin*>> binMap;
         list<Bin*> allBins;
         void ConstructBinMap();
         void SetBinRows();
+        void PlaceAllGates();
+        void FillTrivialGap();
+        void PlaceGate(gatei* gatePointer);
         void LegalizeFailedFFs(Bin* targetBin);
         bool ExpansionLegalize(Bin* targetBin, ffi* f);
         static bool cmpBin(Bin* a, Bin* b);
 
     public:
-        Legalizer(dieInfo* DIE, placement* PM);
+        Legalizer(inst* INST, lib* LIB, dieInfo* DIE, placement* PM);
         void Initialize();
-        void PlaceGate(gatei* gatePointer);
         void AddToBePlacedFF(ffi* f);
-        void FillTrivialGap(double gapWidth);
         void LegalizeAllBins();
 };
 

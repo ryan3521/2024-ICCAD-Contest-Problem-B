@@ -6,6 +6,7 @@ banking::banking(placement* PM, inst* INST, lib* LIB, dieInfo* DIE, list<ffi*>* 
     this->LIB  = LIB;
     this->DIE  = DIE;
     this->PFFS = PFFS;
+    this->LG   = new Legalizer(INST, LIB, DIE, PM);
     SUCCESS = true;
     FAIL    = false;
     cls = new cluster(INST, LIB, DIE);
@@ -17,10 +18,23 @@ void banking::run(){
     cout << "Banking ..." << endl; 
     RunBanking(); 
     cout << "Legalizing ..." << endl;
-    PlaceAndDebank();
+    RunLegalization();
     RenameAllFlipFlops();
     return;
 }
+
+void banking::RunLegalization(){
+    LG->Initialize();
+    cout << "Adding FFs to Bins ..." << endl;
+    for(auto ff_list: ff_groups){
+        for(auto f: *ff_list) {
+            LG->AddToBePlacedFF(f);
+        }
+    }
+    cout << "Legaizing Bins ..." << endl;
+    LG->LegalizeAllBins();
+}
+
 
 void banking::PlaceAndDebank(){
     PM->GatePlacement();

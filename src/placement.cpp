@@ -36,7 +36,7 @@ void PlacementRow::print_spacelist(){
 
 void PlacementRow::AddBlockAnyway(double start, double end){
     int start_i, end_i;
-
+    
     if(start < start_x) start = start_x;
     if(end > xmax) end = xmax;
 
@@ -44,9 +44,9 @@ void PlacementRow::AddBlockAnyway(double start, double end){
     start_i = (start - start_x)/site_w;
     end_i   = start_i + ceil((end - start)/site_w) - 1;
     
+
     auto spaceItr = space_list.begin();
     while(spaceItr != space_list.end()){
-
         if(spaceItr->first > end_i){
             return;
         }
