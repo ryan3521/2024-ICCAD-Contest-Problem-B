@@ -394,8 +394,8 @@ bool PlacementRow::FindSpaceOrJump(double idealcoox, double idealcooy, double gl
 
         auto space_itr = space_list.begin();
         while(space_itr != space_list.end()){
-            double spaceStart = space_itr->first*site_w;
-            double spaceEnd   = space_itr->second*(site_w+1);
+            double spaceStart = start_x + space_itr->first*site_w;
+            double spaceEnd   = start_x + space_itr->second*(site_w+1);
             double spaceWidth = spaceStart - spaceEnd;
             double displacement = abs(askCoox - idealcoox) + abs(askCooy - idealcooy);
             
@@ -475,8 +475,8 @@ bool PlacementRow::FindSpaceOrJump(double idealcoox, double idealcooy, double gl
 
         auto space_itr = space_list.rbegin();
         while(space_itr != space_list.rend()){
-            double spaceStart = space_itr->first*site_w;
-            double spaceEnd   = space_itr->second*(site_w+1);
+            double spaceStart = start_x + space_itr->first*site_w;
+            double spaceEnd   = start_x + space_itr->second*(site_w+1);
             double spaceWidth = spaceStart - spaceEnd;
             double displacement = abs(askCoox - idealcoox) + abs(askCooy - idealcooy);
             
@@ -499,7 +499,6 @@ bool PlacementRow::FindSpaceOrJump(double idealcoox, double idealcooy, double gl
 
             auto next_itr = space_itr;
             next_itr++;
-
             haveSpace = false;
 
             if(askCoox+width <= spaceStart){
@@ -563,6 +562,9 @@ void PlacementRow::PlaceTrial(ffi* f, int& bestRowIndex, int& bestSiteIndex, dou
     double height = f->type->size_y;
     bool direction;
     
+
+
+
     // the askCoox should be an on site value
     double askCoox = start_x + floor((askCoox-start_x)/site_w)*site_w;
     double askCooy = start_y; 
@@ -574,6 +576,7 @@ void PlacementRow::PlaceTrial(ffi* f, int& bestRowIndex, int& bestSiteIndex, dou
         globalMincost = abs(idealcoox - replyCoox) + abs(idealcooy - start_y);
         bestRowIndex = idx;
         bestSiteIndex = (replyCoox - start_x)/site_w;
+        if(replyCoox > xmax) cout << "Error OUT OF RANGE (OVER)" << endl;
     }
 
     direction = 1;
@@ -581,6 +584,7 @@ void PlacementRow::PlaceTrial(ffi* f, int& bestRowIndex, int& bestSiteIndex, dou
         globalMincost = abs(idealcoox - replyCoox) + abs(idealcooy - start_y);
         bestRowIndex = idx;
         bestSiteIndex = (replyCoox - start_x)/site_w;
+        if(replyCoox < start_x) cout << "Error OUT OF RANGE (BELOW)" << endl;
     }
 
     return;

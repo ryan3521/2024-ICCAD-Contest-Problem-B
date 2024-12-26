@@ -143,6 +143,7 @@ void Legalizer::LegalizeAllBins(){
     allBins.sort(cmpBin);
 
     for(auto b: allBins){
+        // cout << endl;
         // cout << "Bin index: " << b->index << endl;
         // cout << "rowi: " << b->rowi << endl;
         // cout << "colj: " << b->colj << endl;
@@ -155,6 +156,7 @@ void Legalizer::LegalizeAllBins(){
 }
 
 void Legalizer::LegalizeFailedFFs(Bin* targetBin){
+    // cout << "Fail FFs NUM: " << targetBin->placeFailFFs.size() << endl;
     while(targetBin->placeFailFFs.empty() == false){
         ffi* f = targetBin->placeFailFFs.front();
         targetBin->placeFailFFs.pop_front();
@@ -196,6 +198,7 @@ void Legalizer::AddToBePlacedFF(ffi* f){
 }
 
 bool Legalizer::ExpansionLegalize(Bin* targetBin, ffi* f){
+    // cout << "F: Do Expansion Legalize" << endl;
     int  expansion = 1;
     int  bestRowIndex;
     int  bestSiteIndex;
@@ -204,8 +207,11 @@ bool Legalizer::ExpansionLegalize(Bin* targetBin, ffi* f){
     int  bestBinRowIndex;
     int  bestBinSiteIndex;
     double globalMincost = numeric_limits<double>::max();
-
-    if(targetBin == NULL) return false;
+    if(targetBin == NULL) {
+        //cout << "find expansion end" << endl;
+        return false;
+    }
+    //if(targetBin->index == 9624) cout << "find expansion start" << endl;
 
     while(1){
         int maxi = targetBin->rowi + expansion;
@@ -228,24 +234,25 @@ bool Legalizer::ExpansionLegalize(Bin* targetBin, ffi* f){
         if(minj < 0 && mini < 0 && maxi >= mapHeight && maxj >= mapWidth){
             return false;
         }    
-        
+        // 985
         // Up
+        //if(targetBin->index == 9624) cout << "Up" << endl;
         if(maxi < mapHeight){
             int startj = (minj < 0) ? 0 : minj;
             int endj   = (maxj < mapWidth) ? (maxj) : (mapWidth - 1);
         
             for(int j=startj; j<=endj; j++){
-                Bin* targetBin = binMap[maxi][j];
-                if(targetBin->FindAvailable(f, bestRowIndex, bestSiteIndex)){
+                Bin* findBin = binMap[maxi][j];
+                if(findBin->FindAvailable(f, bestRowIndex, bestSiteIndex)){
                     // calculate cost 
-                    double coox = targetBin->rows[bestRowIndex]->start_x + bestSiteIndex*targetBin->rows[bestRowIndex]->site_w;
-                    double cooy = targetBin->rows[bestRowIndex]->start_y;
+                    double coox = findBin->rows[bestRowIndex]->start_x + bestSiteIndex*findBin->rows[bestRowIndex]->site_w;
+                    double cooy = findBin->rows[bestRowIndex]->start_y;
                     double cost = pow(f->coox - coox, 2) + pow(f->cooy - cooy, 2);
 
                     // compare with globalMincost
                     if(cost < globalMincost){
                         globalMincost = cost;
-                        bestBin          = targetBin;
+                        bestBin          = findBin;
                         bestBinRowIndex  = bestRowIndex;
                         bestBinSiteIndex = bestSiteIndex;
                     }
@@ -254,22 +261,23 @@ bool Legalizer::ExpansionLegalize(Bin* targetBin, ffi* f){
         }
 
         // Right
+        //if(targetBin->index == 9624) cout << "Right" << endl;
         if(maxj < mapWidth){
             int starti   = (mini < 0) ? 0 : (mini + 1);
             int endi = (maxi < mapHeight) ? (maxi - 1) : (mapHeight - 1); 
 
             for(int i=starti; i<=endi; i++){
-                Bin* targetBin = binMap[i][maxj];
-                if(targetBin->FindAvailable(f, bestRowIndex, bestSiteIndex)){
+                Bin* findBin = binMap[i][maxj];
+                if(findBin->FindAvailable(f, bestRowIndex, bestSiteIndex)){
                     // calculate cost 
-                    double coox = targetBin->rows[bestRowIndex]->start_x + bestSiteIndex*targetBin->rows[bestRowIndex]->site_w;
-                    double cooy = targetBin->rows[bestRowIndex]->start_y;
+                    double coox = findBin->rows[bestRowIndex]->start_x + bestSiteIndex*findBin->rows[bestRowIndex]->site_w;
+                    double cooy = findBin->rows[bestRowIndex]->start_y;
                     double cost = pow(f->coox - coox, 2) + pow(f->cooy - cooy, 2);
 
                     // compare with globalMincost
                     if(cost < globalMincost){
                         globalMincost = cost;
-                        bestBin          = targetBin;
+                        bestBin          = findBin;
                         bestBinRowIndex  = bestRowIndex;
                         bestBinSiteIndex = bestSiteIndex;
                     }
@@ -278,22 +286,23 @@ bool Legalizer::ExpansionLegalize(Bin* targetBin, ffi* f){
         }
 
         // Down
+        //if(targetBin->index == 9624) cout << "Down" << endl;
         if(mini >= 0){
             int startj = (minj < 0) ? 0 : minj;
             int endj   = (maxj < mapWidth) ? (maxj) : (mapWidth - 1);
             
             for(int j=startj; j<=endj; j++){
-                Bin* targetBin = binMap[mini][j];
-                if(targetBin->FindAvailable(f, bestRowIndex, bestSiteIndex)){
+                Bin* findBin = binMap[mini][j];
+                if(findBin->FindAvailable(f, bestRowIndex, bestSiteIndex)){
                     // calculate cost 
-                    double coox = targetBin->rows[bestRowIndex]->start_x + bestSiteIndex*targetBin->rows[bestRowIndex]->site_w;
-                    double cooy = targetBin->rows[bestRowIndex]->start_y;
+                    double coox = findBin->rows[bestRowIndex]->start_x + bestSiteIndex*findBin->rows[bestRowIndex]->site_w;
+                    double cooy = findBin->rows[bestRowIndex]->start_y;
                     double cost = pow(f->coox - coox, 2) + pow(f->cooy - cooy, 2);
 
                     // compare with globalMincost
                     if(cost < globalMincost){
                         globalMincost = cost;
-                        bestBin          = targetBin;
+                        bestBin          = findBin;
                         bestBinRowIndex  = bestRowIndex;
                         bestBinSiteIndex = bestSiteIndex;
                     }
@@ -303,22 +312,23 @@ bool Legalizer::ExpansionLegalize(Bin* targetBin, ffi* f){
 
 
         // Left
+        // if(targetBin->index == 9624) cout << "Left" << endl;
         if(minj >= 0){
             int starti   = (mini < 0) ? 0 : (mini + 1);
             int endi = (maxi < mapHeight) ? (maxi - 1) : (mapHeight - 1); 
 
             for(int i=starti; i<=endi; i++){
-                Bin* targetBin = binMap[i][minj];
-                if(targetBin->FindAvailable(f, bestRowIndex, bestSiteIndex)){
+                Bin* findBin = binMap[i][minj];
+                if(findBin->FindAvailable(f, bestRowIndex, bestSiteIndex)){
                     // calculate cost 
-                    double coox = targetBin->rows[bestRowIndex]->start_x + bestSiteIndex*targetBin->rows[bestRowIndex]->site_w;
-                    double cooy = targetBin->rows[bestRowIndex]->start_y;
+                    double coox = findBin->rows[bestRowIndex]->start_x + bestSiteIndex*findBin->rows[bestRowIndex]->site_w;
+                    double cooy = findBin->rows[bestRowIndex]->start_y;
                     double cost = pow(f->coox - coox, 2) + pow(f->cooy - cooy, 2);
 
                     // compare with globalMincost
                     if(cost < globalMincost){
                         globalMincost = cost;
-                        bestBin          = targetBin;
+                        bestBin          = findBin;
                         bestBinRowIndex  = bestRowIndex;
                         bestBinSiteIndex = bestSiteIndex;
                     }
@@ -327,12 +337,13 @@ bool Legalizer::ExpansionLegalize(Bin* targetBin, ffi* f){
         }
     
         if(globalMincost != numeric_limits<double>::max()){
+            // if(targetBin->index == 9624) cout << bestBin->index << endl;
             bestBin->PlaceFFAt(f, bestBinRowIndex, bestBinSiteIndex);
             return true;
         }
-
         expansion++;
     }
+    //if(targetBin->index == 9624) cout << "find expansion start" << endl;
     return false;
 }
 
@@ -409,6 +420,8 @@ void Bin::AddBlock(double startx, double starty, double width, double height){
     double endx = startx + width;
     double endy = starty + height;
 
+    if(rowNum == 0) return;
+
     if(endx > rowEndX && rightBin != NULL){
         rightBin->AddBlock(rowEndX, starty, endx - rowEndX, height);
         endx = rowEndX;
@@ -423,8 +436,10 @@ void Bin::AddBlock(double startx, double starty, double width, double height){
 
     int start_row_i = (starty - rowStartY)/rows[0]->site_h;
     int end_row_i   = ceil((endy - rowStartY)/rows[0]->site_h) - 1;
+    end_row_i = (end_row_i < rowNum) ? end_row_i : rowNum - 1;
 
     for(int i=start_row_i; i<=end_row_i; i++){
+        // if(index == 9924) cout << i << endl;
         rows[i]->AddBlockAnyway(startx, endx);
     }
     return;
@@ -451,6 +466,7 @@ void Bin::PlaceFFAt(ffi* f, int bestRowIndex, int bestSiteIndex){
     double width  = f->type->size_x;
     double height = f->type->size_y;
     AddBlock(startx, starty, width, height);
+
     f->coox = startx;
     f->cooy = starty;
     f->index_to_placement_row = bestRowIndex;
@@ -466,9 +482,11 @@ bool Bin::FindAvailable(ffi* f, int& bestRowIndex, int& bestSiteIndex){
     int downRow_i;
     double globalMincost = numeric_limits<double>::max();
     double rowIdealMincost;
-
-
+    //cout << "Finding available start: " << index << endl;
+    if(rowNum == 0) return false;
+    
     if(matchFailSizeHistory(f)){
+        //cout << "Finding available end" << endl;
         return false;
     }
 
@@ -483,7 +501,6 @@ bool Bin::FindAvailable(ffi* f, int& bestRowIndex, int& bestSiteIndex){
     }  
     downRow_i = upRow_i - 1;
     
-
     while(findUp || findDown){
         if(upRow_i >= rowNum){
             findUp = false;
@@ -517,9 +534,11 @@ bool Bin::FindAvailable(ffi* f, int& bestRowIndex, int& bestSiteIndex){
         failSize->size_x = f->type->size_x;
         failSize->size_y = f->type->size_y;
         failSizeHistory.push_back(failSize);
+        //cout << "Finding available end" << endl;
         return false;
     }
     else{
+        //cout << "Finding available end" << endl;
         return true;
     }
 }
