@@ -19,6 +19,7 @@ void banking::run(){
     RunBanking(); 
     cout << "Legalizing ..." << endl;
     RunLegalization();
+    // PlaceAndDebank();
     RenameAllFlipFlops();
     return;
 }
@@ -83,7 +84,7 @@ void banking::PlaceAndDebank(){
         }
 
         for(auto f: place_fail_ffs){
-            if(PM->placeFlipFlop(f, set_constrain, 600) == FAIL){
+            if(PM->placeFlipFlop(f, false, 600) == FAIL){
                 list<ffi*> debank_list;
 
                 Debank(f, debank_list);
@@ -92,21 +93,21 @@ void banking::PlaceAndDebank(){
                 }
             }
             else{
-                double cost1 = 0;
-                double cost2 = 0;
-                cost1 = DIE->Alpha*f->get_timing_cost(f->coox, f->cooy, DIE->displacement_delay)
-                        + DIE->Beta*f->type->gate_power + DIE->Gamma*f->type->area;
+                // double cost1 = 0;
+                // double cost2 = 0;
+                // cost1 = DIE->Alpha*f->get_timing_cost(f->coox, f->cooy, DIE->displacement_delay)
+                //         + DIE->Beta*f->type->gate_power + DIE->Gamma*f->type->area;
 
-                for(auto sf: f->members) cost2 = cost2 + sf->cost;
+                // for(auto sf: f->members) cost2 = cost2 + sf->cost;
 
-                if(cost2 <= cost1){
-                    PM->DeleteFlipFlop(f);
-                    list<ffi*> debank_list;
-                    Debank(f, debank_list);
-                    for(auto small_f: debank_list){
-                        place_order_array[small_f->size].push_back(small_f);
-                    }
-                }
+                // if(cost2 <= cost1){
+                //     PM->DeleteFlipFlop(f);
+                //     list<ffi*> debank_list;
+                //     Debank(f, debank_list);
+                //     for(auto small_f: debank_list){
+                //         place_order_array[small_f->size].push_back(small_f);
+                //     }
+                // }
             }
         }
     }
