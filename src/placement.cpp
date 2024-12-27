@@ -395,7 +395,7 @@ bool PlacementRow::FindSpaceOrJump(double idealcoox, double idealcooy, double gl
         auto space_itr = space_list.begin();
         while(space_itr != space_list.end()){
             double spaceStart = start_x + space_itr->first*site_w;
-            double spaceEnd   = start_x + space_itr->second*(site_w+1);
+            double spaceEnd   = start_x + (space_itr->second+1)*(site_w);
             double spaceWidth = spaceStart - spaceEnd;
             double displacement = abs(askCoox - idealcoox) + abs(askCooy - idealcooy);
             
@@ -476,7 +476,7 @@ bool PlacementRow::FindSpaceOrJump(double idealcoox, double idealcooy, double gl
         auto space_itr = space_list.rbegin();
         while(space_itr != space_list.rend()){
             double spaceStart = start_x + space_itr->first*site_w;
-            double spaceEnd   = start_x + space_itr->second*(site_w+1);
+            double spaceEnd   = start_x + (space_itr->second+1)*(site_w);
             double spaceWidth = spaceStart - spaceEnd;
             double displacement = abs(askCoox - idealcoox) + abs(askCooy - idealcooy);
             

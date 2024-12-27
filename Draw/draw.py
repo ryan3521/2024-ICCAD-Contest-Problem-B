@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 drawGates = True
 drawOriginal = False
 drawBankingResult = True
-markDisplacement = False
+markDisplacement = True
 drawBinLine = True
 
 
