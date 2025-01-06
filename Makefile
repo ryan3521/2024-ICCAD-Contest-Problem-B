@@ -21,13 +21,14 @@ TC6  = ./Testcase/hiddencase03.txt
 TC7  = ./Testcase/hiddencase04.txt
 OUTFILE = output.txt
 
+
 all: $(TARGET)
 	./$(TARGET) $(TC2) $(OUTFILE)
 
 $(TARGET): $(OBJ) 
 	$(CC) $(OBJ) -o $(TARGET)
 
-$(OBJDIR)/%.o: $(SRCDIR)/%.cpp 
+$(OBJDIR)/%.o: $(SRCDIR)/%.cpp
 	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:

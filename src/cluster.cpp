@@ -115,7 +115,7 @@ void comb::Calculate_BestCost_FFtype(bool print, lib* LIB, inst* INST, dieInfo* 
 
         slack = INST->TnsTest(print, dpins, qpins, ftype, DIE->displacement_delay, dpins_result, qpins_result);
         ns = (slack > 0) ? 0 : abs(slack);
-        ns = 0;
+        // ns = 0;
         cost = (DIE->Alpha*ns + DIE->Beta*ftype->gate_power + DIE->Gamma*ftype->area)/(double)size;
 
 
@@ -127,6 +127,7 @@ void comb::Calculate_BestCost_FFtype(bool print, lib* LIB, inst* INST, dieInfo* 
             for(auto p: dpins_result) optseq_D.push_back(p);
             for(auto p: qpins_result) optseq_Q.push_back(p);
         }
+        break;
     }
     type = mincost_ftype;
     cost_per_bit = mincost;
@@ -135,14 +136,39 @@ void comb::Calculate_BestCost_FFtype(bool print, lib* LIB, inst* INST, dieInfo* 
     return;
 }
 
-bool comb::TestQuality(bool print){
+bool comb::TestQuality(bool print, Legalizer* LG, dieInfo* DIE){
     double newcost = cost_per_bit*size;
     double oldcost = 0;
 
     for(auto f: members) oldcost = oldcost + f->cost;
     
-    if(newcost < oldcost) return true;
-    else                  return false;
+ //   if(newcost < oldcost){
+        ffi* nf = new ffi("temp_name", 0, 0);
+
+        for(auto m: members) nf->size = nf->size + m->size;
+        for(auto m: members) nf->members.push_back(m);
+        nf->type = type;
+        nf->d_pins.reserve(size);
+        nf->q_pins.reserve(size);
+        for(auto p: optseq_D) nf->d_pins.push_back(p);
+        for(auto p: optseq_Q) nf->q_pins.push_back(p);
+        nf->clk_pin = new pin;
+        nf->update_coor();
+
+        LG->FindAvailableAndUpdatePin(nf);
+        nf->CalculateCost(DIE->Alpha,DIE->Beta,DIE->Gamma,DIE->displacement_delay);
+        if(nf->cost > oldcost){
+            delete nf;
+            return false;
+        }
+        else{
+            delete nf;
+            return true;
+        }
+    // }
+    // else{
+    //     return false;
+    // }                  
 }
 
 ffi* comb::GetNewFF(){

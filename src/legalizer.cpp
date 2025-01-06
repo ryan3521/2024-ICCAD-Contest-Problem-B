@@ -161,7 +161,7 @@ void Legalizer::LegalizeFailedFFs(Bin* targetBin){
         ffi* f = targetBin->placeFailFFs.front();
         targetBin->placeFailFFs.pop_front();
 
-        if(ExpansionLegalize(targetBin, f) == false){
+        if(ExpansionLegalize(targetBin, f, true) == false){
             cout << "Cannot find space to legalize (call by Legalizer::LegalizeFailedFFs)" << endl;
             break;
         }
@@ -197,7 +197,7 @@ void Legalizer::AddToBePlacedFF(ffi* f){
     binMap[rowi][colj]->toBePlacedFFs.push_back(f);
 }
 
-bool Legalizer::ExpansionLegalize(Bin* targetBin, ffi* f){
+bool Legalizer::ExpansionLegalize(Bin* targetBin, ffi* f, bool place){
     // cout << "F: Do Expansion Legalize" << endl;
     int  expansion = 1;
     int  bestRowIndex;
@@ -337,9 +337,19 @@ bool Legalizer::ExpansionLegalize(Bin* targetBin, ffi* f){
         }
     
         if(globalMincost != numeric_limits<double>::max()){
-            // if(targetBin->index == 9624) cout << bestBin->index << endl;
-            bestBin->PlaceFFAt(f, bestBinRowIndex, bestBinSiteIndex);
-            return true;
+            if(place){
+                bestBin->PlaceFFAt(f, bestBinRowIndex, bestBinSiteIndex);
+                return true;
+            }
+            else{
+                double startx = bestBin->rowStartX + bestBin->rows[bestBinRowIndex]->site_w*bestBinSiteIndex;
+                double starty = bestBin->rows[bestBinRowIndex]->start_y;
+
+                f->coox = startx;
+                f->cooy = starty;
+                f->update_pin_loc();
+                return true;
+            }
         }
         expansion++;
     }
@@ -349,6 +359,33 @@ bool Legalizer::ExpansionLegalize(Bin* targetBin, ffi* f){
 
 bool Legalizer::cmpBin(Bin* a, Bin* b){
     return a->distanceToCentroid < b->distanceToCentroid;
+}
+
+void Legalizer::FindAvailableAndUpdatePin(ffi* f){
+    int rowi = f->cen_y/DIE->bin_height;
+    int colj = f->cen_x/DIE->bin_width;
+    int bestRowIndex;
+    int bestSiteIndex;
+
+    if(rowi < 0) {rowi = 0;}
+    else if(rowi >= mapHeight) {rowi = mapHeight - 1;}
+    if(colj < 0) {colj = 0;}
+    else if(colj >= mapWidth)  {colj = mapWidth - 1;}
+
+    f->update_coor();
+    if(binMap[rowi][colj]->FindAvailable(f, bestRowIndex, bestSiteIndex)){
+        double startx = binMap[rowi][colj]->rowStartX + binMap[rowi][colj]->rows[bestRowIndex]->site_w*bestSiteIndex;
+        double starty = binMap[rowi][colj]->rows[bestRowIndex]->start_y;
+
+        f->coox = startx;
+        f->cooy = starty;
+        f->update_pin_loc();
+    }
+    else{
+        ExpansionLegalize(binMap[rowi][colj], f, false);
+    }
+    
+    return;
 }
 
 Bin::Bin(int index, int rowi, int colj, double bottomLeftX, double bottomLeftY, double upperRightX, double upperRightY, dieInfo* DIE){
@@ -469,6 +506,8 @@ void Bin::PlaceFFAt(ffi* f, int bestRowIndex, int bestSiteIndex){
 
     f->coox = startx;
     f->cooy = starty;
+    f->index_to_bin_rowi = rowi;
+    f->index_to_bin_colj = colj;
     f->index_to_placement_row = bestRowIndex;
     f->index_to_site          = bestSiteIndex;
     f->update_pin_loc();

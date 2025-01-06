@@ -15,17 +15,17 @@ banking::banking(placement* PM, inst* INST, lib* LIB, dieInfo* DIE, list<ffi*>* 
 void banking::run(){
     CopyOriginalFFs();
     InitialFFsCost();
+    LG->Initialize();
     cout << "Banking ..." << endl; 
     RunBanking(); 
     cout << "Legalizing ..." << endl;
-    RunLegalization();
+    //RunLegalization();
     // PlaceAndDebank();
     RenameAllFlipFlops();
     return;
 }
 
 void banking::RunLegalization(){
-    LG->Initialize();
     cout << "Adding FFs to Bins ..." << endl;
     for(auto ff_list: ff_groups){
         for(auto f: *ff_list) {
@@ -399,7 +399,7 @@ void banking::FindBestComb(){
     while(cls->comb_list.empty() == false){
         target_comb = cls->comb_list.front();
         cls->comb_list.pop_front();
-        if(target_comb->TestQuality(0) == SUCCESS){
+        if(target_comb->TestQuality(0, LG, DIE) == SUCCESS){
 
             ffi* new_ff = target_comb->GetNewFF();
 

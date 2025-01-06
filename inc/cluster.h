@@ -3,6 +3,8 @@
 
 #include "inst.h"
 #include "lib.h"
+#include "legalizer.h"
+
 
 class comb{
     private:
@@ -19,7 +21,7 @@ class comb{
         comb();
         void AddMember(ffi* f);
         void Calculate_BestCost_FFtype(bool print, lib* LIB, inst* INST, dieInfo* DIE);
-        bool TestQuality(bool print);
+        bool TestQuality(bool print, Legalizer* LG, dieInfo* DIE);
         ffi* GetNewFF();
 };
 

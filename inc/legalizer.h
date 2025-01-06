@@ -34,7 +34,7 @@ class Legalizer{
         void FillTrivialGap();
         void PlaceGate(gatei* gatePointer);
         void LegalizeFailedFFs(Bin* targetBin);
-        bool ExpansionLegalize(Bin* targetBin, ffi* f);
+        bool ExpansionLegalize(Bin* targetBin, ffi* f, bool place);
         static bool cmpBin(Bin* a, Bin* b);
 
     public:
@@ -42,6 +42,7 @@ class Legalizer{
         void Initialize();
         void AddToBePlacedFF(ffi* f);
         void LegalizeAllBins();
+        void FindAvailableAndUpdatePin(ffi* f);
 };
 
 class Bin{

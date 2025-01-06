@@ -642,16 +642,20 @@ double ffi::get_timing_cost(double x, double y, double displacement_delay){
     for(auto& p: d_pins){
         double pin_x = p->new_coox + rel_x;
         double pin_y = p->new_cooy + rel_y;
-        slack = p->CalTns(pin_x, pin_y, true, type, displacement_delay);
+        // slack = p->CalTns(pin_x, pin_y, true, type, displacement_delay);
+        double oriHPWL = abs(p->coox - p->to_net->ipins.front()->coox) + abs(p->cooy - p->to_net->ipins.front()->cooy);
+        double newHPWL = abs(pin_x - p->to_net->ipins.front()->coox) + abs(pin_y - p->to_net->ipins.front()->cooy);
+        double slack = p->slack - (newHPWL - oriHPWL)*displacement_delay;
+
         if(slack < 0) cost = cost - slack;
     }
 
-    for(auto& p: q_pins){
-        double pin_x = p->new_coox + rel_x;
-        double pin_y = p->new_cooy + rel_y;
-        slack = p->CalTns(pin_x, pin_y, false, type, displacement_delay);
-        if(slack < 0) cost = cost - slack;
-    }
+    // for(auto& p: q_pins){
+    //     double pin_x = p->new_coox + rel_x;
+    //     double pin_y = p->new_cooy + rel_y;
+    //     slack = p->CalTns(pin_x, pin_y, false, type, displacement_delay);
+    //     if(slack < 0) cost = cost - slack;
+    // }
 
     return cost;
 }
@@ -871,38 +875,55 @@ double pin::CalTns(double test_coox, double tes_cooy, bool is_D, ffcell* new_typ
     return (slack >= 0)? 1 : slack;
 }
 
-void pin::FindLinkedPin(gatei* g, double current_FixedHPW, list<LinkedPinInfo*>& connected_SourcePins){
+void pin::FindLinkedPin(gatei* g, double current_FixedHPWL, list<LinkedPinInfo*>& connected_SourcePins, list<gatei*>& visitedGates){
+    if(g->is_tracking) return; 
+    
+    g->is_tracking = true;
+    visitedGates.push_back(g);
+
     for(auto p: g->ipins){
         if(p == NULL) continue;
+        if(p->to_net == NULL) continue;
 
         pin* sourcePin = p->to_net->ipins.front();
+        
         if(sourcePin->pin_type == 'g'){
-            double accumulated_FixedHPWL = current_FixedHPW + abs(sourcePin->coox - p->coox) + abs(sourcePin->cooy - p->cooy);
-            FindLinkedPin(sourcePin->to_gate, accumulated_FixedHPWL, connected_SourcePins);
+            double accumulated_FixedHPWL = current_FixedHPWL + abs(sourcePin->coox - p->coox) + abs(sourcePin->cooy - p->cooy);
+            FindLinkedPin(sourcePin->to_gate, accumulated_FixedHPWL, connected_SourcePins, visitedGates);
         }
         else if(sourcePin->pin_type == 'd'){
-            LinkedPinInfo* tempPointer = new LinkedPinInfo;
-            tempPointer->targetFloatPin = NULL;
-            tempPointer->relatedFixedPin = p;
-            tempPointer->FixedHPWL = current_FixedHPW + abs(sourcePin->coox - p->coox) + abs(sourcePin->cooy - p->cooy);
-            connected_SourcePins.push_back(tempPointer);
+            if(sourcePin->test == 0){
+
+                sourcePin->test = 1;
+                LinkedPinInfo* tempPointer = new LinkedPinInfo;
+                tempPointer->targetFloatPin = NULL;
+                tempPointer->relatedFixedPin = p;
+                tempPointer->FixedHPWL = current_FixedHPWL + abs(sourcePin->coox - p->coox) + abs(sourcePin->cooy - p->cooy);
+                connected_SourcePins.push_back(tempPointer);
+            }
         }
         else if(sourcePin->pin_type == 'f'){
-            LinkedPinInfo* tempPointer = new LinkedPinInfo;
-            tempPointer->targetFloatPin = sourcePin;
-            tempPointer->relatedFixedPin = p;
-            tempPointer->FixedHPWL = current_FixedHPW;
-            connected_SourcePins.push_back(tempPointer);
+            if(sourcePin->test == 0){
+
+                    sourcePin->test = 1;
+                    LinkedPinInfo* tempPointer = new LinkedPinInfo;
+                    tempPointer->targetFloatPin = sourcePin;
+                    tempPointer->relatedFixedPin = p;
+                    tempPointer->FixedHPWL = current_FixedHPWL;
+                    connected_SourcePins.push_back(tempPointer);
+            }
         }
         else{
             cout << "Error: unknown pin type (Function pin::FindLinkedPin)" << endl;
-        }
+        }  
     }
+
     return;
 }
 
 void pin::ConstructConnectedSourcePins(){
     connected_SourcePins.clear();
+    list<gatei*> visitedGates;
 
     if(to_net->ipins.front()->pin_type == 'f'){
         return;
@@ -911,15 +932,27 @@ void pin::ConstructConnectedSourcePins(){
         return;
     }
     else if(to_net->ipins.front()->pin_type == 'g'){
-        FindLinkedPin(to_net->ipins.front()->to_gate, 0, connected_SourcePins);
+        FindLinkedPin(to_net->ipins.front()->to_gate, 0, connected_SourcePins, visitedGates);
     }
     else{
         cout << "Error: unknown pin type (Function pin::ConstructConnectedSourcePins)" << endl;
     }
+
+    for(auto lp: connected_SourcePins){
+        if(lp->targetFloatPin != NULL){
+            lp->targetFloatPin->test = false;
+        }
+        else{
+            lp->relatedFixedPin->to_net->ipins.front()->test = false;
+        }
+    }
+    for(auto g: visitedGates){
+        g->is_tracking = false;
+    }
     return;
 }
 
-void pin::updateCriticalHPWL(double displacementDelay){
+void pin::UpdateCriticalHPWL(double displacementDelay){
     if(pin_type != 'f') return;
 
     pin* sourcePin = to_net->ipins.front();

@@ -53,8 +53,11 @@ class ffi{
 
         list<ffi*>* to_list;
         list<ffi*>::iterator it_pointer;
+        int index_to_bin_rowi;
+        int index_to_bin_colj;
         int index_to_placement_row;
         int index_to_site;
+
 
         block pseudo_block;
         list<se*>::iterator e_it;
@@ -133,10 +136,9 @@ class pin{ // pin prototype
             pin* relatedFixedPin;
             double FixedHPWL;
         };
-
-        list<LinkedPinInfo*> connected_SourcePins; // only for D pin
-        void FindLinkedPin(gatei* g, double current_FixedHPWL, list<LinkedPinInfo*>& connected_SourcePins);
+        void FindLinkedPin(gatei* g, double current_FixedHPWL, list<LinkedPinInfo*>& connected_SourcePins,list<gatei*>& visitedGates);
     public:
+        list<LinkedPinInfo*> connected_SourcePins; // only for D pin
         string name;
         net* to_net;        // net that current pin belongs to
         gatei* to_gate;     // gate that current pin belongs to
@@ -150,7 +152,7 @@ class pin{ // pin prototype
         double criticalPath_HPWL;
         // Below are the variable newed by your friend Yuri
         bool isVisited;
-
+        bool test = 0;
         // Belongs to the new MBFF
         string new_name;
         ffi* to_new_ff;
@@ -168,8 +170,9 @@ class pin{ // pin prototype
         }
 
         double CalTns(double new_coox, double new_cooy, bool is_D, ffcell* new_type, double coeff);
-        void updateCriticalHPWL(double displacementDelay);
+        void UpdateCriticalHPWL(double displacementDelay);
         void ConstructConnectedSourcePins();
+        // void GetSlack(double displacementDelay);
 };
 
 
