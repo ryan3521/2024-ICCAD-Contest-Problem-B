@@ -558,6 +558,11 @@ void ffi::initial_PinInfo(){
 
 void ffi::update_pin_loc(){
     for(int i=0; i<d_pins.size(); i++){
+        d_pins[i]->pre_coox = d_pins[i]->new_coox;
+        d_pins[i]->pre_cooy = d_pins[i]->new_cooy;
+        q_pins[i]->pre_coox = q_pins[i]->new_coox;
+        q_pins[i]->pre_cooy = q_pins[i]->new_cooy;
+
         d_pins[i]->new_coox = coox + type->d_pins[i].x_plus;
         d_pins[i]->new_cooy = cooy + type->d_pins[i].y_plus;
         q_pins[i]->new_coox = coox + type->q_pins[i].x_plus;
@@ -604,6 +609,11 @@ void ffi::update_coor(){
     cooy = ((my - ry) < 0) ? 0 : (my - ry);
 
     for(int i=0; i<bit; i++){
+        d_pins[i]->pre_coox = d_pins[i]->new_coox;
+        d_pins[i]->pre_cooy = d_pins[i]->new_cooy;
+        q_pins[i]->pre_coox = q_pins[i]->new_coox;
+        q_pins[i]->pre_cooy = q_pins[i]->new_cooy;
+
         d_pins[i]->new_name = type->d_pins[i].name;
         d_pins[i]->to_new_ff = this;
         d_pins[i]->new_coox = coox + type->d_pins[i].x_plus;
@@ -668,12 +678,15 @@ void ffi::getCriticalPath(int mode, double displacement_delay){
             auto sp = p->to_net->ipins.front();
             if(sp->pin_type == 'd'){
                 p->criticalPath_HPWL = abs(p->coox - sp->coox) + abs(p->cooy - sp->cooy);
+                p->new_criticalPath_HPWL = p->criticalPath_HPWL;
             }
             else if(sp->pin_type == 'f'){
-                p->criticalPath_HPWL = abs(p->coox - sp->coox) + abs(p->cooy - sp->cooy);
+                p->criticalPath_HPWL = abs(p->coox - sp->coox) + abs(p->cooy - sp->cooy) + (sp->to_ff->type->Qpin_delay/displacement_delay);
+                p->new_criticalPath_HPWL = p->criticalPath_HPWL;
             }
             else if(sp->pin_type == 'g'){
                 p->criticalPath_HPWL = sp->to_gate->getCriticalPath(mode,0) + abs(p->coox - sp->coox) + abs(p->cooy - sp->cooy);       
+                p->new_criticalPath_HPWL = p->criticalPath_HPWL;
             } 
             else {
                 cout << "wrong" << endl;
@@ -812,6 +825,7 @@ double gatei::getCriticalPath(int mode, double displacement_delay){
 
     v = true;    
     criticalPath_HPWL = maxHPWL;
+    new_criticalPath_HPWL = maxHPWL;
 
     return criticalPath_HPWL;
 }
@@ -875,118 +889,170 @@ double pin::CalTns(double test_coox, double tes_cooy, bool is_D, ffcell* new_typ
     return (slack >= 0)? 1 : slack;
 }
 
-void pin::FindLinkedPin(gatei* g, double current_FixedHPWL, list<LinkedPinInfo*>& connected_SourcePins, list<gatei*>& visitedGates){
-    if(g->is_tracking) return; 
-    
-    g->is_tracking = true;
-    visitedGates.push_back(g);
+double gatei::UpdateAndCalculateSlack(pin* fromPin, double accHPWL, double displacementDelay){
+    double degradedSlack = 0;
 
-    for(auto p: g->ipins){
-        if(p == NULL) continue;
-        if(p->to_net == NULL) continue;
+    if(accHPWL <= new_criticalPath_HPWL){
+        if(fromPin == criticalPin){
+            // the critical path may have changed, need to update critical HPWL and critical Pin
+            criticalPin = NULL;
+            new_criticalPath_HPWL = 0;
+            for(auto inputPin: ipins){
+                if(inputPin == NULL) {continue;}
+                if(inputPin->to_net == NULL) {continue;}
+                
+                auto sourcePin = inputPin->to_net->ipins.front();
+                if(sourcePin->pin_type == 'g'){
+                    if(new_criticalPath_HPWL < sourcePin->to_gate->new_criticalPath_HPWL){
+                        new_criticalPath_HPWL = sourcePin->to_gate->new_criticalPath_HPWL;
+                        criticalPin = inputPin;
+                    }
+                }
+                else if(sourcePin->pin_type == 'f'){
+                    double tempHPWL = abs(sourcePin->new_coox - inputPin->coox) + abs(sourcePin->new_cooy - inputPin->cooy) + (sourcePin->to_new_ff->type->Qpin_delay/displacementDelay);
+                    if(new_criticalPath_HPWL < tempHPWL){
+                        new_criticalPath_HPWL = tempHPWL;
+                        criticalPin = inputPin;
+                    }
+                }
+                else if(sourcePin->pin_type == 'd'){
+                    double tempHPWL = abs(sourcePin->coox - inputPin->coox) + abs(sourcePin->cooy - inputPin->cooy);
+                    if(new_criticalPath_HPWL < tempHPWL){
+                        new_criticalPath_HPWL = tempHPWL;
+                        criticalPin = inputPin;
+                    }
+                }
+            }
+        }
+        else{
+            return degradedSlack;
+        }
+    }
 
-        pin* sourcePin = p->to_net->ipins.front();
+
+    new_criticalPath_HPWL = accHPWL;
+    criticalPin = fromPin;
+
+    for(auto outPin:  opins){
+        if(outPin == NULL)         {continue;}
+        if(outPin->to_net == NULL) {continue;}
+
+        for(auto toPin: outPin->to_net->opins){
+            if(toPin == NULL) {continue;}
         
-        if(sourcePin->pin_type == 'g'){
-            double accumulated_FixedHPWL = current_FixedHPWL + abs(sourcePin->coox - p->coox) + abs(sourcePin->cooy - p->cooy);
-            FindLinkedPin(sourcePin->to_gate, accumulated_FixedHPWL, connected_SourcePins, visitedGates);
-        }
-        else if(sourcePin->pin_type == 'd'){
-            if(sourcePin->test == 0){
+            if(toPin->pin_type == 'g'){
+                double newAccHPWL = new_criticalPath_HPWL + abs(outPin->coox - toPin->coox) + abs(outPin->cooy - toPin->cooy);
+                degradedSlack = degradedSlack + toPin->to_gate->UpdateAndCalculateSlack(toPin, newAccHPWL, displacementDelay);
+            }
+            else if(toPin->pin_type == 'f'){
+                if(toPin->calculatingSlack) toPin->isVisited = true;
 
-                sourcePin->test = 1;
-                LinkedPinInfo* tempPointer = new LinkedPinInfo;
-                tempPointer->targetFloatPin = NULL;
-                tempPointer->relatedFixedPin = p;
-                tempPointer->FixedHPWL = current_FixedHPWL + abs(sourcePin->coox - p->coox) + abs(sourcePin->cooy - p->cooy);
-                connected_SourcePins.push_back(tempPointer);
+                // calculate original slack
+                double oriSlack = toPin->slack - (toPin->new_criticalPath_HPWL - toPin->criticalPath_HPWL)*displacementDelay;
+                
+                toPin->new_criticalPath_HPWL = new_criticalPath_HPWL + abs(outPin->coox - toPin->new_coox) + abs(outPin->cooy - toPin->new_cooy);
+                            
+                // calculate new slack 
+                double newSlack = toPin->slack - (toPin->new_criticalPath_HPWL - toPin->criticalPath_HPWL)*displacementDelay;
+                if(newSlack < 0){
+                    if(oriSlack < 0){
+                        degradedSlack = degradedSlack + (oriSlack - newSlack);
+                    }
+                    else{
+                        degradedSlack = degradedSlack + (0 - newSlack);
+                    }
+                }
+                else{
+                    degradedSlack = degradedSlack;
+                }
             }
         }
-        else if(sourcePin->pin_type == 'f'){
-            if(sourcePin->test == 0){
-
-                    sourcePin->test = 1;
-                    LinkedPinInfo* tempPointer = new LinkedPinInfo;
-                    tempPointer->targetFloatPin = sourcePin;
-                    tempPointer->relatedFixedPin = p;
-                    tempPointer->FixedHPWL = current_FixedHPWL;
-                    connected_SourcePins.push_back(tempPointer);
-            }
-        }
-        else{
-            cout << "Error: unknown pin type (Function pin::FindLinkedPin)" << endl;
-        }  
     }
 
-    return;
+    return degradedSlack;
 }
 
-void pin::ConstructConnectedSourcePins(){
-    connected_SourcePins.clear();
-    list<gatei*> visitedGates;
+double ffi::CalculateTimingDegradation(double displacementDelay){
+    double degradedSlack = 0;
+    
+    this->update_coor();
+    this->update_pin_loc();
 
-    if(to_net->ipins.front()->pin_type == 'f'){
-        return;
-    }
-    else if(to_net->ipins.front()->pin_type == 'd'){
-        return;
-    }
-    else if(to_net->ipins.front()->pin_type == 'g'){
-        FindLinkedPin(to_net->ipins.front()->to_gate, 0, connected_SourcePins, visitedGates);
-    }
-    else{
-        cout << "Error: unknown pin type (Function pin::ConstructConnectedSourcePins)" << endl;
-    }
+    for(int i=0; i<d_pins.size(); i++){
+        auto dPin = d_pins[i];
+        auto qPin = q_pins[i];
 
-    for(auto lp: connected_SourcePins){
-        if(lp->targetFloatPin != NULL){
-            lp->targetFloatPin->test = false;
-        }
-        else{
-            lp->relatedFixedPin->to_net->ipins.front()->test = false;
-        }
-    }
-    for(auto g: visitedGates){
-        g->is_tracking = false;
-    }
-    return;
-}
+        dPin->calculatingSlack = true;
+        dPin->isVisited = false;
+        degradedSlack = qPin->UpdateAndCalculateSlack(0, displacementDelay);
+        dPin->calculatingSlack = false;
 
-void pin::UpdateCriticalHPWL(double displacementDelay){
-    if(pin_type != 'f') return;
+        if(dPin->isVisited){
+            dPin->isVisited = false;
 
-    pin* sourcePin = to_net->ipins.front();
-    if(connected_SourcePins.empty()){ // Case 2 & 3
-        if(sourcePin->pin_type == 'f'){
-            new_criticalPath_HPWL = abs(sourcePin->coox - coox) + abs(sourcePin->cooy - cooy);
-            new_criticalPath_HPWL = new_criticalPath_HPWL + (sourcePin->to_new_ff->type->Qpin_delay)/displacementDelay;
-        }
-        else if(sourcePin->pin_type == 'd'){
-            new_criticalPath_HPWL = abs(sourcePin->coox - coox) + abs(sourcePin->cooy - cooy);
-        }
-        else{
-            // if the sourcePin is connected to gate, than the conncected_SourcePins List shouldn't be empty.
-            cout << "Error: Call from pin::updateCriticalHPWL" << endl;
-        }
-    }
-    else{ // Case 1
-        new_criticalPath_HPWL = 0;
-        for(LinkedPinInfo* itr: connected_SourcePins){
-            double tempHPWLSeg; // temp HPWL Segment
-            if(itr->targetFloatPin == NULL){
-                // targetpin type is Die pin
-                tempHPWLSeg = itr->FixedHPWL;
+             // calculate original slack
+            double oriSlack = dPin->slack - (dPin->new_criticalPath_HPWL - dPin->criticalPath_HPWL)*displacementDelay;
+
+            // update new critical path HPWL       
+            dPin->new_criticalPath_HPWL = dPin->new_criticalPath_HPWL - abs(dPin->pre_coox - dPin->to_net->ipins.front()->coox)
+                                                                      - abs(dPin->pre_cooy - dPin->to_net->ipins.front()->cooy)
+                                                                      + abs(dPin->new_coox - dPin->to_net->ipins.front()->coox)
+                                                                      + abs(dPin->new_cooy - dPin->to_net->ipins.front()->cooy);
+            // calculate new slack
+            double newSlack = dPin->slack - (dPin->new_criticalPath_HPWL - dPin->criticalPath_HPWL)*displacementDelay;
+        
+            if(newSlack < 0){
+                if(oriSlack < 0){
+                    degradedSlack = degradedSlack + (oriSlack - newSlack);
+                }
+                else{
+                    degradedSlack = degradedSlack + (0 - newSlack);
+                }
             }
             else{
-                // targetpin type is FF pin
-                tempHPWLSeg = abs(itr->targetFloatPin->coox - itr->relatedFixedPin->coox) + abs(itr->targetFloatPin->cooy - itr->relatedFixedPin->cooy) + (itr->targetFloatPin->to_ff->type->Qpin_delay)/displacementDelay;
-                tempHPWLSeg = tempHPWLSeg + itr->FixedHPWL;
+                degradedSlack = degradedSlack;
             }
-            if(tempHPWLSeg > new_criticalPath_HPWL) new_criticalPath_HPWL = tempHPWLSeg;
         }
-        new_criticalPath_HPWL = new_criticalPath_HPWL + abs(sourcePin->coox - coox) + abs(sourcePin->cooy - cooy);
     }
-    return;
+
+    return degradedSlack;
+}
+
+
+double pin::UpdateAndCalculateSlack(double accHPWL, double displacementDelay){
+    double degradedSlack = 0;
+    
+    for(auto toPin: this->to_net->opins){
+        if(toPin->pin_type == 'g'){
+            double accHPWL = abs(this->new_coox - toPin->new_coox) + abs(this->new_cooy - toPin->new_cooy) + (this->to_new_ff->type->Qpin_delay/displacementDelay);
+            degradedSlack = degradedSlack + toPin->to_gate->UpdateAndCalculateSlack(toPin, accHPWL, displacementDelay);
+        }
+        else if(toPin->pin_type == 'f'){
+            if(toPin->calculatingSlack) toPin->isVisited = true;
+
+            // calculate original slack
+            double oriSlack = toPin->slack - (toPin->new_criticalPath_HPWL - toPin->criticalPath_HPWL)*displacementDelay;
+
+            // update new critical path HPWL 
+            toPin->new_criticalPath_HPWL = abs(this->new_coox - toPin->new_coox) + abs(this->new_cooy - toPin->new_cooy) + (this->to_new_ff->type->Qpin_delay/displacementDelay);
+                        
+            // calculate new slack 
+            double newSlack = toPin->slack - (toPin->new_criticalPath_HPWL - toPin->criticalPath_HPWL)*displacementDelay;
+            if(newSlack < 0){
+                if(oriSlack < 0){
+                    degradedSlack = degradedSlack + (oriSlack - newSlack);
+                }
+                else{
+                    degradedSlack = degradedSlack + (0 - newSlack);
+                }
+            }
+            else{
+                degradedSlack = degradedSlack;
+            }
+        }
+    }
+
+    return degradedSlack;
 }
 
 se::se(int type, double coor, ffi* to_ff){

@@ -65,6 +65,8 @@ void netlist::add_pin(string str, inst& INST){
                 // assign corresponding net pointer to the pin
                 ffi_ptr->d_pins[pin_index]->to_net = new_net;
 
+                ffi_ptr->d_pins[pin_index]->isDpin = true;
+
                 // D pin is an output net for current net
                 // Add this pin to the "opins" vector in current net
                 new_net->opins.push_back(ffi_ptr->d_pins[pin_index]);
@@ -75,6 +77,8 @@ void netlist::add_pin(string str, inst& INST){
                 pin_index = ffi_ptr->type->get_PinIDX(pin_name);
                 // assign corresponding net pointer to the pin
                 ffi_ptr->q_pins[pin_index]->to_net = new_net;
+
+                ffi_ptr->q_pins[pin_index]->isDpin = false;
 
                 // Q pin is an input net for current net
                 // Add this pin to the "ipins" vector in current net

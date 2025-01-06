@@ -83,6 +83,7 @@ class ffi{
         void CalculateCost(double alpha, double beta, double gamma, double displacement_delay);
         void getCriticalPath(int mode, double displacement_delay); // mode 0: original critical path , mode 1: new critical path
         double get_timing_cost(double x, double y, double displacement_delay);
+        double CalculateTimingDegradation(double dispalcementDelay);
 };
 
 class gatei{
@@ -101,6 +102,8 @@ class gatei{
         bool is_tracking;
         double min_cs; // smallest critical slack
         double criticalPath_HPWL;
+        double new_criticalPath_HPWL;
+        pin* criticalPin; // is gate input pin, match to the new criticalPath HPWL pin
 
 
         gatei(string, double, double);
@@ -112,7 +115,7 @@ class gatei{
         bool is_visited();
         double get_critical_slack();
         double getCriticalPath(int mode, double displacement_delay);
-
+        double UpdateAndCalculateSlack(pin* fromPin, double accHPWL, double displacementDelay); // accHPWL: accumulated HPWL
 };
 
 
@@ -131,19 +134,15 @@ class net{
 
 class pin{ // pin prototype
     private:
-        struct LinkedPinInfo{
-            pin* targetFloatPin; 
-            pin* relatedFixedPin;
-            double FixedHPWL;
-        };
-        void FindLinkedPin(gatei* g, double current_FixedHPWL, list<LinkedPinInfo*>& connected_SourcePins,list<gatei*>& visitedGates);
+
+       
     public:
-        list<LinkedPinInfo*> connected_SourcePins; // only for D pin
         string name;
         net* to_net;        // net that current pin belongs to
         gatei* to_gate;     // gate that current pin belongs to
         ffi* to_ff;         // FF that current pin belongs to
         char pin_type;      // f: flip flop pin; g: gate pin; d: die pin;
+        bool isDpin;        // Only for pin type is f
         double coox;
         double cooy;
         bool io;            // Only for pin type is 'd', 0 stand for IN; 1 stand for OUT;
@@ -152,14 +151,16 @@ class pin{ // pin prototype
         double criticalPath_HPWL;
         // Below are the variable newed by your friend Yuri
         bool isVisited;
-        bool test = 0;
+        bool calculatingSlack;
         // Belongs to the new MBFF
         string new_name;
         ffi* to_new_ff;
+        double pre_coox;
+        double pre_cooy;
         double new_coox;
         double new_cooy;
         double new_criticalPath_HPWL;
-
+        
 
         pin(){
             to_net  = NULL;
@@ -170,9 +171,7 @@ class pin{ // pin prototype
         }
 
         double CalTns(double new_coox, double new_cooy, bool is_D, ffcell* new_type, double coeff);
-        void UpdateCriticalHPWL(double displacementDelay);
-        void ConstructConnectedSourcePins();
-        // void GetSlack(double displacementDelay);
+        double UpdateAndCalculateSlack(double accHPWL, double displacementDelay);
 };
 
 
