@@ -15,11 +15,12 @@ banking::banking(placement* PM, inst* INST, lib* LIB, dieInfo* DIE, list<ffi*>* 
 void banking::run(){
     CopyOriginalFFs();
     InitialFFsCost();
+
     // LG->Initialize();
     // cout << "Banking ..." << endl; 
     // RunBanking(); 
     // cout << "Legalizing ..." << endl;
-    //RunLegalization();
+    // RunLegalization();
     // PlaceAndDebank();
     RenameAllFlipFlops();
     return;
@@ -264,9 +265,6 @@ void banking::InitialFFsCost(){
     for(auto ff_list: ff_groups){
         for(auto f: *ff_list) {
             double degradedSlack = f->CalculateTimingDegradation(DIE->displacement_delay);
-            cout << f->name << ": ";
-            cout << degradedSlack << endl;
-            if(degradedSlack > 0) break;
         }    
     }
 }
