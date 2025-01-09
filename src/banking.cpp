@@ -16,9 +16,9 @@ void banking::run(){
     CopyOriginalFFs();
     InitialFFsCost();
 
-    // LG->Initialize();
-    // cout << "Banking ..." << endl; 
-    // RunBanking(); 
+    LG->Initialize();
+    cout << "Banking ..." << endl; 
+    RunBanking(); 
     // cout << "Legalizing ..." << endl;
     // RunLegalization();
     // PlaceAndDebank();
@@ -256,17 +256,17 @@ void banking::OriginalFFs_Placment(){
 }
 
 void banking::InitialFFsCost(){
-    // for(auto ff_list: ff_groups){
-    //     for(auto f: *ff_list) {
-    //         f->CalculateCost(DIE->Alpha,DIE->Beta,DIE->Gamma,DIE->displacement_delay);
-    //     }    
-    // }
-    cout << "Calculating initial timing degradation" << endl;
     for(auto ff_list: ff_groups){
         for(auto f: *ff_list) {
-            double degradedSlack = f->CalculateTimingDegradation(DIE->displacement_delay);
+            f->CalculateCost(DIE->Alpha,DIE->Beta,DIE->Gamma,DIE->displacement_delay);
         }    
     }
+    // cout << "Calculating initial timing degradation" << endl;
+    // for(auto ff_list: ff_groups){
+    //     for(auto f: *ff_list) {
+    //         double degradedSlack = f->CalculateTimingDegradation(DIE->displacement_delay);
+    //     }    
+    // }
 }
 
 void banking::SetPseudoBlock(double expand_rate){
