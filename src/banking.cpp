@@ -1,4 +1,9 @@
 #include "banking.h"
+#include <boost/geometry.hpp>
+#include <boost/geometry/index/rtree.hpp>
+
+namespace bg = boost::geometry;
+namespace bgi = boost::geometry::index;
 
 banking::banking(placement* PM, inst* INST, lib* LIB, dieInfo* DIE, list<ffi*>* PFFS){
     this->PM   = PM;
