@@ -376,10 +376,15 @@ void Legalizer::FindAvailableAndUpdatePin(ffi* f){
     if(binMap[rowi][colj]->FindAvailable(f, bestRowIndex, bestSiteIndex)){
         double startx = binMap[rowi][colj]->rowStartX + binMap[rowi][colj]->rows[bestRowIndex]->site_w*bestSiteIndex;
         double starty = binMap[rowi][colj]->rows[bestRowIndex]->start_y;
-
+        
+        // cout << endl;
+        // cout << "ori coox = " << f->coox << endl;
+        // cout << "ori cooy = " << f->cooy << endl;
         f->coox = startx;
         f->cooy = starty;
         f->update_pin_loc();
+        // cout << "aft coox = " << f->coox << endl;
+        // cout << "aft cooy = " << f->cooy << endl;
     }
     else{
         ExpansionLegalize(binMap[rowi][colj], f, false);

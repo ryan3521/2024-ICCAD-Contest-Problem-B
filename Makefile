@@ -1,5 +1,5 @@
 CC = g++
-CFLAGS = -std=c++11 -O3 -Iinc
+CFLAGS = -O3 -Iinc -I /usr/local/include/boost/
 
 # Directories
 SRCDIR = src

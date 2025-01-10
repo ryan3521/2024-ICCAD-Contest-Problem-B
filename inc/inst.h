@@ -68,6 +68,7 @@ class ffi{
         double cost;
         bool no_neighbor;
         list<ffi*> members;
+        bool isClustered;
 
         // member function
         ffi(string, double, double);
@@ -155,8 +156,6 @@ class pin{ // pin prototype
         // Belongs to the new MBFF
         string new_name;
         ffi* to_new_ff;
-        double pre_coox;
-        double pre_cooy;
         double new_coox;
         double new_cooy;
         double new_criticalPath_HPWL;
@@ -204,7 +203,7 @@ class inst{
         void add_inst(lib& LIB, string inst_name, string typename_, double coox, double cooy);
         void set_TSlack(string inst_name, string pin_name, double slack);
         void SlackDispense(dieInfo& DIE);
-        void CalCriticalPath();
+        void CalCriticalPath(double displacementDelay);
         void PrintFF();
         void PrintGate();
         void DebankAllFF(lib& LIB);

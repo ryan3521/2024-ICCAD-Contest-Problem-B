@@ -2,11 +2,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-drawGates = True
+drawGates = False
 drawOriginal = False
 drawBankingResult = True
-markDisplacement = True
-drawBinLine = True
+markDisplacement = False
+drawBinLine = False
 
 
 # **********************************************************
