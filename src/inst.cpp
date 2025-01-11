@@ -270,8 +270,12 @@ void inst::DebankAllFF(lib& LIB){
                     ff_cnt++;
                     new_fi = new ffi(inst_name, 0, 0);
                     new_fi->size = 0;
-                    // new_fi->type = LIB.fftable_cost[LIB.min_ff_size].front();
-                    new_fi->type = ori_ff->type;
+                    if(ori_ff->type->bit_num > 1){
+                        new_fi->type = LIB.fftable_cost[LIB.min_ff_size].front();
+                    }
+                    else{
+                        new_fi->type = ori_ff->type;
+                    }
                     new_fi->clk_pin = new pin;
                     sing_list->push_back(new_fi);
                 }
@@ -928,10 +932,10 @@ double gatei::UpdateAndCalculateSlack(pin* fromPin, double accHPWL, double displ
                 }
             }
 
-            if(ori_HPWL == accHPWL && criticalPin != fromPin){
-                cout << "acc: " << accHPWL << endl;
-                cout << "new: " << new_criticalPath_HPWL << endl;
-            }
+            // if(ori_HPWL == accHPWL && criticalPin != fromPin){
+            //     cout << "acc: " << accHPWL << endl;
+            //     cout << "new: " << new_criticalPath_HPWL << endl;
+            // }
         }
         else{
             return degradedSlack;

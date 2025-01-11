@@ -41,30 +41,22 @@ class banking{
         list<se*>  yseq;
         list<ffi*> tracking_list;
         bgi::rtree<Value, bgi::quadratic<16>> rtree;
-
+        
         cluster* cls;
         int target_size;
         ffi* essential_ff;
         comb* target_comb;
+        int nameCount = 0;
 // ----------------------------------------
         static bool cmp_ff_x(ffi* a, ffi* b);
-        static bool cmp_se(se* a, se* b);
+        static bool cmp_ff_slack(ffi* a, ffi* b);
+        static bool cmp_ff_gain(ffi* a, ffi* b);
 // ----------------------------------------
         void CopyOriginalFFs();
-        void PlaceAndDebank();
-        void OriginalFFs_Placment();
         void InitialFFsCost();
         void RunBanking();
-        void SetPseudoBlock(double expand_rate);
-        void ConstructXSequence();
-        void ConstructYSequence();
-        bool FindNewCluster();
-        void FindRelatedFF();
-        void FindBestComb();
         void RenameAllFlipFlops();
-        bool ChangeTypeAndTry(ffi* f);
         void Debank(ffi* f, list<ffi*>& debank_list);
-        void RunLegalization();
         void ConstructRtree();
         bool TestCluster(int targetSize, vector<Value>& nearest_result);
         double totalDegradation = 0;

@@ -18,6 +18,9 @@ using namespace std;
 
 class Bin;
 
+void DebankFF(ffi* targetFF, dieInfo* DIE);
+bool UpdateGainAndTest(double x, double y, ffi* targetFF, dieInfo* DIE);
+
 class Legalizer{
     private:
         lib*  LIB;
@@ -43,6 +46,8 @@ class Legalizer{
         void AddToBePlacedFF(ffi* f);
         void LegalizeAllBins();
         void FindAvailableAndUpdatePin(ffi* f);
+        void ClearAllBins();
+        void DeleteFF(ffi* f);
 };
 
 class Bin{

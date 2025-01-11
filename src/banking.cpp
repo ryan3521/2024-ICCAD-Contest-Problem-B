@@ -19,117 +19,31 @@ void banking::run(){
     LG->Initialize();
     cout << "Banking ..." << endl; 
     RunBanking(); 
-    cout << "Legalizing ..." << endl;
-    RunLegalization();
-    // PlaceAndDebank();
     RenameAllFlipFlops();
+
     return;
 }
 
-void banking::RunLegalization(){
-    cout << "Adding FFs to Bins ..." << endl;
-    for(auto ff_list: ff_groups){
-        for(auto f: *ff_list) {
-            LG->AddToBePlacedFF(f);
-        }
-    }
-    cout << "Legaizing Bins ..." << endl;
-    LG->LegalizeAllBins();
-}
-
-
-void banking::PlaceAndDebank(){
-    PM->GatePlacement();
-    
-    vector<list<ffi*>> place_order_array(LIB->max_ff_size+1);
-    list<ffi*> place_fail_ffs;
-
-    for(auto ff_list: ff_groups){
-        for(auto f: *ff_list) {
-            place_order_array[f->size].push_back(f);
-        }
-    }
-
-
-    int initial_fail_count = 0;
-    int change_fail_count = 0;
-    int change_success_count = 0;
-    bool set_constrain = true;
-    double displace_constrain = 200;
-    for(int i=LIB->max_ff_size; i>0; i--){
-
-
-
-        place_order_array[i].sort(cmp_ff_x);
-        place_fail_ffs.clear(); 
-
-
-        cout << "Legalizing " << i << " size MBFF" << endl;
-
-        for(auto f: place_order_array[i]){
-            if(PM->placeFlipFlop(f, set_constrain, displace_constrain) == FAIL){
-                initial_fail_count++;
-                if(ChangeTypeAndTry(f) == FAIL){
-                    change_fail_count++;
-                    if(f->size != LIB->min_ff_size){
-                        place_fail_ffs.push_back(f);
-                    }
-                    else{
-                        PM->placeFlipFlop(f, false, displace_constrain);
-                    }
-                }
-                else {
-                    change_success_count++;
-                }
-            }
-        }
-
-        for(auto f: place_fail_ffs){
-            if(PM->placeFlipFlop(f, false, 600) == FAIL){
-                list<ffi*> debank_list;
-
-                Debank(f, debank_list);
-                for(auto small_f: debank_list){
-                    place_order_array[small_f->size].push_back(small_f);
-                }
-            }
-            else{
-                // double cost1 = 0;
-                // double cost2 = 0;
-                // cost1 = DIE->Alpha*f->get_timing_cost(f->coox, f->cooy, DIE->displacement_delay)
-                //         + DIE->Beta*f->type->gate_power + DIE->Gamma*f->type->area;
-
-                // for(auto sf: f->members) cost2 = cost2 + sf->cost;
-
-                // if(cost2 <= cost1){
-                //     PM->DeleteFlipFlop(f);
-                //     list<ffi*> debank_list;
-                //     Debank(f, debank_list);
-                //     for(auto small_f: debank_list){
-                //         place_order_array[small_f->size].push_back(small_f);
-                //     }
-                // }
-            }
-        }
-    }
-}
 
 void banking::RunBanking(){
 
     bool break_flag = false;
 
-    for(auto ff_list: ff_groups){
+    for(target_size=LIB->max_ff_size; target_size>=LIB->min_ff_size; target_size--){
+        cout << endl << "Bank target size = " << target_size << endl;
+        for(auto ff_list: ff_groups){
         
-        banking_ffs.clear();
-        for(auto f: *ff_list) {
-            banking_ffs.push_back(f);
-            f->isClustered = false;
-        }
-        cout << "Constructing R tree ..." << endl;
-        ConstructRtree();
+            banking_ffs.clear();
+            for(auto f: *ff_list) {
+                if(f->size == 1){
+                    banking_ffs.push_back(f);
+                    f->isClustered = false;
+                }
+            }
+            // cout << "Constructing R tree ..." << endl;
+            ConstructRtree();
 
 
-        for(target_size=LIB->max_ff_size; target_size>=LIB->min_ff_size; target_size--){
             if(LIB->fftable_cost[target_size].empty()) continue;
 
             banking_ffs.sort(cmp_ff_x);
@@ -137,7 +51,6 @@ void banking::RunBanking(){
             for(auto targetFF: banking_ffs){
                 if(targetFF->isClustered) continue;
 
-                // cout << "find nearest of " << targetFF->name << endl;
 
                 // Decide query point
                 Point query_point(targetFF->coox + targetFF->type->size_x/2, targetFF->cooy + targetFF->type->size_y/2);
@@ -149,10 +62,50 @@ void banking::RunBanking(){
                 // If this cluster have positive gain, generate a new multibit ff        
                 bool success = TestCluster(target_size, nearest_results);
 
-                // if(success) {}
-                // else cout << "fail" << endl;
             }
         } 
+        cout << "Adding Target FFs to Bins ..." << endl;
+        for(auto ff_list: ff_groups){
+            for(auto f: *ff_list) {
+                if(f->size == target_size){
+                    LG->AddToBePlacedFF(f);
+                }
+            }
+        }
+        cout << "Legaizing FFs ..." << endl;
+
+        LG->LegalizeAllBins();
+        LG->ClearAllBins();
+
+        // list<ffi*> placedFFs;
+        // for(auto ff_list: ff_groups){
+        //     for(auto f: *ff_list) {
+        //         if(f->size == target_size){
+        //             placedFFs.push_back(f);
+        //         }
+        //     }
+        // }
+        // placedFFs.sort(cmp_ff_gain);
+
+
+
+        // for(auto f: placedFFs){
+        //     if(target_size == 4){
+        //         if(f->gain < 128) {
+        //             LG->DeleteFF(f);
+        //             for(auto m: f->members){
+        //             m->update_coor();
+        //             m->CalculateTimingDegradation(DIE->displacement_delay);
+        //             f->to_list->push_front(m);
+        //             m->it_pointer = f->to_list->begin();
+        //         }
+
+        //         f->to_list->erase(f->it_pointer);
+        //         delete f;
+        //         }
+        //     }
+        // }
+
 
     }
 
@@ -166,10 +119,18 @@ void banking::RenameAllFlipFlops(){
 
     for(auto ff_list: ff_groups){
         for(auto f: *ff_list) {
-            inst_name = "";
-            inst_name = inst_name + "NEWFF" + to_string(cnt);
-            f->name = inst_name;
+            // inst_name = "";
+            // inst_name = inst_name + "NEWFF" + to_string(cnt);
+            // f->name = inst_name;
             PFFS->push_back(f);
+
+            // if(f->name == "NEWFF23338" || f->name == "NEWFF23230"){
+            //     cout << endl;
+            //     cout << "FF Name: " << f->name << endl;
+            //     cout << "X = " << f->coox << ", Y =  " << f->cooy << endl;
+            //     cout << "Width = " << f->type->size_x << ", Height = " << f->type->size_y << endl;
+            // }
+
             cnt++;
         }    
     }
@@ -185,7 +146,7 @@ void banking::CopyOriginalFFs(){
 
         for(auto f: *ori_ffs){
             inst_name = "";
-            inst_name = inst_name + "NEWFF" + to_string(newff_cnt);
+            inst_name = inst_name + "NEWFF" + to_string(nameCount);
             ffi* nf = new ffi(inst_name, f->coox, f->cooy);
 
             nf->size = f->size;
@@ -200,7 +161,7 @@ void banking::CopyOriginalFFs(){
             // nf->update_coor();
             ff_list->push_back(nf);
             nf->to_list = ff_list;
-            newff_cnt++;
+            nameCount++;
         }
         ff_groups.push_back(ff_list);
 
@@ -219,162 +180,35 @@ bool banking::cmp_ff_x(ffi* a, ffi* b){
     return a->coox < b->coox;
 }
 
-void banking::OriginalFFs_Placment(){
-    bool SET_CONSTRAIN = true;
-    bool DONT_SET_CONSTRAIN = false;
-    double DISPLACE_CONSTRAIN = 20;
-
-    list<ffi*> buffer_list;
-    list<ffi*> multi_bit_stack;
-
-    for(auto flist: ff_groups){
-        for(auto it=flist->begin(); it!=flist->end(); it++){
-            ffi* f = *it;
-            placing_ffs.push_back(f);
-        }
-    }
-
-    placing_ffs.sort(cmp_ff_x);
-
-    for(auto f: placing_ffs){
-        if(PM->placeFlipFlop(f, SET_CONSTRAIN, DISPLACE_CONSTRAIN) == SUCCESS){
-            if(f->type->bit_num > 1){
-                multi_bit_stack.push_back(f);
-            }
-        }
-        else{
-            buffer_list.push_back(f);
-        }
-    }
+bool banking::cmp_ff_slack(ffi* a, ffi* b){
+    return a->d_pins.front()->slack < b->d_pins.front()->slack;
 }
 
+
+bool banking::cmp_ff_gain(ffi* a, ffi* b){
+    return a->gain > b->gain;
+}
+
+
+
+
 void banking::InitialFFsCost(){
-    // for(auto ff_list: ff_groups){
-    //     for(auto f: *ff_list) {
-    //         f->CalculateCost(DIE->Alpha,DIE->Beta,DIE->Gamma,DIE->displacement_delay);
-    //     }    
-    // }
     // double totalDegradation = 0;
     // cout << "Calculating initial timing degradation" << endl;
-    // for(auto ff_list: ff_groups){
-    //     for(auto f: *ff_list) {
-    //         // f->type = LIB->fftable_cost[1].front();
-    //         // f->update_coor();
-    //         double degradedSlack = f->CalculateTimingDegradation(DIE->displacement_delay);
-    //         // cout << degradedSlack << endl;
-    //         totalDegradation += degradedSlack;
-    //         // if(degradedSlack != 0) break;
-    //     }    
-    // }
+    for(auto ff_list: ff_groups){
+        for(auto f: *ff_list) {
+            // f->type = LIB->fftable_cost[1].front();
+            // f->update_coor();
+            // double degradedSlack = f->CalculateTimingDegradation(DIE->displacement_delay);
+            // cout << degradedSlack << endl;
+            // totalDegradation += degradedSlack;
+            // if(degradedSlack != 0) break;
+            f->gain = 0;
+        }    
+    }
     // cout << "Initial Timing Degradation: " << totalDegradation << endl;
 }
 
-void banking::Debank(ffi* big_f, list<ffi*>& debank_list){
-    for(auto f: big_f->members){
-        f->update_coor();
-        big_f->to_list->push_front(f);
-        f->it_pointer = big_f->to_list->begin();
-        debank_list.push_back(f);
-    }
-
-    big_f->to_list->erase(big_f->it_pointer);
-    delete big_f;
-
-    return;
-}
-
-bool banking::ChangeTypeAndTry(ffi* oriff){
-    bool set_constrain = true;
-    double displace_constrain = 200;
-    bool print = false;
-    ffcell* mincost_ftype = NULL;
-    ffcell* ori_fftype = oriff->type;
-    list<pin*> best_dpins;
-    list<pin*> best_qpins;
-    list<pin*> dpins;
-    list<pin*> qpins;
-    double mincost = numeric_limits<double>::max();
-    double ori_size_x = oriff->type->size_x;
-    double ori_size_y = oriff->type->size_y;
-    double cost_per_bit = 0;
-    double dismantle_cost = 0;
-
-    // initial valid size: begin
-    int valid_bit_size = oriff->size;
-    while(LIB->fftable_cost[valid_bit_size].size() == 0){ valid_bit_size++; }
-    // initial valid size: end
-
-    for(auto p: oriff->d_pins) dpins.push_back(p);
-    for(auto p: oriff->q_pins) qpins.push_back(p);
-
-    for(auto f: oriff->members) dismantle_cost = dismantle_cost + f->cost;
-    
-    // find best ff type: begin
-    for(auto ftype: LIB->fftable_cost[valid_bit_size]){
-        double cost = 0;
-        double slack, ns;
-        list<pin*> dpins_result;
-        list<pin*> qpins_result;
-
-        if(((ftype->size_x < ori_size_x) || (ftype->size_y < ori_size_y) || (ftype->size_x == ori_size_x && ftype->size_y == ori_size_y)) == false){
-            continue;
-        }
-
-        slack = INST->TnsTest(print, dpins, qpins, ftype, DIE->displacement_delay, dpins_result, qpins_result);
-        ns = (slack > 0) ? 0 : abs(slack);
-        cost = (DIE->Alpha*ns + DIE->Beta*ftype->gate_power + DIE->Gamma*ftype->area);
-
-        if(cost >= dismantle_cost && oriff->size != LIB->min_ff_size){continue;}
-        else if(cost < mincost){
-            oriff->type = ftype;
-            oriff->d_pins.clear();
-            oriff->q_pins.clear();
-            for(auto p: dpins_result) oriff->d_pins.push_back(p);
-            for(auto p: qpins_result) oriff->q_pins.push_back(p);
-            oriff->update_coor();
-            if(PM->placeFlipFlop(oriff, set_constrain, displace_constrain) == SUCCESS){
-                mincost = cost;
-                mincost_ftype = ftype;
-                best_dpins.clear();
-                best_qpins.clear();
-                for(auto p: dpins_result) best_dpins.push_back(p);
-                for(auto p: qpins_result) best_qpins.push_back(p);
-                PM->DeleteFlipFlop(oriff);
-            }
-        }
-    }
-    
-    if(mincost != numeric_limits<double>::max()){
-        oriff->type = mincost_ftype;
-        oriff->cost = mincost;
-        oriff->d_pins.clear();
-        oriff->q_pins.clear();
-        for(auto p: best_dpins) oriff->d_pins.push_back(p);
-        for(auto p: best_qpins) oriff->q_pins.push_back(p);
-        oriff->update_coor();
-
-        if(PM->placeFlipFlop(oriff, set_constrain, displace_constrain) == SUCCESS){
-            return true;
-        }
-        else{
-            cout <<  "error3" << endl;
-            return false;
-        }
-    }
-    else{
-
-        oriff->type = ori_fftype;
-        oriff->d_pins.clear();
-        oriff->q_pins.clear();
-        for(auto p: dpins) oriff->d_pins.push_back(p);
-        for(auto p: qpins) oriff->q_pins.push_back(p);
-        oriff->update_coor();
-
-        return false;
-    }
-            
-    // find best ff type: end
-}
 
 
 void banking::ConstructRtree(){
@@ -387,11 +221,13 @@ void banking::ConstructRtree(){
 
 
 bool banking::TestCluster(int targetSize, vector<Value>& nearest_result){
-    if(nearest_result.size() != target_size) return false;
+    if(nearest_result.size() != targetSize) return false;
 
     // Construct a pseudo ff
-    ffi* pseudoFF = new ffi("PseudoFF", 0, 0);
-
+    string inst_name = "";
+    inst_name = inst_name + "NEWFF" + to_string(nameCount);
+    ffi* pseudoFF = new ffi(inst_name, 0, 0);
+    nameCount++;
     
     pseudoFF->size = targetSize;
     for(auto& value: nearest_result) pseudoFF->members.push_back(value.second);
@@ -402,11 +238,10 @@ bool banking::TestCluster(int targetSize, vector<Value>& nearest_result){
     for(auto& value: nearest_result) pseudoFF->q_pins.push_back(value.second->q_pins.front());
     pseudoFF->clk_pin = new pin;
     pseudoFF->update_coor();
-    pseudoFF->update_pin_loc();
 
 
     // Do legaization test and get the ideal location
-    LG->FindAvailableAndUpdatePin(pseudoFF);
+    // LG->FindAvailableAndUpdatePin(pseudoFF);
 
     // Calculate new MBFF's gain
     double timingDegradation = pseudoFF->CalculateTimingDegradation(DIE->displacement_delay);
@@ -427,9 +262,33 @@ bool banking::TestCluster(int targetSize, vector<Value>& nearest_result){
 
     double totalGain = timingGain + powerGain + areaGain;
 
-    // cout << totalGain << endl;
+    // Calculate the gain banked by smaller size's MBFF
+    if(targetSize > 1){
+        pseudoFF->membersAreaPlusPowerGain = 0;
+        for(auto& value: nearest_result){
+            pseudoFF->membersAreaPlusPowerGain = pseudoFF->membersAreaPlusPowerGain
+             + (DIE->Beta) *(value.second->type->gate_power)
+             + (DIE->Gamma)*(value.second->type->area);
+        }
+        
+        
+        int remainBitNum = targetSize;
+        while(remainBitNum > 0){
+            int memberSize = targetSize - 1;
+            while(LIB->fftable_cost[memberSize].empty() == true || memberSize > remainBitNum){
+                memberSize--;
+            }
+            
+            pseudoFF->membersAreaPlusPowerGain = pseudoFF->membersAreaPlusPowerGain
+            - (DIE->Beta) *(LIB->fftable_cost[memberSize].front()->gate_power)
+            - (DIE->Gamma)*(LIB->fftable_cost[memberSize].front()->area);
+            remainBitNum = remainBitNum - memberSize;
+        }
+    }
     
     if(totalGain > 0){
+        pseudoFF->gain = totalGain;
+        
         // push into the ff group list
         pseudoFF->to_list = nearest_result.front().second->to_list;
         pseudoFF->to_list->push_front(pseudoFF);
@@ -442,7 +301,7 @@ bool banking::TestCluster(int targetSize, vector<Value>& nearest_result){
         }
 
         // remove single bit ffs from R tree
-          for(const auto& item : nearest_result) {
+        for(const auto& item : nearest_result) {
             rtree.remove(item);
         }
         return true;

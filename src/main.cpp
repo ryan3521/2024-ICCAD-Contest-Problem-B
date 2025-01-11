@@ -43,7 +43,7 @@ int main(int argc, char** argv){
 
     FFBANK.run();
 
-    // Output(argv[2], PFFS, INST);
+    Output(argv[2], PFFS, INST);
 
     end = clock();
 

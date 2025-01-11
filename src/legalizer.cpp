@@ -15,6 +15,18 @@ void Legalizer::Initialize(){
     FillTrivialGap();
 }
 
+void Legalizer::ClearAllBins(){
+    for(auto b: allBins){
+        b->toBePlacedFFs.clear();
+        b->placeFailFFs.clear();
+        b->placeSuccessFFs.clear();
+    }
+}
+
+void Legalizer::DeleteFF(ffi* f){
+    binMap[f->index_to_bin_rowi][f->index_to_bin_colj]->DeleteFFBlock(f);
+}
+
 void Legalizer::PlaceAllGates(){
     cout << "Placing all Gates ..." << endl;
     for(auto it: INST->gate_umap){
@@ -107,6 +119,7 @@ void Legalizer::SetBinRows(){
             // Step 2: cut down a proper placement row >> need to specify "siteNum and starty" from the new placement row
             double startx = remain_startx;
             int siteNum = ceil((binMap[rowi][colj]->upperRightX - startx)/siteWidth);
+            if(siteNum > remain_siteNum) siteNum = remain_siteNum;
 
             // Step 3: add it into the bin
             binMap[rowi][colj]->AddRow(startx, starty, siteWidth, siteHeight, siteNum);
@@ -114,6 +127,8 @@ void Legalizer::SetBinRows(){
             // Step 4: update the remain placement row >> specify the "siteNum and starty
             remain_startx = remain_startx + siteWidth*siteNum;
             remain_siteNum = remain_siteNum - siteNum;
+            // cout << siteNum << endl;
+            //if(remain_siteNum < 0) cout << remain_siteNum << endl;
         }       
     }
     return;
@@ -137,6 +152,8 @@ void Legalizer::PlaceGate(gatei* gatePointer){
 }
 
 void Legalizer::LegalizeAllBins(){
+
+
     for(auto b: allBins){
         b->distanceToCentroid = pow(b->cenX - DIE->cenx, 2) + pow(b->cenY - DIE->ceny, 2);
     }
@@ -150,6 +167,9 @@ void Legalizer::LegalizeAllBins(){
         // cout << "to be legalize ffs: " << b->toBePlacedFFs.size() << endl;
         b->LegalizeFFList();
         // cout << "Legalizing fail ffs" << endl;
+        // LegalizeFailedFFs(b);
+    }
+    for(auto b: allBins){
         LegalizeFailedFFs(b);
     }
     return;
@@ -186,8 +206,10 @@ void Legalizer::FillTrivialGap(){
 }
 
 void Legalizer::AddToBePlacedFF(ffi* f){
-    int rowi = f->cen_y/DIE->bin_height;
-    int colj = f->cen_x/DIE->bin_width;
+    // int rowi = f->cen_y/DIE->bin_height;
+    // int colj = f->cen_x/DIE->bin_width;
+    int rowi = f->cooy/DIE->bin_height;
+    int colj = f->coox/DIE->bin_width;
 
     if(rowi < 0) {rowi = 0;}
     else if(rowi >= mapHeight) {rowi = mapHeight - 1;}
@@ -338,7 +360,19 @@ bool Legalizer::ExpansionLegalize(Bin* targetBin, ffi* f, bool place){
     
         if(globalMincost != numeric_limits<double>::max()){
             if(place){
-                bestBin->PlaceFFAt(f, bestBinRowIndex, bestBinSiteIndex);
+                double startx = bestBin->rowStartX + bestBin->rows[bestBinRowIndex]->site_w*bestBinSiteIndex;
+                double starty = bestBin->rows[bestBinRowIndex]->start_y;
+
+                f->coox = startx;
+                f->cooy = starty;
+
+                if(UpdateGainAndTest(startx, starty, f, DIE) == true){
+                    bestBin->PlaceFFAt(f, bestBinRowIndex, bestBinSiteIndex);
+                }
+                else{
+                    // Debank FF
+                    DebankFF(f, DIE);
+                }
                 return true;
             }
             else{
@@ -494,7 +528,20 @@ bool Bin::TryToLegalizeFF(ffi* f){
     // cout << "Try to legalize ff: " << f->name << endl;
 
     if(FindAvailable(f, bestRowIndex, bestSiteIndex)){
-        PlaceFFAt(f, bestRowIndex, bestSiteIndex);
+        double startx = rowStartX + rows[bestRowIndex]->site_w*bestSiteIndex;
+        double starty = rows[bestRowIndex]->start_y;
+
+        f->coox = startx;
+        f->cooy = starty;
+
+
+        if(UpdateGainAndTest(startx, starty, f, DIE) == true){
+            PlaceFFAt(f, bestRowIndex, bestSiteIndex);  
+        }
+        else{
+            // Debank FF
+            DebankFF(f, DIE);
+        }
         return true;
     }
     else{   
@@ -502,11 +549,45 @@ bool Bin::TryToLegalizeFF(ffi* f){
     }
 }
 
+bool UpdateGainAndTest(double x, double y, ffi* f, dieInfo* DIE){
+    f->coox = x;
+    f->cooy = y;
+
+    if(f->size == 1) return true;
+
+    // Test FFs Gain
+    f->update_pin_loc();
+    double timingDegradation = f->CalculateTimingDegradation(DIE->displacement_delay);
+    f->gain = f->gain - (DIE->Alpha)*timingDegradation;
+
+    if(f->gain > 0){
+        if(f->gain < f->membersAreaPlusPowerGain) return false;
+        else return true;
+    } 
+    else {
+        return false;
+    }
+}
+
+void DebankFF(ffi* targetFF, dieInfo* DIE){
+    for(auto m: targetFF->members){
+        m->update_coor();
+        m->CalculateTimingDegradation(DIE->displacement_delay);
+        targetFF->to_list->push_front(m);
+        m->it_pointer = targetFF->to_list->begin();
+    }
+
+    targetFF->to_list->erase(targetFF->it_pointer);
+    delete targetFF;
+}
+
 void Bin::PlaceFFAt(ffi* f, int bestRowIndex, int bestSiteIndex){
     double startx = rowStartX + rows[bestRowIndex]->site_w*bestSiteIndex;
     double starty = rows[bestRowIndex]->start_y;
     double width  = f->type->size_x;
     double height = f->type->size_y;
+
+
     AddBlock(startx, starty, width, height);
 
     f->coox = startx;
@@ -516,6 +597,7 @@ void Bin::PlaceFFAt(ffi* f, int bestRowIndex, int bestSiteIndex){
     f->index_to_placement_row = bestRowIndex;
     f->index_to_site          = bestSiteIndex;
     f->update_pin_loc();
+
     return;
 }
 
@@ -607,7 +689,7 @@ void Bin::LegalizeFFList(){
         toBePlacedFFs.pop_front();
 
         if(TryToLegalizeFF(f)){
-            placeSuccessFFs.push_back(f);
+            // placeSuccessFFs.push_back(f);
         }
         else{
             placeFailFFs.push_back(f);
@@ -634,8 +716,19 @@ bool Bin::cmpFF(ffi* a, ffi* b){
 }
 
 void Bin::DeleteFFBlock(ffi* f){
+
     double ffStart = f->coox;
     double ffEnd   = f->coox + f->type->size_x;
+
+    // Update fail size history list
+    for(auto it=failSizeHistory.begin(); it!=failSizeHistory.end(); it++){
+        if(f->type->size_x == (*it)->size_x && f->type->size_y == (*it)->size_y){
+            delete (*it);
+            failSizeHistory.erase(it);
+            break;
+        }
+    }
+
 
     if(ffEnd > rowEndX){
         if(rows[f->index_to_placement_row]->rightRow == NULL){

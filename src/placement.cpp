@@ -409,7 +409,7 @@ bool PlacementRow::FindSpaceOrJump(double idealcoox, double idealcooy, double gl
             if(next_itr == space_list.end()){
                 if(spaceEnd == xmax){
                     if(rightRow != NULL){
-                        if(rightRow->space_list.front().first == 0){
+                        if(rightRow->space_list.front().first == 0 && rightRow->space_list.empty()==false){
                             spaceEnd = rightRow->start_x + (site_w)*(rightRow->space_list.front().second + 1);
                         }
                     }
@@ -487,7 +487,7 @@ bool PlacementRow::FindSpaceOrJump(double idealcoox, double idealcooy, double gl
             if(space_itr == space_list.rbegin()){
                 if(spaceEnd == xmax){
                     if(rightRow != NULL){
-                        if(rightRow->space_list.front().first == 0){
+                        if(rightRow->space_list.front().first == 0 && rightRow->space_list.empty()==false){
                             spaceEnd = rightRow->start_x + (site_w)*(rightRow->space_list.front().second + 1);
                         }
                     }
