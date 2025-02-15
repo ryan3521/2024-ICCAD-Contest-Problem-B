@@ -23,11 +23,52 @@ OUTFILE = output.txt
 
 
 all: $(TARGET)
+	./$(TARGET) $(TC5) $(OUTFILE)
+
+# run
+run1:
+	./$(TARGET) $(TC1) $(OUTFILE)
+
+run2:
+	./$(TARGET) $(TC2) $(OUTFILE)
+
+run3:
+	./$(TARGET) $(TC3) $(OUTFILE)
+
+run4:
 	./$(TARGET) $(TC4) $(OUTFILE)
 
-check: 
+run5:
+	./$(TARGET) $(TC5) $(OUTFILE)
+
+run6:
+	./$(TARGET) $(TC6) $(OUTFILE)
+
+run7:
+	./$(TARGET) $(TC7) $(OUTFILE)
+
+# check
+check1:
+	./checker $(TC1) $(OUTFILE)
+
+check2:
+	./checker $(TC2) $(OUTFILE)
+
+check3:
+	./checker $(TC3) $(OUTFILE)
+
+check4:
 	./checker $(TC4) $(OUTFILE)
 
+check5:
+	./checker $(TC5) $(OUTFILE)
+
+check6:
+	./checker $(TC6) $(OUTFILE)
+
+check7:
+	./checker $(TC7) $(OUTFILE)
+	
 $(TARGET): $(OBJ) 
 	$(CC) $(OBJ) -o $(TARGET)
 
