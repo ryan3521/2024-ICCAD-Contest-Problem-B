@@ -1,11 +1,89 @@
-#include "func.h"
+#include "funcs.h"
 
 
-void ReadOutput(string filename, lib& LIB, inst& INST, dieInfo& DIE, netlist& NL, placement& PM){
+void ReadOutput(string filename, lib& LIB, inst& INST, dieInfo& DIE, netlist& NL, placement& PM, list<ffi*>& MBFFs){
     fstream fin;
-    list<ffi*> MBFFs;
-    
-    cout << "reading output.txt" << endl;
+    string title;
+    string name;
+    string typeName;
+    int ffNum;
+    double coox, cooy;
+    unordered_map<string, ffi* > MBFFs_umap;
+
+    fin.open(filename, ios::in);
+
+    cout << "Reading new flip flop numbers ..." << endl;
+    fin >> title >> ffNum;
+
+    cout << "Reading new flip flop instances ..." << endl;
+    for(int i=0; i<ffNum; i++){
+        fin >> title >> name >> typeName >> coox >> cooy;
+        ffi* mbff = new ffi(name, coox, cooy);
+        MBFFs_umap.insert(pair<string, ffi*>(name, mbff));
+        mbff->type = (ffcell*)LIB.get_cell(typeName);
+        cout << name << endl;
+    }
+
+
+    cout << "Mapping original flip flops to new flip flops ..." << endl;
+    string tempName1 = "";
+    string tempName2 = "";
+    string oriFFName = "";
+    string newFFName = "";
+    string pinName;
+    while(fin){
+        string str1, str2, map;
+        fin >> str1 >> map >> str2;
+
+        size_t pos = str1.find('/');
+        if (pos != std::string::npos) { // Ensure '/' is found
+            oriFFName = str1.substr(0, pos); // Extract "XXX"
+            pinName   = str1.substr(pos + 1); // Extract "YYYY"
+        } 
+        else {
+            // cout << "Invalid input format" << endl;
+            break;
+        }
+
+        pos = str2.find('/');
+        if (pos != std::string::npos) { // Ensure '/' is found
+            newFFName = str2.substr(0, pos); // Extract "XXX"
+            pinName   = str2.substr(pos + 1); // Extract "YYYY"
+        } 
+        else {
+            // cout << "Invalid input format" << endl;
+            break;
+        }
+
+        if(oriFFName == tempName1 && newFFName == tempName2) continue;
+
+        auto it1 = INST.ff_umap.find(oriFFName);
+        auto it2 = MBFFs_umap.find(newFFName);
+        if(it1 == INST.ff_umap.end()){
+            cout << "Error: Can not find FlipFlop: " << oriFFName << endl;
+            return;
+        }
+        if(it2 == MBFFs_umap.end()){
+            cout << "Error: Can not find FlipFlop: " << newFFName << endl;
+            return;
+        }
+
+        ffi* oriFF = it1->second;
+        ffi* newFF = it2->second;
+
+        newFF->members.push_back(oriFF);
+
+        cout << oriFFName << " map to " << newFFName << endl;
+        tempName1 = oriFFName;
+        tempName2 = newFFName;
+    }
+
+    fin.close();
+
+
+    for(auto it: MBFFs_umap){
+        MBFFs.push_back(it.second);
+    }
 
     return;
 }

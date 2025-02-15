@@ -1,6 +1,6 @@
-#include "func.h"
+#include "funcs.h"
 
-void DrawFFs(dieInfo& DIE, lib& LIB, inst& INST, list<ffi*>& UPFFS, list<ffi*>& PFFS){
+void DrawFFs(dieInfo& DIE, lib& LIB, inst& INST, list<ffi*>& MBFFs){
     fstream fout;
 
 // ==============================================================================================
@@ -9,9 +9,9 @@ void DrawFFs(dieInfo& DIE, lib& LIB, inst& INST, list<ffi*>& UPFFS, list<ffi*>& 
     // --------------
     // Die.W Die.H Bin.W Bin.H
     // FF num
-    // Name X Y W H 
-    // Name X Y W H 
-    // Name X Y W H 
+    // Name Size X Y W H 
+    // Name Size X Y W H 
+    // Name Size X Y W H 
     // .
     // .
     // .
@@ -24,7 +24,7 @@ void DrawFFs(dieInfo& DIE, lib& LIB, inst& INST, list<ffi*>& UPFFS, list<ffi*>& 
 
     for(auto itr: INST.ff_umap){
         auto f = itr.second;
-        fout << f->name << " " << f->coox << " " << f->cooy << " ";
+        fout << f->name << " " << f->type->bit_num << " " << f->coox << " " << f->cooy << " ";
         fout << f->type->size_x << " " << f->type->size_y << " ";
         fout << endl;
     } 
@@ -32,79 +32,17 @@ void DrawFFs(dieInfo& DIE, lib& LIB, inst& INST, list<ffi*>& UPFFS, list<ffi*>& 
     fout.close();
 
 // ==============================================================================================
-    fout.open("./Draw/ff_single_bit.txt", ios::out);
-    // Format: Single Bit FFs (Debank All)
-    // --------------
-    // Die.W Die.H
-    // FF num
-    // Name X Y W H canmove fsr.xmax fsr.xmin fsr.ymax fsr.ymin
-    // Name X Y W H canmove fsr.xmax fsr.xmin fsr.ymax fsr.ymin
-    // Name X Y W H canmove fsr.xmax fsr.xmin fsr.ymax fsr.ymin
-    // .
-    // .
-    // .
-    // --------------
+ 
 
-    fout << DIE.die_width << " " << DIE.die_height << " " << DIE.bin_width << " " << DIE.bin_height << endl;
-
-
-    ffcnt = 0;
-    for(auto flist: INST.ffs_sing){
-        ffcnt = ffcnt + flist->size();
-    } 
-    fout << ffcnt << endl;
-
-    for(auto flist: INST.ffs_sing){
-        for(auto f: *flist){
-            fout << f->name << " " << f->coox << " " << f->cooy << " ";
-            fout << f->type->size_x << " " << f->type->size_y << " ";
-            fout << endl;
-        }
-    } 
-
-
-    fout.close();
-// ==============================================================================================
-    // fout.open("./Draw/kmeans result.txt", ios::out);
-    // // Format:  (After Banking)
-    // // --------------
-    // // Die.W Die.H
-    // // FF num
-    // // OriginalFF is_cluster X Y W H cenx ceny to_x to_y
-    // // OriginalFF is_cluster X Y W H cenx ceny to_x to_y 
-    // // OriginalFF is_cluster X Y W H cenx ceny to_x to_y 
-    // // .
-    // // .
-    // // .
-    // // --------------
-
-    // fout << DIE.die_width << " " << DIE.die_height << " " << DIE.bin_width << " " << DIE.bin_height << endl;
-
-
-    // fout << ffcnt << endl;
-
-    // for(auto f: UPFFS){
-    //     bool is_cluster = (f->d_pins.size()>1) ? true:false;
-    //     for(auto p: f->d_pins){
-    //         fout << p->to_ff->name << " " << is_cluster << " " << p->to_ff->coox << " " << p->to_ff->cooy << " ";
-    //         fout << p->to_ff->type->size_x << " " << p->to_ff->type->size_y << " ";
-    //         fout << p->to_ff->cen_x << " " << p->to_ff->cen_y << " ";
-    //         fout << f->cen_x << " " << f->cen_y << " " ;
-    //         fout << endl;
-    //     }
-    // } 
-
-
-    // fout.close();
 // ==============================================================================================
     fout.open("./Draw/placement result.txt", ios::out);
     // Format:  (After Placing)
     // --------------
     // Die.W Die.H
     // FF num
-    // FF X Y W H cenx ceny ori_cenx ori_ceny
-    // FF X Y W H cenx ceny ori_cenx ori_ceny 
-    // FF X Y W H cenx ceny ori_cenx ori_ceny 
+    // FF Size X Y W H cenx ceny ori_cenx ori_ceny
+    // FF Size X Y W H cenx ceny ori_cenx ori_ceny 
+    // FF Size X Y W H cenx ceny ori_cenx ori_ceny 
     // .
     // .
     // .
@@ -113,20 +51,24 @@ void DrawFFs(dieInfo& DIE, lib& LIB, inst& INST, list<ffi*>& UPFFS, list<ffi*>& 
     fout << DIE.die_width << " " << DIE.die_height << " " << DIE.bin_width << " " << DIE.bin_height << endl;
 
 
-    fout << PFFS.size() << endl;
+    fout << MBFFs.size() << endl;
 
-    for(auto f: PFFS){
+    for(auto f: MBFFs){
         double coox = f->coox;
         double cooy = f->cooy;
 
-        fout << f->name << " " << f->coox << " " << f->cooy << " ";
+        fout << f->name << " " << f->type->bit_num << " " << f->coox << " " << f->cooy << " ";
         fout << f->type->size_x << " " << f->type->size_y << " ";
         fout << f->coox + f->type->size_x/2 << " " << f->cooy + f->type->size_y/2 << " ";
-        f->update_coor();
-        fout << f->cen_x << " " << f->cen_y << " ";
-        fout << endl;
-        f->coox = coox;
-        f->cooy = cooy;
+        
+        f->cen_x = 0; f->cen_y = 0;
+        for(auto mf: f->members){
+            f->cen_x += mf->cen_x;
+            f->cen_y += mf->cen_y;
+        }
+        f->cen_x = f->cen_x / (double)f->members.size();
+        f->cen_y = f->cen_y / (double)f->members.size();
+        fout << f->cen_x << " " << f->cen_y << " " << endl;
     } 
 
 

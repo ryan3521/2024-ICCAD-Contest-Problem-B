@@ -239,7 +239,9 @@ bool banking::TestCluster(int targetSize, vector<Value>& nearest_result){
     pseudoFF->clk_pin = new pin;
     pseudoFF->update_coor();
 
-
+    // if(target_size == 2){
+    //     cout << pseudoFF->type->name << endl;
+    // }
     // Do legaization test and get the ideal location
     // LG->FindAvailableAndUpdatePin(pseudoFF);
 

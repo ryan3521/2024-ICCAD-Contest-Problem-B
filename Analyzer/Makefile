@@ -1,5 +1,5 @@
 CC = g++
-CFLAGS = -O3 -Iinc 
+CFLAGS = -O3 -Iinc -std=c++11
 
 # Directories
 SRCDIR = src
@@ -9,7 +9,7 @@ OBJDIR = obj
 # Source files and target
 SRC = $(wildcard $(SRCDIR)/*.cpp)
 OBJ = $(patsubst $(SRCDIR)/%.cpp, $(OBJDIR)/%.o, $(SRC))
-TARGET = main
+TARGET = analyzer
 
 # Testcase
 TC1  = ../Testcase/testcase1_0812.txt
@@ -19,7 +19,7 @@ TC4  = ../Testcase/hiddencase01.txt
 TC5  = ../Testcase/hiddencase02.txt
 TC6  = ../Testcase/hiddencase03.txt
 TC7  = ../Testcase/hiddencase04.txt
-OUTFILE = output.txt
+OUTFILE = ../output.txt
 
 
 all: $(TARGET)

@@ -54,6 +54,27 @@ check6:
 check7:
 	./checker $(TC7) $(OUTFILE)
 
+# analyze
+analyze1:
+	./analyzer $(TC1) $(OUTFILE)
+
+analyze2:
+	./analyzer $(TC2) $(OUTFILE)
+
+analyze3:
+	./analyzer $(TC3) $(OUTFILE)
+
+analyze4:
+	./analyzer $(TC4) $(OUTFILE)
+
+analyze5:
+	./analyzer $(TC5) $(OUTFILE)
+
+analyze6:
+	./analyzer $(TC6) $(OUTFILE)
+
+analyze7:
+	./analyzer $(TC7) $(OUTFILE)
 
 
 	
