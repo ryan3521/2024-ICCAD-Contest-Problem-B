@@ -71,6 +71,7 @@ class ffi{
         bool isClustered;
         double gain;
         double membersAreaPlusPowerGain;
+        double pinDisplacement;
 
         // member function
         ffi(string, double, double);

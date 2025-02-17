@@ -21,6 +21,8 @@ void ReadOutput(string filename, lib& LIB, inst& INST, dieInfo& DIE, netlist& NL
         ffi* mbff = new ffi(name, coox, cooy);
         MBFFs_umap.insert(pair<string, ffi*>(name, mbff));
         mbff->type = (ffcell*)LIB.get_cell(typeName);
+        mbff->d_pins.resize(mbff->type->bit_num, NULL);
+        mbff->q_pins.resize(mbff->type->bit_num, NULL);
         cout << name << endl;
     }
 
@@ -30,7 +32,8 @@ void ReadOutput(string filename, lib& LIB, inst& INST, dieInfo& DIE, netlist& NL
     string tempName2 = "";
     string oriFFName = "";
     string newFFName = "";
-    string pinName;
+    string pinName1;
+    string pinName2;
     while(fin){
         string str1, str2, map;
         fin >> str1 >> map >> str2;
@@ -38,7 +41,7 @@ void ReadOutput(string filename, lib& LIB, inst& INST, dieInfo& DIE, netlist& NL
         size_t pos = str1.find('/');
         if (pos != std::string::npos) { // Ensure '/' is found
             oriFFName = str1.substr(0, pos); // Extract "XXX"
-            pinName   = str1.substr(pos + 1); // Extract "YYYY"
+            pinName1  = str1.substr(pos + 1); // Extract "YYYY"
         } 
         else {
             // cout << "Invalid input format" << endl;
@@ -48,15 +51,14 @@ void ReadOutput(string filename, lib& LIB, inst& INST, dieInfo& DIE, netlist& NL
         pos = str2.find('/');
         if (pos != std::string::npos) { // Ensure '/' is found
             newFFName = str2.substr(0, pos); // Extract "XXX"
-            pinName   = str2.substr(pos + 1); // Extract "YYYY"
+            pinName2  = str2.substr(pos + 1); // Extract "YYYY"
         } 
         else {
             // cout << "Invalid input format" << endl;
             break;
         }
 
-        if(oriFFName == tempName1 && newFFName == tempName2) continue;
-
+        
         auto it1 = INST.ff_umap.find(oriFFName);
         auto it2 = MBFFs_umap.find(newFFName);
         if(it1 == INST.ff_umap.end()){
@@ -67,20 +69,36 @@ void ReadOutput(string filename, lib& LIB, inst& INST, dieInfo& DIE, netlist& NL
             cout << "Error: Can not find FlipFlop: " << newFFName << endl;
             return;
         }
-
+        
         ffi* oriFF = it1->second;
         ffi* newFF = it2->second;
 
-        newFF->members.push_back(oriFF);
+        pin* p;
 
-        cout << oriFFName << " map to " << newFFName << endl;
+        if(pinName1.find("D") != string::npos){
+            p = oriFF->d_pins[oriFF->type->get_PinIDX(pinName1)];
+            newFF->d_pins[newFF->type->get_PinIDX(pinName2)] = p;
+        }
+        else if(pinName1.find("Q") != string::npos){
+            p = oriFF->q_pins[oriFF->type->get_PinIDX(pinName1)];
+            newFF->q_pins[newFF->type->get_PinIDX(pinName2)] = p;
+        }
+        else{
+            continue;
+        }
+        
+        if((oriFFName == tempName1 && newFFName == tempName2) == false){
+            cout << oriFFName << " map to " << newFFName << endl;
+            newFF->members.push_back(oriFF);
+        }
+        
         tempName1 = oriFFName;
         tempName2 = newFFName;
     }
-
+    
     fin.close();
-
-
+    
+    
     for(auto it: MBFFs_umap){
         MBFFs.push_back(it.second);
     }
