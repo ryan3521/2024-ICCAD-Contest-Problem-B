@@ -53,7 +53,8 @@ void banking::RunBanking(){
 
 
                 // Decide query point
-                Point query_point(targetFF->coox + targetFF->type->size_x/2, targetFF->cooy + targetFF->type->size_y/2);
+                // Point query_point(targetFF->coox + targetFF->type->size_x/2, targetFF->cooy + targetFF->type->size_y/2);
+                Point query_point(targetFF->coox, targetFF->cooy);
                 
                 // Query
                 std::vector<Value> nearest_results;
@@ -180,6 +181,10 @@ bool banking::cmp_ff_x(ffi* a, ffi* b){
     return a->coox < b->coox;
 }
 
+bool banking::cmp_ff_y(ffi* a, ffi* b){
+    return a->cooy < b->cooy;
+}
+
 bool banking::cmp_ff_slack(ffi* a, ffi* b){
     return a->d_pins.front()->slack < b->d_pins.front()->slack;
 }
@@ -231,11 +236,15 @@ bool banking::TestCluster(int targetSize, vector<Value>& nearest_result){
     
     pseudoFF->size = targetSize;
     for(auto& value: nearest_result) pseudoFF->members.push_back(value.second);
+    
     pseudoFF->type = LIB->fftable_cost[targetSize].front();
     pseudoFF->d_pins.reserve(targetSize);
     pseudoFF->q_pins.reserve(targetSize);
-    for(auto& value: nearest_result) pseudoFF->d_pins.push_back(value.second->d_pins.front());
-    for(auto& value: nearest_result) pseudoFF->q_pins.push_back(value.second->q_pins.front());
+    // for(auto& value: nearest_result) pseudoFF->d_pins.push_back(value.second->d_pins.front());
+    // for(auto& value: nearest_result) pseudoFF->q_pins.push_back(value.second->q_pins.front());
+    pseudoFF->members.sort(cmp_ff_y);
+    for(auto& f: pseudoFF->members) pseudoFF->d_pins.push_back(f->d_pins.front());
+    for(auto& f: pseudoFF->members) pseudoFF->q_pins.push_back(f->q_pins.front());
     pseudoFF->clk_pin = new pin;
     pseudoFF->update_coor();
 

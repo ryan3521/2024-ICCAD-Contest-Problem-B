@@ -49,6 +49,7 @@ class banking{
         int nameCount = 0;
 // ----------------------------------------
         static bool cmp_ff_x(ffi* a, ffi* b);
+        static bool cmp_ff_y(ffi* a, ffi* b);
         static bool cmp_ff_slack(ffi* a, ffi* b);
         static bool cmp_ff_gain(ffi* a, ffi* b);
 // ----------------------------------------

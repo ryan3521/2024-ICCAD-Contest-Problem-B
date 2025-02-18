@@ -23,7 +23,7 @@ OUTFILE = output.txt
 
 
 all: $(TARGET)
-	./$(TARGET) $(TC5) $(OUTFILE)
+	./$(TARGET) $(TC2) $(OUTFILE)
 
 # run
 run1:
