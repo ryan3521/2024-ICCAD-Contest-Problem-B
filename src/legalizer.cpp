@@ -561,7 +561,7 @@ bool UpdateGainAndTest(double x, double y, ffi* f, dieInfo* DIE){
     f->gain = f->gain - (DIE->Alpha)*timingDegradation;
 
     if(f->gain > 0){
-        if(f->gain < f->membersAreaPlusPowerGain) return false;
+        if(f->gain < f->membersAreaPlusPowerGain*1) return false;
         else return true;
     } 
     else {

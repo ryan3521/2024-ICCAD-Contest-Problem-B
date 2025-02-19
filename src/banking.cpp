@@ -56,10 +56,13 @@ void banking::RunBanking(){
                 // Point query_point(targetFF->coox + targetFF->type->size_x/2, targetFF->cooy + targetFF->type->size_y/2);
                 Point query_point(targetFF->coox, targetFF->cooy);
                 
+                
+                Rectangle query_box(Point(targetFF->coox, targetFF->cooy), Point(targetFF->coox + LIB->fftable_cost[target_size].front()->size_x, targetFF->cooy + LIB->fftable_cost[target_size].front()->size_y));
+            
                 // Query
                 std::vector<Value> nearest_results;
                 rtree.query(bgi::nearest(query_point, target_size), std::back_inserter(nearest_results));  
-
+                // rtree.query(bgi::intersects(query_box), std::back_inserter(nearest_results));
                 // If this cluster have positive gain, generate a new multibit ff        
                 bool success = TestCluster(target_size, nearest_results);
 
@@ -297,7 +300,29 @@ bool banking::TestCluster(int targetSize, vector<Value>& nearest_result){
         }
     }
     
-    if(totalGain > 0){
+    bool formNewMBFF = false;
+
+    if(target_size > 1){
+        if(totalGain <= 0){
+            formNewMBFF = false;
+        }
+        // else if(pseudoFF->membersAreaPlusPowerGain > totalGain){
+        //     formNewMBFF = false;
+        // }
+        else {
+            formNewMBFF = true;
+        }
+    }
+    else{
+        if(totalGain > 0){
+            formNewMBFF = true;
+        }
+        else{
+            formNewMBFF = false;
+        }
+    }
+
+    if(formNewMBFF == true){
         pseudoFF->gain = totalGain;
         
         // push into the ff group list
