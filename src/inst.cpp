@@ -583,12 +583,22 @@ void ffi::update_coor(){
     double ry = 0; // relative centroid
 
 
+
     double num = 0;
+
+
     for(auto p: d_pins){
         mx = mx + p->coox;
         my = my + p->cooy;
         num = num + 1;
     }
+    // for(auto p: d_pins){
+    //     mx = mx + p->to_net->ipins.front()->coox;
+    //     my = my + p->to_net->ipins.front()->cooy;
+    //     num = num + 1;
+    // }
+
+
     for(auto p: q_pins){
         mx = mx + p->coox;
         my = my + p->cooy;
@@ -601,8 +611,10 @@ void ffi::update_coor(){
     cen_y = my;
 
     for(int i=0; i<bit; i++){
-        rx = rx + type->d_pins[i].x_plus + type->q_pins[i].x_plus;
-        ry = ry + type->d_pins[i].y_plus + type->q_pins[i].y_plus;
+        rx += type->d_pins[i].x_plus;
+        rx += type->q_pins[i].x_plus;
+        ry += type->d_pins[i].y_plus;
+        ry += type->q_pins[i].y_plus;
     }
     rx = rx/(double)(2*bit);
     ry = ry/(double)(2*bit);
@@ -715,6 +727,41 @@ void ffi::getCriticalPath(int mode, double displacement_delay){
         }
         return;
     }
+}
+
+double ffi::CalculateGain(dieInfo* DIE){
+    for(auto& f: members){
+        // f->update_coor();
+        f->update_pin_loc();
+        f->CalculateTimingDegradation(DIE->displacement_delay);
+    }
+    
+    this->update_pin_loc();
+    double timingDegradation = this->CalculateTimingDegradation(DIE->displacement_delay);
+    double timingGain = (-1)*(DIE->Alpha)*timingDegradation;
+    double powerGain  = 0;
+    double areaGain   = 0; 
+
+    for(auto& f: members){
+        powerGain = powerGain + f->type->gate_power;
+        areaGain  = areaGain + f->type->area;
+    }
+
+    powerGain = (DIE->Beta)*(powerGain - this->type->gate_power);
+    areaGain  = (DIE->Gamma)*(areaGain - this->type->area);
+
+    double totalGain = timingGain + powerGain + areaGain;
+
+    // =====================================================
+    this->timingDegradation = 0;
+    for(double t: this->bitsTimingDegradation){
+        this->timingDegradation += t;
+    }
+
+
+
+
+    return totalGain;
 }
 
 gatei::gatei(string name, double coox, double cooy){
@@ -999,9 +1046,22 @@ double ffi::CalculateTimingDegradation(double displacementDelay){
 
     // Note: To get a accurate result, the pin's new coor and pre coor should be correct.
 
+    bool updateFlag  = false;
+    bool initialFlag = false;
 
-    // this->update_coor();
-    // this->update_pin_loc();
+    if(this->bitsTimingDegradation.size() == 0){
+        initialFlag = true;
+        this->bitsTimingDegradation.resize(this->size, 0);
+        this->bitsD_TimingDegradation.resize(this->size, 0);
+        this->bitsQ_TimingDegradation.resize(this->size, 0);
+        this->bitsGain.resize(this->size, 0);
+        this->timingDegradation = 0;
+        this->dpinsTimingDegradation = 0;
+        this->qpinsTimingDegradation = 0;
+    }
+    else{
+        updateFlag = true;
+    }
 
     for(int i=0; i<d_pins.size(); i++){
         auto dPin = d_pins[i];
@@ -1009,8 +1069,20 @@ double ffi::CalculateTimingDegradation(double displacementDelay){
 
         dPin->calculatingSlack = true;
         dPin->isVisited = false;
-        degradedSlack = degradedSlack + qPin->UpdateAndCalculateSlack(0, displacementDelay);
-        // cout << "q pin degraded slack: " << degradedSlack << endl;
+        double qPinDegradation = qPin->UpdateAndCalculateSlack(0, displacementDelay);
+        degradedSlack = degradedSlack + qPinDegradation;
+
+        if(initialFlag){
+            this->bitsQ_TimingDegradation[i] = qPinDegradation;
+            this->bitsTimingDegradation[i] += qPinDegradation;
+            this->qpinsTimingDegradation += qPinDegradation;
+        }
+        else if(updateFlag){
+            this->bitsQ_TimingDegradation[i] = qPinDegradation;
+            this->bitsTimingDegradation[i] += qPinDegradation;
+            this->qpinsTimingDegradation += qPinDegradation;
+        }
+
         dPin->calculatingSlack = false;
 
         if(dPin->isVisited == false){
@@ -1018,8 +1090,7 @@ double ffi::CalculateTimingDegradation(double displacementDelay){
             // calculate original slack
             double oriSlack = dPin->slack - (dPin->new_criticalPath_HPWL - dPin->criticalPath_HPWL)*displacementDelay;
 
-            // update new critical path HPWL       
-            
+            // update new critical path HPWL                   
             if(dPin->to_net->ipins.front()->pin_type == 'f') {
                 dPin->new_criticalPath_HPWL = + abs(dPin->new_coox - dPin->to_net->ipins.front()->new_coox)
                                               + abs(dPin->new_cooy - dPin->to_net->ipins.front()->new_cooy)
@@ -1036,25 +1107,38 @@ double ffi::CalculateTimingDegradation(double displacementDelay){
             }
             
             // calculate new slack
+            double dPinDegradation;
             double newSlack = dPin->slack - (dPin->new_criticalPath_HPWL - dPin->criticalPath_HPWL)*displacementDelay;
         
             if(newSlack < 0){
                 if(oriSlack < 0){
-                    degradedSlack = degradedSlack + (oriSlack - newSlack);
+                    dPinDegradation = (oriSlack - newSlack);
                 }
                 else{
-                    degradedSlack = degradedSlack + (0 - newSlack);
+                    dPinDegradation = (0 - newSlack);
                 }
             }
             else{
                 if(oriSlack < 0){
-                    degradedSlack = degradedSlack + oriSlack;
+                    dPinDegradation = oriSlack;
                 }
                 else{
-                    degradedSlack = degradedSlack;
+                    dPinDegradation = 0;
                 }
             }
-            // cout << degradedSlack << endl;
+
+            if(initialFlag){
+                this->bitsD_TimingDegradation[i] = dPinDegradation;
+                this->bitsTimingDegradation[i] += dPinDegradation;
+                this->dpinsTimingDegradation += dPinDegradation;
+            }
+            else if(updateFlag){
+                this->bitsD_TimingDegradation[i] = dPinDegradation;
+                this->bitsTimingDegradation[i] += dPinDegradation;
+                this->dpinsTimingDegradation += dPinDegradation;
+            }
+
+            degradedSlack = degradedSlack + dPinDegradation;
         }
         else{
             dPin->isVisited = false;

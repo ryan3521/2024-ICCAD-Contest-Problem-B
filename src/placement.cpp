@@ -574,14 +574,16 @@ void PlacementRow::PlaceTrial(ffi* f, int& bestRowIndex, int& bestSiteIndex, dou
     direction = 0;
     if(this->FindSpaceOrJump(idealcoox, idealcooy, globalMincost, askCoox, askCooy, replyCoox, width, height, direction, DIE)){
         globalMincost = abs(idealcoox - replyCoox) + abs(idealcooy - start_y);
+        // globalMincost = sqrt(pow((idealcoox - replyCoox),2) + pow((idealcooy - start_y),2));
         bestRowIndex = idx;
         bestSiteIndex = (replyCoox - start_x)/site_w;
         if(replyCoox > xmax) cout << "Error OUT OF RANGE (OVER)" << endl;
     }
-
+    
     direction = 1;
     if(this->FindSpaceOrJump(idealcoox, idealcooy, globalMincost, askCoox, askCooy, replyCoox, width, height, direction, DIE)){
         globalMincost = abs(idealcoox - replyCoox) + abs(idealcooy - start_y);
+        // globalMincost = sqrt(pow((idealcoox - replyCoox),2) + pow((idealcooy - start_y),2));
         bestRowIndex = idx;
         bestSiteIndex = (replyCoox - start_x)/site_w;
         if(replyCoox < start_x) cout << "Error OUT OF RANGE (BELOW)" << endl;

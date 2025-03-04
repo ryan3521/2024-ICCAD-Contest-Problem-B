@@ -71,6 +71,14 @@ class ffi{
         bool isClustered;
         double gain;
         double membersAreaPlusPowerGain;
+        double displacement;
+        vector<double> bitsGain;
+        vector<double> bitsTimingDegradation;
+        vector<double> bitsD_TimingDegradation;
+        vector<double> bitsQ_TimingDegradation;
+        double timingDegradation;
+        double dpinsTimingDegradation;
+        double qpinsTimingDegradation;
 
         // member function
         ffi(string, double, double);
@@ -87,7 +95,7 @@ class ffi{
         void getCriticalPath(int mode, double displacement_delay); // mode 0: original critical path , mode 1: new critical path
         double get_timing_cost(double x, double y, double displacement_delay);
         double CalculateTimingDegradation(double dispalcementDelay);
-
+        double CalculateGain(dieInfo* DIE);
 
 };
 

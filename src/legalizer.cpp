@@ -148,6 +148,7 @@ void Legalizer::PlaceGate(gatei* gatePointer){
     colj = (binMap[rowi][colj]->rowStartX > startx) ? colj - 1:colj;
 
     binMap[rowi][colj]->AddBlock(startx, starty, width, height);
+    binMap[rowi][colj]->AddGateArea(startx, starty, width, height);
     return;
 }
 
@@ -159,16 +160,27 @@ void Legalizer::LegalizeAllBins(){
     }
     allBins.sort(cmpBin);
 
+    int candidateFFNum = 0;
+    int maxCandidateBinNum = 0;
     for(auto b: allBins){
-        // cout << endl;
-        // cout << "Bin index: " << b->index << endl;
-        // cout << "rowi: " << b->rowi << endl;
-        // cout << "colj: " << b->colj << endl;
-        // cout << "to be legalize ffs: " << b->toBePlacedFFs.size() << endl;
-        b->LegalizeFFList();
-        // cout << "Legalizing fail ffs" << endl;
-        // LegalizeFailedFFs(b);
+        candidateFFNum += b->toBePlacedFFs.size();
+        // cout << "Bin" << b->index << ": " << b->toBePlacedFFs.size() << endl;
+        // if(b->toBePlacedFFs.size() > maxCandidateBinNum) maxCandidateBinNum = b->toBePlacedFFs.size();
     }
+    // cout << "Max candidate ffs in bin: " << maxCandidateBinNum << endl;
+    // cout << "Candidate Num: " << candidateFFNum << endl;
+
+    for(auto b: allBins){
+        b->LegalizeFFList();
+    }
+
+
+    int failFFNum = 0;
+    for(auto b: allBins){
+        failFFNum += b->placeFailFFs.size();
+    }
+    cout << "Fail FFs NUM: " << failFFNum << endl;
+
     for(auto b: allBins){
         LegalizeFailedFFs(b);
     }
@@ -181,6 +193,7 @@ void Legalizer::LegalizeFailedFFs(Bin* targetBin){
         ffi* f = targetBin->placeFailFFs.front();
         targetBin->placeFailFFs.pop_front();
 
+    
         if(ExpansionLegalize(targetBin, f, true) == false){
             cout << "Cannot find space to legalize (call by Legalizer::LegalizeFailedFFs)" << endl;
             break;
@@ -208,6 +221,8 @@ void Legalizer::FillTrivialGap(){
 void Legalizer::AddToBePlacedFF(ffi* f){
     // int rowi = f->cen_y/DIE->bin_height;
     // int colj = f->cen_x/DIE->bin_width;
+    // f->update_coor();
+
     int rowi = f->cooy/DIE->bin_height;
     int colj = f->coox/DIE->bin_width;
 
@@ -217,6 +232,84 @@ void Legalizer::AddToBePlacedFF(ffi* f){
     else if(colj >= mapWidth)  {colj = mapWidth - 1;}
 
     binMap[rowi][colj]->toBePlacedFFs.push_back(f);
+}
+
+void Legalizer::RemoveFFArea(ffi*  f){
+    int rowi = f->cooy/DIE->bin_height;
+    int colj = f->coox/DIE->bin_width;
+
+    if(rowi < 0) {rowi = 0;}
+    else if(rowi >= mapHeight) {rowi = mapHeight - 1;}
+    if(colj < 0) {colj = 0;}
+    else if(colj >= mapWidth)  {colj = mapWidth - 1;}
+
+    binMap[rowi][colj]->RemoveFFArea(f->coox, f->cooy, f->type->size_x, f->type->size_y);
+    return;
+}
+
+
+void Legalizer::FindLegalLocation(ffi* f){
+    int rowi = f->cooy/DIE->bin_height;
+    int colj = f->coox/DIE->bin_width;
+
+    if(rowi < 0) {rowi = 0;}
+    else if(rowi >= mapHeight) {rowi = mapHeight - 1;}
+    if(colj < 0) {colj = 0;}
+    else if(colj >= mapWidth)  {colj = mapWidth - 1;}
+
+    bool findLocation = false;
+    double minDisplacement = numeric_limits<double>::max();
+    double oriCoox = f->coox;
+    double oriCooy = f->cooy;
+    double bestCoox, bestCooy;
+
+    for(int i=-1; i<2; i++){
+        for(int j=-1; j<2; j++){
+            int ri = rowi + i;
+            int cj = colj + j;
+            
+            
+            if(ri >= mapHeight || cj >= mapWidth || ri < 0 || cj < 0){
+                continue;
+            }
+
+            if(binMap[ri][cj]->FindLegalLocation(f)){
+                findLocation = true;
+                // double displacement = abs(f->coox - oriCoox) + abs(f->cooy - oriCooy);
+                double displacement = pow(abs(f->coox - oriCoox) + abs(f->cooy - oriCooy), 2);
+                if(displacement < minDisplacement && binMap[ri][cj]->CheckDensity(f->coox, f->cooy, f->type->size_x, f->type->size_y)){
+                    minDisplacement = displacement;
+                    bestCoox = f->coox;
+                    bestCooy = f->cooy;
+                }
+                f->coox = oriCoox;
+                f->cooy = oriCooy;
+            }
+        }
+    }
+
+
+    if(findLocation){
+        f->coox = bestCoox;
+        f->cooy = bestCooy;
+    }
+    else{
+        if(ExpansionLegalize(binMap[rowi][colj], f, false) == false){
+            cout << "Can't find legal location" << endl;
+        }
+    }
+    
+    
+    rowi = f->cooy/DIE->bin_height;
+    colj = f->coox/DIE->bin_width;
+
+    if(rowi < 0) {rowi = 0;}
+    else if(rowi >= mapHeight) {rowi = mapHeight - 1;}
+    if(colj < 0) {colj = 0;}
+    else if(colj >= mapWidth)  {colj = mapWidth - 1;}
+
+    binMap[rowi][colj]->AddFFArea(f->coox, f->cooy, f->type->size_x, f->type->size_y);
+    return;
 }
 
 bool Legalizer::ExpansionLegalize(Bin* targetBin, ffi* f, bool place){
@@ -271,8 +364,19 @@ bool Legalizer::ExpansionLegalize(Bin* targetBin, ffi* f, bool place){
                     double cooy = findBin->rows[bestRowIndex]->start_y;
                     double cost = pow(f->coox - coox, 2) + pow(f->cooy - cooy, 2);
 
+                    // density check
+                    bool densityPass = false;
+                    if(place){
+                        densityPass = true;
+                    }
+                    else if(cost < globalMincost){
+                        if(findBin->CheckDensity(coox, cooy, f->type->size_x, f->type->size_y) == true){
+                            densityPass = true;
+                        }
+                    }
+                    
                     // compare with globalMincost
-                    if(cost < globalMincost){
+                    if(cost < globalMincost && densityPass){
                         globalMincost = cost;
                         bestBin          = findBin;
                         bestBinRowIndex  = bestRowIndex;
@@ -296,6 +400,19 @@ bool Legalizer::ExpansionLegalize(Bin* targetBin, ffi* f, bool place){
                     double cooy = findBin->rows[bestRowIndex]->start_y;
                     double cost = pow(f->coox - coox, 2) + pow(f->cooy - cooy, 2);
 
+
+                    // density check
+                    bool densityPass = false;
+                    if(place){
+                        densityPass = true;
+                    }
+                    else if(cost < globalMincost){
+                        if(findBin->CheckDensity(coox, cooy, f->type->size_x, f->type->size_y) == true){
+                            densityPass = true;
+                        }
+                    }
+                    
+                    
                     // compare with globalMincost
                     if(cost < globalMincost){
                         globalMincost = cost;
@@ -306,7 +423,7 @@ bool Legalizer::ExpansionLegalize(Bin* targetBin, ffi* f, bool place){
                 }
             }
         }
-
+        
         // Down
         //if(targetBin->index == 9624) cout << "Down" << endl;
         if(mini >= 0){
@@ -321,6 +438,17 @@ bool Legalizer::ExpansionLegalize(Bin* targetBin, ffi* f, bool place){
                     double cooy = findBin->rows[bestRowIndex]->start_y;
                     double cost = pow(f->coox - coox, 2) + pow(f->cooy - cooy, 2);
 
+                    // density check
+                    bool densityPass = false;
+                    if(place){
+                        densityPass = true;
+                    }
+                    else if(cost < globalMincost){
+                        if(findBin->CheckDensity(coox, cooy, f->type->size_x, f->type->size_y) == true){
+                            densityPass = true;
+                        }
+                    }
+                    
                     // compare with globalMincost
                     if(cost < globalMincost){
                         globalMincost = cost;
@@ -331,14 +459,14 @@ bool Legalizer::ExpansionLegalize(Bin* targetBin, ffi* f, bool place){
                 }
             }
         }
-
-
+        
+        
         // Left
         // if(targetBin->index == 9624) cout << "Left" << endl;
         if(minj >= 0){
             int starti   = (mini < 0) ? 0 : (mini + 1);
             int endi = (maxi < mapHeight) ? (maxi - 1) : (mapHeight - 1); 
-
+            
             for(int i=starti; i<=endi; i++){
                 Bin* findBin = binMap[i][minj];
                 if(findBin->FindAvailable(f, bestRowIndex, bestSiteIndex)){
@@ -347,6 +475,17 @@ bool Legalizer::ExpansionLegalize(Bin* targetBin, ffi* f, bool place){
                     double cooy = findBin->rows[bestRowIndex]->start_y;
                     double cost = pow(f->coox - coox, 2) + pow(f->cooy - cooy, 2);
 
+                    // density check
+                    bool densityPass = false;
+                    if(place){
+                        densityPass = true;
+                    }
+                    else if(cost < globalMincost){
+                        if(findBin->CheckDensity(coox, cooy, f->type->size_x, f->type->size_y) == true){
+                            densityPass = true;
+                        }
+                    }
+                    
                     // compare with globalMincost
                     if(cost < globalMincost){
                         globalMincost = cost;
@@ -365,7 +504,7 @@ bool Legalizer::ExpansionLegalize(Bin* targetBin, ffi* f, bool place){
 
                 f->coox = startx;
                 f->cooy = starty;
-
+            
                 if(UpdateGainAndTest(startx, starty, f, DIE) == true){
                     bestBin->PlaceFFAt(f, bestBinRowIndex, bestBinSiteIndex);
                 }
@@ -381,7 +520,7 @@ bool Legalizer::ExpansionLegalize(Bin* targetBin, ffi* f, bool place){
 
                 f->coox = startx;
                 f->cooy = starty;
-                f->update_pin_loc();
+                // f->update_pin_loc();
                 return true;
             }
         }
@@ -392,7 +531,8 @@ bool Legalizer::ExpansionLegalize(Bin* targetBin, ffi* f, bool place){
 }
 
 bool Legalizer::cmpBin(Bin* a, Bin* b){
-    return a->distanceToCentroid < b->distanceToCentroid;
+    // return a->distanceToCentroid < b->distanceToCentroid;
+    return a->gateCellArea > b->gateCellArea;
 }
 
 void Legalizer::FindAvailableAndUpdatePin(ffi* f){
@@ -443,6 +583,7 @@ Bin::Bin(int index, int rowi, int colj, double bottomLeftX, double bottomLeftY, 
     placeSuccessFFs.clear();
     placeFailFFs.clear();
     failSizeHistory.clear();
+    binArea = (upperRightX - bottomLeftX)*(upperRightY - bottomLeftY);
 }
 
 void Bin::AddRow(double startx, double starty, double siteWidth, double siteHeight, int siteNum){
@@ -521,11 +662,9 @@ void Bin::AddBlock(double startx, double starty, double width, double height){
     return;
 }
 
-bool Bin::TryToLegalizeFF(ffi* f){
+bool Bin::FindLegalLocation(ffi* f){
     int bestRowIndex;
     int bestSiteIndex;
-
-    // cout << "Try to legalize ff: " << f->name << endl;
 
     if(FindAvailable(f, bestRowIndex, bestSiteIndex)){
         double startx = rowStartX + rows[bestRowIndex]->site_w*bestSiteIndex;
@@ -533,10 +672,199 @@ bool Bin::TryToLegalizeFF(ffi* f){
 
         f->coox = startx;
         f->cooy = starty;
+        return true;
+    }
+    else{   
+        return false;
+    }
+}
+
+bool Bin::TryToLegalizeFF(ffi* f){
+    int bestRowIndex;
+    int bestSiteIndex;
+
+    bool find = false;
+    Bin* optBin = NULL;
+    Bin* targetBin = NULL;
+    int optRowIndex, optSiteIndex;
+    double minDisplace = numeric_limits<double>::max();
+    bool findNeighborBin = false;
+
+    // Self
+    if(FindAvailable(f, bestRowIndex, bestSiteIndex)){
+        find = true;
+        double startx = rowStartX + rows[bestRowIndex]->site_w*bestSiteIndex;
+        double starty = rows[bestRowIndex]->start_y;
+        double displace = pow((startx - f->coox), 2) + pow((starty - f->cooy), 2);
+        
+        if(minDisplace > displace){
+            minDisplace = displace;
+            optBin = this;
+            optRowIndex = bestRowIndex;
+            optSiteIndex = bestSiteIndex;
+        }
+    }
+    
+    if(findNeighborBin){
+
+        // Up
+        targetBin = upBin;
+        if(targetBin != NULL){
+            if(targetBin->FindAvailable(f, bestRowIndex, bestSiteIndex)){
+                find = true;
+                double startx = targetBin->rowStartX + targetBin->rows[bestRowIndex]->site_w*bestSiteIndex;
+                double starty = targetBin->rows[bestRowIndex]->start_y;
+                double displace = pow((startx - f->coox), 2) + pow((starty - f->cooy), 2);
+                
+                if(minDisplace > displace){
+                    minDisplace = displace;
+                    optBin = targetBin;
+                    optRowIndex = bestRowIndex;
+                    optSiteIndex = bestSiteIndex;
+                }
+            }
+        }
+        // Down
+        targetBin = downBin;
+        if(targetBin != NULL){
+            if(targetBin->FindAvailable(f, bestRowIndex, bestSiteIndex)){
+                find = true;
+                double startx = targetBin->rowStartX + targetBin->rows[bestRowIndex]->site_w*bestSiteIndex;
+                double starty = targetBin->rows[bestRowIndex]->start_y;
+                double displace = pow((startx - f->coox), 2) + pow((starty - f->cooy), 2);
+                
+                if(minDisplace > displace){
+                    minDisplace = displace;
+                    optBin = targetBin;
+                    optRowIndex = bestRowIndex;
+                    optSiteIndex = bestSiteIndex;
+                }
+            }
+        }
+        // Left
+        targetBin = leftBin;
+        if(targetBin != NULL){
+            if(targetBin->FindAvailable(f, bestRowIndex, bestSiteIndex)){
+                find = true;
+                double startx = targetBin->rowStartX + targetBin->rows[bestRowIndex]->site_w*bestSiteIndex;
+                double starty = targetBin->rows[bestRowIndex]->start_y;
+                double displace = pow((startx - f->coox), 2) + pow((starty - f->cooy), 2);
+                
+                if(minDisplace > displace){
+                    minDisplace = displace;
+                    optBin = targetBin;
+                    optRowIndex = bestRowIndex;
+                    optSiteIndex = bestSiteIndex;
+                }
+            }
+            
+            // Left - Up
+            targetBin = targetBin->upBin;
+            if(targetBin != NULL){
+                if(targetBin->FindAvailable(f, bestRowIndex, bestSiteIndex)){
+                    find = true;
+                    double startx = targetBin->rowStartX + targetBin->rows[bestRowIndex]->site_w*bestSiteIndex;
+                    double starty = targetBin->rows[bestRowIndex]->start_y;
+                    double displace = pow((startx - f->coox), 2) + pow((starty - f->cooy), 2);
+                    
+                    if(minDisplace > displace){
+                        minDisplace = displace;
+                        optBin = targetBin;
+                        optRowIndex = bestRowIndex;
+                        optSiteIndex = bestSiteIndex;
+                    }
+                }
+            }
+            targetBin = leftBin;
+            
+            // Left - Down
+            targetBin = targetBin->downBin;
+            if(targetBin != NULL){
+                if(targetBin->FindAvailable(f, bestRowIndex, bestSiteIndex)){
+                    find = true;
+                    double startx = targetBin->rowStartX + targetBin->rows[bestRowIndex]->site_w*bestSiteIndex;
+                    double starty = targetBin->rows[bestRowIndex]->start_y;
+                    double displace = pow((startx - f->coox), 2) + pow((starty - f->cooy), 2);
+                    
+                    if(minDisplace > displace){
+                        minDisplace = displace;
+                        optBin = targetBin;
+                        optRowIndex = bestRowIndex;
+                        optSiteIndex = bestSiteIndex;
+                    }
+                }
+            }
+            targetBin = leftBin;
+            
+        }
+        // Right
+        targetBin = rightBin;
+        if(targetBin != NULL){
+            if(targetBin->FindAvailable(f, bestRowIndex, bestSiteIndex)){
+                find = true;
+                double startx = targetBin->rowStartX + targetBin->rows[bestRowIndex]->site_w*bestSiteIndex;
+                double starty = targetBin->rows[bestRowIndex]->start_y;
+                double displace = pow((startx - f->coox), 2) + pow((starty - f->cooy), 2);
+                
+                if(minDisplace > displace){
+                    minDisplace = displace;
+                    optBin = targetBin;
+                    optRowIndex = bestRowIndex;
+                    optSiteIndex = bestSiteIndex;
+                }
+            }
+            
+            // Right - Up
+            targetBin = targetBin->upBin;
+            if(targetBin != NULL){
+                if(targetBin->FindAvailable(f, bestRowIndex, bestSiteIndex)){
+                    find = true;
+                    double startx = targetBin->rowStartX + targetBin->rows[bestRowIndex]->site_w*bestSiteIndex;
+                    double starty = targetBin->rows[bestRowIndex]->start_y;
+                    double displace = pow((startx - f->coox), 2) + pow((starty - f->cooy), 2);
+                    
+                    if(minDisplace > displace){
+                        minDisplace = displace;
+                        optBin = targetBin;
+                        optRowIndex = bestRowIndex;
+                        optSiteIndex = bestSiteIndex;
+                    }
+                }
+            }
+            targetBin = rightBin;
+            
+            // Right - Down
+            targetBin = targetBin->downBin;
+            if(targetBin != NULL){
+                if(targetBin->FindAvailable(f, bestRowIndex, bestSiteIndex)){
+                    find = true;
+                    double startx = targetBin->rowStartX + targetBin->rows[bestRowIndex]->site_w*bestSiteIndex;
+                    double starty = targetBin->rows[bestRowIndex]->start_y;
+                    double displace = pow((startx - f->coox), 2) + pow((starty - f->cooy), 2);
+                    
+                    if(minDisplace > displace){
+                        minDisplace = displace;
+                        optBin = targetBin;
+                        optRowIndex = bestRowIndex;
+                        optSiteIndex = bestSiteIndex;
+                    }
+                }
+            }
+            targetBin = rightBin;
+        }
+    }
+    
+
+    if(find){
+        double startx = optBin->rowStartX + optBin->rows[optRowIndex]->site_w*optSiteIndex;
+        double starty = optBin->rows[optRowIndex]->start_y;
+
+        f->coox = startx;
+        f->cooy = starty;
 
 
         if(UpdateGainAndTest(startx, starty, f, DIE) == true){
-            PlaceFFAt(f, bestRowIndex, bestSiteIndex);  
+            optBin->PlaceFFAt(f, optRowIndex, optSiteIndex);  
         }
         else{
             // Debank FF
@@ -556,15 +884,51 @@ bool UpdateGainAndTest(double x, double y, ffi* f, dieInfo* DIE){
     if(f->size == 1) return true;
 
     // Test FFs Gain
-    f->update_pin_loc();
-    double timingDegradation = f->CalculateTimingDegradation(DIE->displacement_delay);
-    f->gain = f->gain - (DIE->Alpha)*timingDegradation;
+    // f->update_pin_loc();
+    // double timingDegradation = f->CalculateTimingDegradation(DIE->displacement_delay);
+    // f->gain = f->gain - (DIE->Alpha)*timingDegradation;
+
+    f->gain = f->CalculateGain(DIE);
 
     if(f->gain > 0){
         if(f->gain < f->membersAreaPlusPowerGain*1) return false;
-        else return true;
+        else {
+            // if(f->size == 4){
+
+            //     cout << "FF Name: " << f->name << endl;
+            //     cout << "Total timing degradation: " << f->timingDegradation << endl;
+            //     cout << "-------------------------------------------------------------------------------------------------------" << endl;
+            //     for(int i=0; i<f->size; i++){
+            //         cout << "D" << i << " degradation: " << f->bitsD_TimingDegradation[i] << "   "; 
+            //     }
+            //     cout << endl;
+            //     cout << "-------------------------------------------------------------------------------------------------------" << endl;
+            //     for(int i=0; i<f->size; i++){
+            //         cout << "Q" << i << " degradation: " << f->bitsQ_TimingDegradation[i] <<  "   "; 
+            //     }
+            //     cout << endl;
+            //     cout << endl;
+            // }
+            return true;
+        }
     } 
     else {
+        // if(f->size == 4){
+
+        //     cout << "FF Name: " << f->name << endl;
+        //     cout << "Total timing degradation: " << f->timingDegradation << endl;
+        //     cout << "-------------------------------------------------------------------------------------------------------" << endl;
+        //     for(int i=0; i<f->size; i++){
+        //         cout << "D" << i << " degradation: " << f->bitsD_TimingDegradation[i] << "   "; 
+        //     }
+        //     cout << endl;
+        //     cout << "-------------------------------------------------------------------------------------------------------" << endl;
+        //     for(int i=0; i<f->size; i++){
+        //         cout << "Q" << i << " degradation: " << f->bitsQ_TimingDegradation[i] <<  "   "; 
+        //     }
+        //     cout << endl;
+        //     cout << endl;
+        // }
         return false;
     }
 }
@@ -692,6 +1056,7 @@ void Bin::LegalizeFFList(){
             // placeSuccessFFs.push_back(f);
         }
         else{
+            f->update_coor();
             placeFailFFs.push_back(f);
         }
 
@@ -712,7 +1077,9 @@ bool Bin::matchFailSizeHistory(ffi* f){
 }
 
 bool Bin::cmpFF(ffi* a, ffi* b){
-    return a->distanceToDieCentoid < b->distanceToDieCentoid;
+    // return a->distanceToDieCentoid < b->distanceToDieCentoid;
+    // return a->displacement > b->displacement;
+    return a->timingDegradation < b->timingDegradation;
 }
 
 void Bin::DeleteFFBlock(ffi* f){
@@ -751,4 +1118,166 @@ void Bin::FillTrivialGap(double gapWidth){
     }
     return;
 }
+
+void Bin::AddGateArea(double startx, double starty, double width, double height){
+    double endx = startx + width;
+    double endy = starty + height;
+    double limitedX;
+    double limitedY;
+    double limitedWidth;
+    double limitedHeight;
+
+    if(endx > upperRightX){
+        limitedX = upperRightX;
+        limitedWidth = limitedX - startx;
+        if(rightBin != NULL){
+            rightBin->AddGateArea(upperRightX, starty, endx - limitedX, height);
+        }
+    }
+    else{
+        limitedX = endx;
+        limitedWidth = limitedX - startx;
+    }
+
+    if(endy > upperRightY){
+        limitedY = upperRightY;
+        limitedHeight = limitedY - starty;
+        if(upBin != NULL){
+            upBin->AddGateArea(startx, upperRightY, limitedWidth, endy - limitedY);
+        }
+    }
+    else{
+        limitedY = endy;
+        limitedHeight = limitedY - starty;
+    }
+
+    gateCellArea += (limitedWidth*limitedHeight);
+
+    return;
+}
+
+void Bin::AddFFArea(double startx, double starty, double width, double height){
+    double endx = startx + width;
+    double endy = starty + height;
+    double limitedX;
+    double limitedY;
+    double limitedWidth;
+    double limitedHeight;
+
+    if(endx > upperRightX){
+        limitedX = upperRightX;
+        limitedWidth = limitedX - startx;
+        if(rightBin != NULL){
+            rightBin->AddFFArea(upperRightX, starty, endx - limitedX, height);
+        }
+    }
+    else{
+        limitedX = endx;
+        limitedWidth = limitedX - startx;
+    }
+
+    if(endy > upperRightY){
+        limitedY = upperRightY;
+        limitedHeight = limitedY - starty;
+        if(upBin != NULL){
+            upBin->AddFFArea(startx, upperRightY, limitedWidth, endy - limitedY);
+        }
+    }
+    else{
+        limitedY = endy;
+        limitedHeight = limitedY - starty;
+    }
+
+    ffCellArea += (limitedWidth*limitedHeight);
+
+    return;
+}
+
+void Bin::RemoveFFArea(double startx, double starty, double width, double height){
+    double endx = startx + width;
+    double endy = starty + height;
+    double limitedX;
+    double limitedY;
+    double limitedWidth;
+    double limitedHeight;
+
+    if(endx > upperRightX){
+        limitedX = upperRightX;
+        limitedWidth = limitedX - startx;
+        if(rightBin != NULL){
+            rightBin->RemoveFFArea(upperRightX, starty, endx - limitedX, height);
+        }
+    }
+    else{
+        limitedX = endx;
+        limitedWidth = limitedX - startx;
+    }
+
+    if(endy > upperRightY){
+        limitedY = upperRightY;
+        limitedHeight = limitedY - starty;
+        if(upBin != NULL){
+            upBin->RemoveFFArea(startx, upperRightY, limitedWidth, endy - limitedY);
+        }
+    }
+    else{
+        limitedY = endy;
+        limitedHeight = limitedY - starty;
+    }
+
+    ffCellArea -= (limitedWidth*limitedHeight);
+
+    return;
+}
+
+
+bool Bin::CheckDensity(double startx, double starty, double width, double height){
+    double endx = startx + width;
+    double endy = starty + height;
+    double limitedX;
+    double limitedY;
+    double limitedWidth;
+    double limitedHeight;
+
+    if(endx > upperRightX){
+        limitedX = upperRightX;
+        limitedWidth = limitedX - startx;
+        if(rightBin != NULL){
+            if(rightBin->CheckDensity(upperRightX, starty, endx - limitedX, height) == false){
+                return false;
+            }
+        }
+    }
+    else{
+        limitedX = endx;
+        limitedWidth = limitedX - startx;
+    }
+
+    if(endy > upperRightY){
+        limitedY = upperRightY;
+        limitedHeight = limitedY - starty;
+        if(upBin != NULL){
+            if(upBin->CheckDensity(startx, upperRightY, limitedWidth, endy - limitedY) == false){
+                return false;
+            }
+        }
+    }
+    else{
+        limitedY = endy;
+        limitedHeight = limitedY - starty;
+    }
+
+    double addedArea = (limitedWidth*limitedHeight);
+    double density = (gateCellArea + ffCellArea + addedArea)*100 / binArea;
+   
+    if(density >= DIE->bin_util){
+    // if(density >= 1000){
+        // cout << "Density: " << density << endl;
+        return false;
+    }
+    else{
+        return true;
+    }
+}
+
 

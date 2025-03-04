@@ -40,6 +40,7 @@ class banking{
         list<se*>  xseq;
         list<se*>  yseq;
         list<ffi*> tracking_list;
+        list<ffi*> testList;
         bgi::rtree<Value, bgi::quadratic<16>> rtree;
         
         cluster* cls;
@@ -51,7 +52,7 @@ class banking{
         static bool cmp_ff_x(ffi* a, ffi* b);
         static bool cmp_ff_y(ffi* a, ffi* b);
         static bool cmp_ff_slack(ffi* a, ffi* b);
-        static bool cmp_ff_gain(ffi* a, ffi* b);
+        static bool cmp_ff(ffi* a, ffi* b);
 // ----------------------------------------
         void CopyOriginalFFs();
         void InitialFFsCost();

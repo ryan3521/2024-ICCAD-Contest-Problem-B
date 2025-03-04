@@ -48,6 +48,8 @@ class Legalizer{
         void FindAvailableAndUpdatePin(ffi* f);
         void ClearAllBins();
         void DeleteFF(ffi* f);
+        void FindLegalLocation(ffi* f);
+        void RemoveFFArea(ffi* f);
 };
 
 class Bin{
@@ -63,13 +65,16 @@ class Bin{
         int rowNum = 0;
         int index, rowi, colj;
         bool finishLegalization = false;
-        // bool travelMark = false; 
+        double binArea = 0;
+        double gateCellArea = 0;
+        double ffCellArea = 0;
         double cenX, cenY;
         double bottomLeftX, bottomLeftY;
         double upperRightX, upperRightY;
         double rowStartX, rowEndX;
         double rowStartY, rowEndY;
         double distanceToCentroid;
+
         Bin* upBin;
         Bin* downBin;
         Bin* leftBin;
@@ -84,10 +89,15 @@ class Bin{
         Bin(int index, int rowi, int colj, double bottomLeftX, double bottomLeftY, double upperRightX, double upperRightY, dieInfo* DIE);
         void AddRow(double startx, double starty, double siteWidth, double siteHeight, int siteNum);
         void AddBlock(double startx, double starty, double width, double height);
+        void AddGateArea(double startx, double starty, double width, double height);
+        void AddFFArea(double startx, double starty, double width, double height);
+        void RemoveFFArea(double startx, double starty, double width, double height);
         void DeleteFFBlock(ffi* f);
         void LegalizeFFList();
         void PlaceFFAt(ffi* f, int bestRowIndex, int bestSiteIndex);
         void FillTrivialGap(double gapWidth);
+        bool CheckDensity(double startx, double starty, double width, double height);
+        bool FindLegalLocation(ffi* f);
         bool TryToLegalizeFF(ffi* f);
         bool FindAvailable(ffi* f, int& bestRowIndex, int& bestSiteIndex);
         bool matchFailSizeHistory(ffi* f); // true: in history, false: not in history
