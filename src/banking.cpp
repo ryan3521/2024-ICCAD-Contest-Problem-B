@@ -47,7 +47,7 @@ void banking::RunBanking(){
     bool break_flag = false;
 
     for(target_size=LIB->max_ff_size; target_size>=LIB->min_ff_size; target_size--){
-        for(int loop=0; loop<3; loop++){
+        for(int loop=0; loop<1; loop++){
             cout << endl << "Bank target size = " << target_size << endl;
             for(auto ff_list: ff_groups){
             
@@ -117,8 +117,7 @@ void banking::RunBanking(){
             }
         }
     }
-
-    cout << "Total Timing Degradation: " << totalDegradation << endl;
+    
     return;
 }
 

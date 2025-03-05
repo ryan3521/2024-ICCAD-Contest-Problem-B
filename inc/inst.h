@@ -40,6 +40,8 @@ class ffi{
         int size;
         string name;
         ffcell* type;
+        double idealCoox;
+        double idealCooy;
         double coox;
         double cooy;
         double cen_x;

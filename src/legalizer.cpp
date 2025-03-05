@@ -414,7 +414,7 @@ bool Legalizer::ExpansionLegalize(Bin* targetBin, ffi* f, bool place){
                     
                     
                     // compare with globalMincost
-                    if(cost < globalMincost){
+                    if(cost < globalMincost && densityPass){
                         globalMincost = cost;
                         bestBin          = findBin;
                         bestBinRowIndex  = bestRowIndex;
@@ -450,7 +450,7 @@ bool Legalizer::ExpansionLegalize(Bin* targetBin, ffi* f, bool place){
                     }
                     
                     // compare with globalMincost
-                    if(cost < globalMincost){
+                    if(cost < globalMincost && densityPass){
                         globalMincost = cost;
                         bestBin          = findBin;
                         bestBinRowIndex  = bestRowIndex;
@@ -487,7 +487,7 @@ bool Legalizer::ExpansionLegalize(Bin* targetBin, ffi* f, bool place){
                     }
                     
                     // compare with globalMincost
-                    if(cost < globalMincost){
+                    if(cost < globalMincost && densityPass){
                         globalMincost = cost;
                         bestBin          = findBin;
                         bestBinRowIndex  = bestRowIndex;
@@ -1279,5 +1279,3 @@ bool Bin::CheckDensity(double startx, double starty, double width, double height
         return true;
     }
 }
-
-

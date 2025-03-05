@@ -179,56 +179,6 @@ void PlacementRow::add_fblock(double start, double end){
 
 }
 
-bool PlacementRow::check_available(double start, double end, double height){
-    int si, ei;
-
-    if(start<start_x) return false;
-
-    if(end > xmax){
-        if(rightRow != NULL){
-            if(rightRow->check_available(xmax, end, height) == false){
-                return false;
-            }
-        }
-        end = xmax;
-    }
-
-    si = (start - start_x)/site_w;
-    ei = si + ceil((end - start)/site_w) - 1;
-
-
-    for(auto it = space_list.begin(); it!=space_list.end(); it++){
-        auto it_next = it;
-        it_next++;
-
-        if(it->second < si){
-            continue;
-        }
-        else if(it->first > ei){
-            return false;
-        }
-        else { // this space segment is overlapped with the checking target
-            if(it->first<=si && it->second>=ei){
-                if(height > site_h){
-                    if(upRow != NULL){
-                        if(upRow->check_available(start, end, height - site_h) == true) return true;
-                    }
-                    else{
-                        return true;
-                    }
-                }
-                else{
-                    return true;
-                }
-            }
-            else{
-                return false;
-            }
-        }
-    }
-
-    return false;
-}
 
 bool PlacementRow::height_available(double height){
     if(height <= site_h) return true;
@@ -308,89 +258,12 @@ void PlacementRow::delete_ff(double start, double end, double height){
     return;
 }
 
-
-// ds: start idx, de: end idx
-bool PlacementRow::seg_mincost(ffi* fi, int ds, int de, int dw, int& best_pos_idx, double& mincost, bool dir, bool set_constrain){
-    bool find_new = false;
-    double s; // absolute value, not relative
-    double e;
-    double cost;
-
-    if(de - ds + 1 < dw) return false;
-
-    if(dir==0){
-        s = start_x + ds*site_w;
-        e = s + fi->type->size_x;
-        for(int i=ds; (i+dw-1)<=de; i++){
-            if(mincost <= (s - fi->coox) || fi->x_allow_dis <= (s - fi->coox)) break;
-            if(this->check_available(s, e, fi->type->size_y) == true){
-                if(abs(fi->coox - s) > fi->x_allow_dis) break;
-                
-                cost = abs(fi->coox - s) + abs(fi->cooy - start_y);
-
-                if(cost < mincost) {
-                    mincost = cost;
-                    best_pos_idx = i;
-                    find_new = true;
-                    if(set_constrain == false){
-                        fi->x_allow_dis = mincost;
-                        fi->y_allow_dis = mincost;
-                    }
-                    else if(fi->y_allow_dis > mincost && fi->x_allow_dis > mincost){
-                        fi->x_allow_dis = mincost;
-                        fi->y_allow_dis = mincost;
-                    }
-                    return find_new;
-                }
-                else{
-                    return find_new;
-                }
-            }
-            s = s + site_w;
-            e = e + site_w;
-        }
-    }
-    else{
-        s = start_x + (de-dw+1)*site_w;
-        e = s + fi->type->size_x;
-        for(int i=de-dw+1; i>=ds; i--){
-            if(mincost <= (fi->coox - s) || fi->x_allow_dis <= (fi->coox - s)) break;
-            if(this->check_available(s, e, fi->type->size_y) == true){
-                if(abs(fi->coox - s) > fi->x_allow_dis) break;
-
-                cost = abs(fi->coox - s) + abs(fi->cooy - start_y);
-
-                if(cost < mincost) {
-                    mincost = cost;
-                    best_pos_idx = i;
-                    find_new = true;
-                    if(set_constrain == false){
-                        fi->x_allow_dis = mincost;
-                        fi->y_allow_dis = mincost;
-                    }
-                    else if(fi->y_allow_dis > mincost && fi->x_allow_dis > mincost){
-                        fi->x_allow_dis = mincost;
-                        fi->y_allow_dis = mincost;
-                    }
-                    return find_new;
-                }
-                else{
-                    return find_new;
-                }
-            }
-            s = s - site_w;
-            e = e - site_w;
-        }
-    }
-    return find_new;
-}
-
-bool PlacementRow::FindSpaceOrJump(double idealcoox, double idealcooy, double globalMincost, double askCoox, double askCooy, double& replyCoox, double width, double height, bool direction, dieInfo& DIE){
+bool PlacementRow::FindSpaceOrJump(double idealcoox, double idealcooy, double globalMincost, double askCoox, double askCooy, double& replyCoox, double width, double height, bool direction, dieInfo& DIE, bool print){
     bool find = false;
     bool haveSpace = false;
 
     if(direction){
-        if(askCoox == xmax - site_w) return false;
+        // if(askCoox == xmax - site_w) return false;
 
         auto space_itr = space_list.begin();
         while(space_itr != space_list.end()){
@@ -444,7 +317,7 @@ bool PlacementRow::FindSpaceOrJump(double idealcoox, double idealcooy, double gl
                         replyCoox = askCoox;
                         return true;
                     }
-                    else if(upRow->FindSpaceOrJump(idealcoox, idealcooy, globalMincost, askCoox, askCooy, replyCoox, width, height - site_h, direction, DIE)){
+                    else if(upRow->FindSpaceOrJump(idealcoox, idealcooy, globalMincost, askCoox, askCooy, replyCoox, width, height - site_h, direction, DIE, print)){
                         if(replyCoox == askCoox){
                             return true;
                         }
@@ -471,8 +344,8 @@ bool PlacementRow::FindSpaceOrJump(double idealcoox, double idealcooy, double gl
         return false;
     }
     else{
-        if(askCoox == start_x) return false;
-
+        // if(askCoox == start_x) return false;
+        if(print) cout << "Find row" << idx << " space, askCoox = " << askCoox << endl;
         auto space_itr = space_list.rbegin();
         while(space_itr != space_list.rend()){
             double spaceStart = start_x + space_itr->first*site_w;
@@ -502,31 +375,45 @@ bool PlacementRow::FindSpaceOrJump(double idealcoox, double idealcooy, double gl
             haveSpace = false;
 
             if(askCoox+width <= spaceStart){
+                if(print){
+                    cout << "1" << endl;
+                }
                 space_itr++;
                 continue;
             }
             else if(spaceEnd < askCoox+width){
+                if(print){
+                    cout << "2" << endl;
+                }
                 find = false;
                 askCoox = spaceEnd - ceil(width/site_w)*site_w;
                 continue;
             }
             else if(spaceStart <= askCoox){
+                if(print){
+                    cout << "3: ask Coox = " << askCoox << endl;
+                }
                 haveSpace = true;
             }
 
 
             if(haveSpace){
+
                 if(find){
                     replyCoox = askCoox;
+                    if(print) cout << "return true" << endl;
                     return true;
                 }
                 if(height-site_h > 0){
                     if(upRow == NULL){
                         replyCoox = askCoox;
+                        if(print) cout << "return true" << endl;
                         return true;
                     }
-                    else if(upRow->FindSpaceOrJump(idealcoox, idealcooy, globalMincost, askCoox, askCooy, replyCoox, width, height - site_h, direction, DIE)){
+                    else if(upRow->FindSpaceOrJump(idealcoox, idealcooy, globalMincost, askCoox, askCooy, replyCoox, width, height - site_h, direction, DIE, print)){
+                        if(print) cout << "Back to row" << idx << ", Reply coox = " << replyCoox << endl;
                         if(replyCoox == askCoox){
+                            if(print) cout << "return true" << endl;
                             return true;
                         }
                         else{
@@ -536,6 +423,7 @@ bool PlacementRow::FindSpaceOrJump(double idealcoox, double idealcooy, double gl
                         }
                     }
                     else{
+                        if(print) cout << "return false" << endl;
                         return false;
                     }
                 }
@@ -570,95 +458,60 @@ void PlacementRow::PlaceTrial(ffi* f, int& bestRowIndex, int& bestSiteIndex, dou
     double askCooy = start_y; 
 
     if(askCoox > xmax - site_w) askCoox = xmax - site_w;
+    if(askCoox < start_x) askCoox = start_x;
 
+    // if(start_x == 1308150 && (start_y>=223200 && start_y<247200) && f->name == "NEWFF21213"){
+    //     cout << "row index " << idx  << endl;
+    //     askCoox = 1332660;
+    // }
+    
     direction = 0;
-    if(this->FindSpaceOrJump(idealcoox, idealcooy, globalMincost, askCoox, askCooy, replyCoox, width, height, direction, DIE)){
+    bool print = false;
+
+    // if(start_x == 1308150 && (start_y>=223200 && start_y<247200) && f->name == "NEWFF21213"){
+    //     if(idx == 6) print = true;
+    // }
+
+
+
+    if(this->FindSpaceOrJump(idealcoox, idealcooy, globalMincost, askCoox, askCooy, replyCoox, width, height, direction, DIE, print)){
         globalMincost = abs(idealcoox - replyCoox) + abs(idealcooy - start_y);
         // globalMincost = sqrt(pow((idealcoox - replyCoox),2) + pow((idealcooy - start_y),2));
         bestRowIndex = idx;
         bestSiteIndex = (replyCoox - start_x)/site_w;
         if(replyCoox > xmax) cout << "Error OUT OF RANGE (OVER)" << endl;
+        if(replyCoox < start_x) cout << "Error OUT OF RANGE (BELOW)" << endl;
+        // if(start_x == 1308150 && (start_y>=223200 && start_y<247200) && f->size == 4){
+        //     if(globalMincost != numeric_limits<double>::max()){
+        //         cout << f->name << " find: " << f->type->size_x << endl;
+        //         cout << fixed << "askedcoox " << askCoox << endl;
+        //         cout << fixed << "idealcoox " << idealcoox << endl;
+        //         cout << fixed << "replycoox " << replyCoox << endl;
+        //     }
+        // }
     }
     
+    print = false;
     direction = 1;
-    if(this->FindSpaceOrJump(idealcoox, idealcooy, globalMincost, askCoox, askCooy, replyCoox, width, height, direction, DIE)){
+    if(this->FindSpaceOrJump(idealcoox, idealcooy, globalMincost, askCoox, askCooy, replyCoox, width, height, direction, DIE, print)){
         globalMincost = abs(idealcoox - replyCoox) + abs(idealcooy - start_y);
         // globalMincost = sqrt(pow((idealcoox - replyCoox),2) + pow((idealcooy - start_y),2));
         bestRowIndex = idx;
         bestSiteIndex = (replyCoox - start_x)/site_w;
+        if(replyCoox > xmax) cout << "Error OUT OF RANGE (OVER)" << endl;
         if(replyCoox < start_x) cout << "Error OUT OF RANGE (BELOW)" << endl;
+        // if(start_x == 1308150 && (start_y>=223200 && start_y<247200) && f->size == 4){
+        //     if(globalMincost != numeric_limits<double>::max()){
+        //         cout <<f->name << " find" << endl;
+    
+        //     }
+        // }
     }
 
     return;
 }
 
-double PlacementRow::place_trial(ffi* fi, bool& available, int& best_pos_idx, double global_mincost, bool set_constrain){ // ax is available x coordinate
-    available = false;
-    double mincost = global_mincost; // local mincost
-    double h = fi->type->size_y;
-    double w = fi->type->size_x;
-    double sy = fi->cooy;
-    double sx = fi->coox;
-    int dw = ceil(w/site_w); // discrete width
-    // dx is the discrete index which is closest to the sx 
-    int dx = (round((sx-start_x)/site_w) < 0) ? 0 : (round((sx-start_x)/site_w) >= site_num) ? (site_num-1) : round((sx-start_x)/site_w); 
 
-
-
-    // preliminary examination: begin
-    // if(this->height_available(h) == false) return mincost;
-    // if(this->x_inrange(sx, sx+w) == false){
-    //     if(sx < start_x){
-    //         if(abs(sx - start_x) >= fi->x_allow_dis) return mincost;
-    //         if(abs(sx - start_x) + abs(start_y - sy) >= global_mincost) return mincost;
-    //     }
-    //     else{
-    //         if(abs(start_x + site_num*site_w - w - sx) + abs(start_y - sy) >= global_mincost) return mincost;
-    //     }
-    // }
-    // preliminary examination: end
-
-
-    for(auto It = space_list.begin(); It!=space_list.end(); It++){
-        if((It->second - It->first + 1) >= dw){
-            if(It->first > dx){
-                if(abs((fi->coox) - (start_x+(It->first*site_w))) > fi->x_allow_dis) break;
-                if(available == true){
-                    if(abs(best_pos_idx - dx) < abs(It->first - dx)) break;
-                }
-                if(this->seg_mincost(fi, It->first, It->second, dw, best_pos_idx, mincost, 0, set_constrain) == true){ 
-                    available = true;
-                    break;
-                }
-            }
-            else if(dx>=It->first && dx<=It->second){
-                int de = (dx + dw - 1)<=(It->second) ? (dx + dw - 1):(It->second);
-                if(this->seg_mincost(fi, It->first, de, dw, best_pos_idx, mincost, 1, set_constrain) == true){
-                    available = true;
-                }
-                if(this->seg_mincost(fi, dx, It->second, dw, best_pos_idx, mincost, 0, set_constrain) == true){
-                    available = true;
-                    break;
-                }
-            }
-            else{
-                if(abs((fi->coox+fi->type->size_x) - (start_x+(It->second+1)*site_w)) > fi->x_allow_dis) continue;    
-                if(this->seg_mincost(fi, It->first, It->second, dw, best_pos_idx, mincost, 1, set_constrain) == true){
-                    available = true;
-                }
-            }
-        }
-    }
-
-    return mincost;
-}
-
-
-double PlacementRow::closest_x(double x){
-    if(x < start_x) return start_x;
-    else if(x > (start_x + site_num*site_w)) return (start_x + site_num*site_w);
-    else return x;
-}
 
 void PlacementRow::FillGap(double gapWidth){
     int min_w = ceil(gapWidth/site_w);
@@ -682,76 +535,6 @@ void PlacementRow::FillGap(double gapWidth){
             itr++;
         }
     }
-}
-
-int PlacementRow::FillDummy(double width){
-    int min_w = ceil(width/site_w);
-    int space_w;
-    int cnt = 0;
-    allDummy.clear();
-
-    auto itr = space_list.begin();
-    while(itr != space_list.end()){
-        space_w = itr->second - itr->first + 1;
-        if(space_w < min_w){
-            Dummy* dummyPointer = new Dummy;
-            dummyPointer->start = itr->first;
-            dummyPointer->end   = itr->second;
-            allDummy.push_back(dummyPointer);
-            itr = space_list.erase(itr);
-            cnt++;
-        }
-        else{
-            itr++;
-        }
-    }
-    return cnt;
-}
-
-void PlacementRow::ClearDummy(){
-    if(allDummy.empty()) return;
-
-    
-    if(space_list.empty()){
-        space_list.push_back(pair<int, int>(allDummy.front()->start, allDummy.front()->end));
-        delete allDummy.front();
-        allDummy.pop_front();
-        if(allDummy.empty()) return;
-    }
-    else if(space_list.front().first > allDummy.front()->end){
-        space_list.push_front(pair<int, int>(allDummy.front()->start, allDummy.front()->end));
-        delete allDummy.front();
-        allDummy.pop_front();
-        if(allDummy.empty()) return;
-    }
-
-    // now the space list won't be empty 
-    // and the "first space" in the space list must be front of the "first dummy"
-
-    auto front_it = space_list.begin();
-    auto it = space_list.begin();
-    while(allDummy.empty() == false){
-        if(it == space_list.end()){
-            space_list.insert(it, pair<int, int>(allDummy.front()->start, allDummy.front()->end));    
-            delete allDummy.front();
-            allDummy.pop_front();
-            continue;
-        }
-        
-        
-        if(front_it->second < allDummy.front()->start && it->first > allDummy.front()->end){
-            space_list.insert(front_it, pair<int, int>(allDummy.front()->start, allDummy.front()->end));    
-            delete allDummy.front();
-            allDummy.pop_front();
-            front_it++;
-        }
-        else{
-            front_it = it;
-            it++;
-        }
-    }
-
-    return;
 }
 
 
@@ -795,372 +578,4 @@ void placement::initial(){
     for(int i=0; i<rows.size(); i++) { rows[i]->idx = i; }
 
     return;
-}
-
-int placement::closest_IDX(double x, double y){
-    int idx;
-    double cost;
-    double mincost = numeric_limits<double>::max();;
-    double y_diff;
-    double min_y_diff = numeric_limits<double>::max();;
-    int eva_idx = (y - rows[0]->start_y)/rows[0]->site_h;
-
-
-    if(eva_idx >= rows.size()) eva_idx = rows.size() - 1;
-    else if(eva_idx < 0) eva_idx = 0;
-
-    int i = eva_idx;
-
-    // Step 1. find the row index whith minimal y_diff (== abs(rows[i]->start_y - y))
-    // Find up
-    while(i<rows.size()){
-        y_diff = abs(rows[i]->start_y - y);
-        if(y_diff < min_y_diff){
-            idx = i;
-            i++;
-            min_y_diff = y_diff;
-        }
-        else{
-            break;
-        }
-    }
-    // Find down 
-    i = eva_idx - 1;
-    while(i>=0){
-        y_diff = abs(rows[i]->start_y - y);
-        if(y_diff < min_y_diff){
-            idx = i;
-            i--;
-            min_y_diff = y_diff;
-        }
-        else{
-            break;
-        }
-    }
-    
-    // Step 2. Calculate mincost
-    if(rows[idx]->x_inrange(x, x)) return idx;
-    else if(x < rows[idx]->start_x) mincost = min_y_diff + (rows[idx]->start_x - x);
-    else mincost = min_y_diff + (x - (rows[idx]->start_x + rows[idx]->site_num*rows[idx]->site_w));
-
-    // Step 3. Calculate cost for each row which row's abs(start_y-y) < mincost
-    int min_y_idx = idx;
-    // Find up
-    i = min_y_idx;
-    while(i<rows.size()){
-        y_diff = abs(rows[i]->start_y - y);
-        if(y_diff >= mincost) break;
-        else{
-            if(rows[i]->x_inrange(x, x)) cost = y_diff;
-            else if(x < rows[i]->start_x) cost = y_diff + (rows[i]->start_x - x);
-            else cost = y_diff + (x - (rows[i]->start_x + rows[i]->site_num*rows[i]->site_w));
-
-            if(cost < mincost){
-                idx = i;
-                mincost = cost;
-            }
-            i++;
-        }
-    }
-    // Find down
-    i = min_y_idx - 1;
-    while(i>=0){
-        y_diff = abs(rows[i]->start_y - y);
-        if(y_diff >= mincost) break;
-        else{
-            if(rows[i]->x_inrange(x, x)) cost = y_diff;
-            else if(x < rows[i]->start_x) cost = y_diff + (rows[i]->start_x - x);
-            else cost = y_diff + (x - (rows[i]->start_x + rows[i]->site_num*rows[i]->site_w));
-
-            if(cost < mincost){
-                idx = i;
-                mincost = cost;
-            }
-            i--;
-        }
-    }
-
-    return idx;
-}
-
-
-void placement::FillDummy(double min_width){
-
-    // Fill the dummy for each row
-    int cnt = 0;
-    for(auto r: rows){
-        cnt = cnt + r->FillDummy(min_width);
-    }
-    cout << "Fill Dummy: " << cnt << endl;
-    return;
-}
-
-void placement::ClearDummy(){
-    for(auto r: rows){
-        r->ClearDummy();
-    }
-    return;
-}
-
-
-void placement::GatePlacement(){
-
-    for(auto it: INST->gate_umap){
-        gatei* g = it.second;
-        placeGateInst(g, g->coox, g->cooy, g->type->size_x, g->type->size_y);
-    }
-
-    double min_width = numeric_limits<double>::max();
-    for(auto& ffcell_list: LIB->fftable_cost){
-        for(auto& type: ffcell_list){
-            if(type->size_x < min_width){
-                min_width = type->size_x;
-            }
-        }
-    }
-    for(auto r: rows){
-        r->FillGap(min_width);
-    }
-    return;
-}
-
-void placement::placeGateInst(gatei* g, double x, double y, double w, double h){
-        bool fit; // useless
-        double xmin = x;
-        double xmax = x + w;
-        double ymin = y;
-        double ymax = y + h;
-
-        int closest_idx = closest_IDX(x, y);
-        int idx = closest_idx;
-        // find up 
-        while(idx < rows.size()){
-            if(rows[idx]->start_y > ymax) break;
-
-            if(rows[idx]->x_overlapped(xmin, xmax, fit)==true && rows[idx]->y_overlapped(ymin, ymax)==true){
-                if(rows[idx]->x_inrange(xmin, xmax)==true && rows[idx]->y_inrange(ymin, ymax)==true){
-                    rows[idx]->AddBlockAnyway(xmin, xmax);
-                    return;
-                }
-                else if(rows[idx]->x_inrange(xmin, xmax)==true){
-                    rows[idx]->AddBlockAnyway(xmin, xmax);
-                    if(ymin < rows[idx]->start_y){
-                        placeGateInst(g, xmin, ymin, w, rows[idx]->start_y - ymin);
-                    }
-                    if(ymax > rows[idx]->ymax){
-                        placeGateInst(g, xmin, rows[idx]->ymax, w, ymax - rows[idx]->ymax);
-                    }
-                    return;
-                }
-                else if(rows[idx]->y_inrange(ymin, ymax)==true){
-                    rows[idx]->AddBlockAnyway(xmin, xmax);
-                    if(xmin < rows[idx]->start_x){
-                        placeGateInst(g, xmin, ymin, rows[idx]->start_x - xmin, h);
-                    }
-                    if(xmax > rows[idx]->xmax){
-                        placeGateInst(g, rows[idx]->xmax, ymin, xmax - rows[idx]->xmax, h);
-                    }
-                    return;
-                }
-                else{
-                    rows[idx]->AddBlockAnyway(xmin, xmax);
-                    if(xmin < rows[idx]->start_x){
-                        placeGateInst(g, xmin, ymin, rows[idx]->start_x - xmin, h);
-                        xmin = rows[idx]->start_x;
-                    }
-                    if(xmax > rows[idx]->xmax){
-                        placeGateInst(g, rows[idx]->xmax, ymin, xmax - rows[idx]->xmax, h);
-                        xmax = rows[idx]->xmax;
-                    }
-                    if(ymin < rows[idx]->start_y){
-                        placeGateInst(g, xmin, ymin, w, rows[idx]->start_y - ymin);
-                    }
-                    if(ymax > rows[idx]->ymax){
-                        placeGateInst(g, xmin, rows[idx]->ymax, w, ymax - rows[idx]->ymax);
-                    }
-                    return;
-                }
-                break;
-            }
-            else{
-                idx++;
-            }
-        }
-
-        // find down
-        idx = closest_idx - 1;
-        while(idx >= 0){
-            if(rows[idx]->ymax < ymin) break;
-
-           if(rows[idx]->x_overlapped(xmin, xmax, fit)==true && rows[idx]->y_overlapped(ymin, ymax)==true){
-                if(rows[idx]->x_inrange(xmin, xmax)==true && rows[idx]->y_inrange(ymin, ymax)==true){
-                    rows[idx]->AddBlockAnyway(xmin, xmax);
-                    return;
-                }
-                else if(rows[idx]->x_inrange(xmin, xmax)==true){
-                    rows[idx]->AddBlockAnyway(xmin, xmax);
-                    if(ymin < rows[idx]->start_y){
-                        placeGateInst(g, xmin, ymin, w, rows[idx]->start_y - ymin);
-                    }
-                    if(ymax > rows[idx]->ymax){
-                        placeGateInst(g, xmin, rows[idx]->ymax, w, ymax - rows[idx]->ymax);
-                    }
-                    return;
-                }
-                else if(rows[idx]->y_inrange(ymin, ymax)==true){
-                    rows[idx]->AddBlockAnyway(xmin, xmax);
-                    if(xmin < rows[idx]->start_x){
-                        placeGateInst(g, xmin, ymin, rows[idx]->start_x - xmin, h);
-                    }
-                    if(xmax > rows[idx]->xmax){
-                        placeGateInst(g, rows[idx]->xmax, ymin, xmax - rows[idx]->xmax, h);
-                    }
-                    return;
-                }
-                else{
-                    rows[idx]->AddBlockAnyway(xmin, xmax);
-                    if(xmin < rows[idx]->start_x){
-                        placeGateInst(g, xmin, ymin, rows[idx]->start_x - xmin, h);
-                        xmin = rows[idx]->start_x;
-                    }
-                    if(xmax > rows[idx]->xmax){
-                        placeGateInst(g, rows[idx]->xmax, ymin, xmax - rows[idx]->xmax, h);
-                        xmax = rows[idx]->xmax;
-                    }
-                    if(ymin < rows[idx]->start_y){
-                        placeGateInst(g, xmin, ymin, w, rows[idx]->start_y - ymin);
-                    }
-                    if(ymax > rows[idx]->ymax){
-                        placeGateInst(g, xmin, rows[idx]->ymax, w, ymax - rows[idx]->ymax);
-                    }
-                    return;
-                }
-                break;
-            }
-            else{
-                idx--;
-            }
-        }
-
-
-    return;
-}
-
-bool placement::ff_cmp(ffi* a, ffi* b){
-    return a->coox < b->coox;
-}
-
-void placement::place_formal(ffi* fi, PlacementRow* best_row, int best_pos_idx){
-    double start = best_row->start_x + best_pos_idx*best_row->site_w;
-    double end = start + fi->type->size_x;
-   
-    fi->coox = start;
-    fi->cooy = best_row->start_y;
-    fi->update_pin_loc();
-    best_row->add_ff(start, end, fi->type->size_y);
-    return;
-}
-
-void placement::PlaceBackFlipFlop(ffi* f){
-    PlacementRow* best_row = rows[f->index_to_placement_row];
-    int best_pos_idx = f->index_to_site;
-
-    double start = best_row->start_x + best_pos_idx*best_row->site_w;
-    double end = start + f->type->size_x;
-    best_row->add_ff(start, end, f->type->size_y);
-}
-
-bool placement::placeFlipFlop(ffi* f, bool set_constrain, double displace_constrain){
-    int idx;
-    int closest_idx;
-    bool available;
-    int best_pos_idx;
-    double global_mincost = numeric_limits<double>::max();
-    double row_mincost;
-    PlacementRow* best_row = NULL;
-    int best_site_idx;
-    int best_row_idx;
-    bool place_success = false;
-
-    int search_row_count = 0;
-
-
-    closest_idx = closest_IDX(f->coox, f->cooy);
-    
-    if(set_constrain){
-        double displace = (f->type->size_x + f->type->size_y) / 2;
-        f->x_allow_dis = (displace)*(displace_constrain/100);
-        f->y_allow_dis = (displace)*(displace_constrain/100);
-    }
-    else{
-        f->x_allow_dis = numeric_limits<double>::max();
-        f->y_allow_dis = numeric_limits<double>::max();
-    }
-    
-
-    // find up
-    idx = closest_idx;
-    while(idx < rows.size()){
-        if(rows[idx]->start_y - f->cooy > f->y_allow_dis) break;
-        else if(f->cooy - rows[idx]->start_y > f->y_allow_dis) { idx++; continue;}
-
-        search_row_count++;
-        
-        row_mincost = rows[idx]->place_trial(f, available, best_pos_idx, global_mincost, set_constrain);
-        if(available && global_mincost>=row_mincost){
-            global_mincost = row_mincost;
-            best_site_idx = best_pos_idx;
-            best_row = rows[idx];
-            best_row_idx = idx;
-            place_success = true;
-            if(set_constrain == false){
-                f->x_allow_dis = global_mincost;
-                f->y_allow_dis = global_mincost;
-            }
-            else if(f->y_allow_dis > global_mincost && f->x_allow_dis > global_mincost){
-                f->x_allow_dis = global_mincost;
-                f->y_allow_dis = global_mincost;
-            }
-        }
-        idx++;
-    }
-
-    // find down
-    idx = closest_idx - 1;
-    while(idx >= 0){
-        if(f->cooy - rows[idx]->start_y > f->y_allow_dis) break;
-        else if(rows[idx]->start_y - f->cooy > f->y_allow_dis) { idx--; continue;}
-
-        search_row_count++;
-        row_mincost = rows[idx]->place_trial(f, available, best_pos_idx, global_mincost, set_constrain);
-        if(available && global_mincost>row_mincost){
-            global_mincost = row_mincost;
-            best_site_idx = best_pos_idx;
-            best_row = rows[idx];
-            best_row_idx = idx;
-            place_success = true;
-            if(set_constrain == false){
-                f->x_allow_dis = global_mincost;
-                f->y_allow_dis = global_mincost;
-            }
-            else if(f->y_allow_dis > global_mincost && f->x_allow_dis > global_mincost){
-                f->x_allow_dis = global_mincost;
-                f->y_allow_dis = global_mincost;
-            }
-            if(global_mincost == 0) break;
-        }
-        idx--;
-    }
-
-    if(place_success){
-        place_formal(f, best_row, best_site_idx);
-        f->index_to_placement_row = best_row_idx;
-        f->index_to_site = best_site_idx;
-    }
-
-    return place_success;
-}
-
-void placement::DeleteFlipFlop(ffi* f){
-    rows[f->index_to_placement_row]->delete_ff(f->coox, f->coox+f->type->size_x, f->type->size_y);
 }
