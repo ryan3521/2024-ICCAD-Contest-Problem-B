@@ -6,24 +6,21 @@
 #include <string>
 #include <unordered_map>
 
-
-
 using namespace std;
-
-
-
 
 class dieInfo{
     public:
         // design weight
-        double Alpha;
-        double Beta;
-        double Gamma;
-        double Lambda;
+        double Alpha;   // TNS
+        double Beta;    // Power
+        double Gamma;   // Area
+        double Lambda;  // Density
 
         // die size
         double die_width;
         double die_height;
+        double cenx;
+        double ceny;
 
 
         // displacement delay coefficient

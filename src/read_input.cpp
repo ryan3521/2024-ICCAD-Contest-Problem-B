@@ -41,6 +41,8 @@ void ReadInput(string filename, lib& LIB, inst& INST, dieInfo&  DIE, netlist& NL
     fin >> title;
     fin >> coox >> cooy;
     fin >> DIE.die_width >> DIE.die_height;
+    DIE.cenx = DIE.die_width/2;
+    DIE.ceny = DIE.die_height/2;
 
     // Read input pin
     if(PRINT_INFO) cout << "Reading input pin ..." << endl;
@@ -135,10 +137,14 @@ void ReadInput(string filename, lib& LIB, inst& INST, dieInfo&  DIE, netlist& NL
     }
 
     // Read bin info
+    double binWidth;
+    double binHeight;
     if(PRINT_INFO) cout << "Reading bin info ..." << endl;
-    fin >> title >> DIE.bin_width;
-    fin >> title >> DIE.bin_height;
+    fin >> title >> binWidth;
+    fin >> title >> binHeight;
     fin >> title >> DIE.bin_util;
+    DIE.bin_width  = binWidth*1;
+    DIE.bin_height = binHeight*1;
 
     // Read placement row info
     if(PRINT_INFO) cout << "Reading placement row info ..." << endl;

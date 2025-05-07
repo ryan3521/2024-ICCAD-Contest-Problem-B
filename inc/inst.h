@@ -40,6 +40,8 @@ class ffi{
         int size;
         string name;
         ffcell* type;
+        double idealCoox;
+        double idealCooy;
         double coox;
         double cooy;
         double cen_x;
@@ -53,19 +55,32 @@ class ffi{
 
         list<ffi*>* to_list;
         list<ffi*>::iterator it_pointer;
+        int index_to_bin_rowi;
+        int index_to_bin_colj;
         int index_to_placement_row;
         int index_to_site;
+
 
         block pseudo_block;
         list<se*>::iterator e_it;
         list<ffi*>::iterator x_track_list_it;
         list<ffi*>::iterator y_track_list_it;
         double dist_to_essential;
+        double distanceToDieCentoid;
         double cost;
-        list<ffi*> members;
         bool no_neighbor;
-        
-
+        list<ffi*> members;
+        bool isClustered;
+        double gain;
+        double membersAreaPlusPowerGain;
+        double displacement;
+        vector<double> bitsGain;
+        vector<double> bitsTimingDegradation;
+        vector<double> bitsD_TimingDegradation;
+        vector<double> bitsQ_TimingDegradation;
+        double timingDegradation;
+        double dpinsTimingDegradation;
+        double qpinsTimingDegradation;
 
         // member function
         ffi(string, double, double);
@@ -81,6 +96,9 @@ class ffi{
         void CalculateCost(double alpha, double beta, double gamma, double displacement_delay);
         void getCriticalPath(int mode, double displacement_delay); // mode 0: original critical path , mode 1: new critical path
         double get_timing_cost(double x, double y, double displacement_delay);
+        double CalculateTimingDegradation(double dispalcementDelay);
+        double CalculateGain(dieInfo* DIE);
+
 };
 
 class gatei{
@@ -99,6 +117,8 @@ class gatei{
         bool is_tracking;
         double min_cs; // smallest critical slack
         double criticalPath_HPWL;
+        double new_criticalPath_HPWL;
+        pin* criticalPin; // is gate input pin, match to the new criticalPath HPWL pin
 
 
         gatei(string, double, double);
@@ -110,7 +130,7 @@ class gatei{
         bool is_visited();
         double get_critical_slack();
         double getCriticalPath(int mode, double displacement_delay);
-
+        double UpdateAndCalculateSlack(pin* fromPin, double accHPWL, double displacementDelay); // accHPWL: accumulated HPWL
 };
 
 
@@ -128,12 +148,16 @@ class net{
 };
 
 class pin{ // pin prototype
+    private:
+
+       
     public:
         string name;
         net* to_net;        // net that current pin belongs to
         gatei* to_gate;     // gate that current pin belongs to
         ffi* to_ff;         // FF that current pin belongs to
         char pin_type;      // f: flip flop pin; g: gate pin; d: die pin;
+        bool isDpin;        // Only for pin type is f
         double coox;
         double cooy;
         bool io;            // Only for pin type is 'd', 0 stand for IN; 1 stand for OUT;
@@ -142,14 +166,14 @@ class pin{ // pin prototype
         double criticalPath_HPWL;
         // Below are the variable newed by your friend Yuri
         bool isVisited;
-
+        bool calculatingSlack;
         // Belongs to the new MBFF
         string new_name;
         ffi* to_new_ff;
         double new_coox;
         double new_cooy;
         double new_criticalPath_HPWL;
-
+        
 
         pin(){
             to_net  = NULL;
@@ -160,6 +184,7 @@ class pin{ // pin prototype
         }
 
         double CalTns(double new_coox, double new_cooy, bool is_D, ffcell* new_type, double coeff);
+        double UpdateAndCalculateSlack(double accHPWL, double displacementDelay);
 };
 
 
@@ -192,7 +217,7 @@ class inst{
         void add_inst(lib& LIB, string inst_name, string typename_, double coox, double cooy);
         void set_TSlack(string inst_name, string pin_name, double slack);
         void SlackDispense(dieInfo& DIE);
-        void CalCriticalPath();
+        void CalCriticalPath(double displacementDelay);
         void PrintFF();
         void PrintGate();
         void DebankAllFF(lib& LIB);

@@ -44,7 +44,7 @@ bool bin::add_cell(double coox, double cooy, double sizex, double sizey){
 
     if(remain_y > 0){
         if(up_bin == NULL) return false;
-        else success = up_bin->add_cell(coox, ymax, remain_x, remain_y);
+        else success = up_bin->add_cell(coox, ymax, cut_x, remain_y);
         if(success == false) return false;
     }
 
